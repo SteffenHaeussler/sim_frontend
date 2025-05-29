@@ -4,9 +4,9 @@ export DOCKER_BUILDKIT=1
 all: down build up test
 
 dev:
-	uv run streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+	uv run streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --logger.level=debug
 prod:
-	uv run streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+	uv run streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --logger.level=debug
 DEV: dev
 PROD:prod
 
