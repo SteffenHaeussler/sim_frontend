@@ -5,30 +5,27 @@ import uuid
 
 import httpx
 import streamlit as st
+import websockets
 from dotenv import load_dotenv
 from loguru import logger
 
 # Load .env file
 load_dotenv()
 
-API_BASE = os.getenv("agent_api_base")
+API_URL = os.getenv("agent_api_base") + os.getenv("agent_api_url")
 
-API_URL = API_BASE + os.getenv("agent_api_url")
+WS_BASE = os.getenv("agent_ws_base")
 
 
-async def listen_to_sse(session_id):
-    sse_url = f"{API_BASE}/sse/{session_id}"
-    timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
-
+async def listen_to_websocket(session_id):
+    ws_url = f"{WS_BASE}?session_id={session_id}"
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream("GET", sse_url) as response:
-                async for message in response.aiter_lines():
-                    # if line.startswith("data: "):
-                    #     message = line.removeprefix("data: ")
-                    st.write(f"{message}")
+        async with websockets.connect(ws_url) as websocket:
+            while True:
+                msg = await websocket.recv()
+                st.write(f"{msg}")
     except Exception as e:
-        logger.error(f"SSE error: {e}", exc_info=True)
+        logger.error(f"WebSocket error: {e}", exc_info=True)
 
 
 def trigger_event(session_id, question):
@@ -60,7 +57,7 @@ def main():
     if st.button("Answer question") and question:
         trigger_event(st.session_state.session_id, question)
 
-        asyncio.run(listen_to_sse(st.session_state.session_id))
+        asyncio.run(listen_to_websocket(st.session_state.session_id))
 
 
 if __name__ == "__main__":
