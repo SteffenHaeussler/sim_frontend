@@ -24,9 +24,34 @@ async def listen_to_sse(session_id):
         async with httpx.AsyncClient(timeout=timeout) as client:
             async with client.stream("GET", sse_url) as response:
                 async for message in response.aiter_lines():
-                    # if line.startswith("data: "):
-                    #     message = line.removeprefix("data: ")
-                    st.write(f"{message}")
+                    if message.startswith(": keep-alive"):
+                        continue
+
+                    if message.startswith("event: end"):
+                        return  # End the SSE connection
+
+                    # Check if message contains base64 image
+                    if message.startswith("data: "):
+                        message = message.replace("data: ", "")
+                    else:
+                        pass
+
+                    for _message in message.split("$%$%"):
+                        if _message.startswith("Plot:"):
+                            try:
+                                # Extract the base64 part after the comma
+                                base64_data = _message.split("Plot:")[1].strip()
+                                # Add data URI prefix for PNG image
+                                base64_data = f"data:image/png;base64,{base64_data}"
+                                # Display the image using the data URI
+                                st.image(base64_data)
+                            except Exception as e:
+                                logger.error(f"Error processing image: {e}")
+
+                        else:
+                            for m in _message.split("\n"):
+                                st.markdown(f"{m}")
+
     except Exception as e:
         logger.error(f"SSE error: {e}", exc_info=True)
 
