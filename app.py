@@ -5,55 +5,49 @@ import uuid
 
 import httpx
 import streamlit as st
+import websockets
 from dotenv import load_dotenv
 from loguru import logger
 
 # Load .env file
 load_dotenv()
 
-API_BASE = os.getenv("agent_api_base")
+API_URL = os.getenv("agent_api_base") + os.getenv("agent_api_url")
 
-API_URL = API_BASE + os.getenv("agent_api_url")
+WS_BASE = os.getenv("agent_ws_base")
 
 
-async def listen_to_sse(session_id):
-    sse_url = f"{API_BASE}/sse/{session_id}"
-    timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
-
+async def listen_to_websocket(session_id):
+    ws_url = f"{WS_BASE}?session_id={session_id}"
+    websocket = None
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream("GET", sse_url) as response:
-                async for message in response.aiter_lines():
-                    if message.startswith(": keep-alive"):
-                        continue
+        async with websockets.connect(ws_url) as websocket:
+            while True:
+                msg = await websocket.recv()
+                if msg.startswith("event: end"):
+                    await websocket.close(code=1000, reason="Normal Closure")
+                    break
+                if msg.startswith("data: "):
+                    msg = msg.replace("data: ", "")
+                    msg = msg.split("$%$%Plot:")
 
-                    if message.startswith("event: end"):
-                        return  # End the SSE connection
+                    for m in msg[0].split("\n"):
+                        st.markdown(f"{m}")
 
-                    # Check if message contains base64 image
-                    if message.startswith("data: "):
-                        message = message.replace("data: ", "")
-                    else:
-                        pass
-
-                    for _message in message.split("$%$%"):
-                        if _message.startswith("Plot:"):
-                            try:
-                                # Extract the base64 part after the comma
-                                base64_data = _message.split("Plot:")[1].strip()
-                                # Add data URI prefix for PNG image
-                                base64_data = f"data:image/png;base64,{base64_data}"
-                                # Display the image using the data URI
-                                st.image(base64_data)
-                            except Exception as e:
-                                logger.error(f"Error processing image: {e}")
-
-                        else:
-                            for m in _message.split("\n"):
-                                st.markdown(f"{m}")
-
+                    if len(msg) > 1:
+                        base64_data = msg[1].strip()
+                        base64_data = f"data:image/png;base64,{base64_data}"
+                        st.image(base64_data)
+                else:
+                    pass
     except Exception as e:
-        logger.error(f"SSE error: {e}", exc_info=True)
+        logger.error(f"WebSocket error: {e}", exc_info=True)
+    finally:
+        if websocket is not None:
+            try:
+                await websocket.close(code=1000, reason="Cleanup Closure")
+            except Exception as close_error:
+                logger.warning(f"Error during websocket close: {close_error}")
 
 
 def trigger_event(session_id, question):
@@ -85,7 +79,7 @@ def main():
     if st.button("Answer question") and question:
         trigger_event(st.session_state.session_id, question)
 
-        asyncio.run(listen_to_sse(st.session_state.session_id))
+        asyncio.run(listen_to_websocket(st.session_state.session_id))
 
 
 if __name__ == "__main__":
