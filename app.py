@@ -17,7 +17,7 @@ API_URL = os.getenv("agent_api_base") + os.getenv("agent_api_url")
 WS_BASE = os.getenv("agent_ws_base")
 
 
-async def listen_to_websocket(session_id):
+async def listen_to_websocket(session_id, status_placeholder):
     ws_url = f"{WS_BASE}?session_id={session_id}"
     websocket = None
     try:
@@ -27,7 +27,14 @@ async def listen_to_websocket(session_id):
                 if msg.startswith("event: end"):
                     await websocket.close(code=1000, reason="Normal Closure")
                     break
-                if msg.startswith("data: "):
+                elif msg.startswith("event:"):
+                    # Handle status updates - update placeholder directly
+                    status_text = msg.replace("event: ", "")
+                    if status_text.strip():
+                        status_placeholder.info(f"Status: {status_text.strip()}")
+                        print(f"Status Update: {status_text.strip()}")
+                        logger.info(f"Status Update: {status_text.strip()}")
+                elif msg.startswith("data: "):
                     msg = msg.replace("data: ", "")
                     msg = msg.split("$%$%Plot:")
 
@@ -72,14 +79,25 @@ def trigger_event(session_id, question):
 def main():
     st.title("API-based Agent")
 
-    st.session_state.session_id = uuid.uuid4()
+    # Initialize session state
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = uuid.uuid4()
+    if "latest_status" not in st.session_state:
+        st.session_state.latest_status = "Ready"
+
     st.write(f"Session ID: `{st.session_state.session_id}`")
+
+    # Create status placeholder
+    status_placeholder = st.empty()
+    status_placeholder.info(f"Status: {st.session_state.latest_status}")
 
     question = st.text_input("Enter your question:", "")
     if st.button("Answer question") and question:
         trigger_event(st.session_state.session_id, question)
 
-        asyncio.run(listen_to_websocket(st.session_state.session_id))
+        asyncio.run(
+            listen_to_websocket(st.session_state.session_id, status_placeholder)
+        )
 
 
 if __name__ == "__main__":
