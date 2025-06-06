@@ -24,16 +24,17 @@ async def listen_to_websocket(session_id, status_placeholder):
         async with websockets.connect(ws_url) as websocket:
             while True:
                 msg = await websocket.recv()
-                if msg.startswith("event: end"):
-                    await websocket.close(code=1000, reason="Normal Closure")
-                    break
-                elif msg.startswith("event:"):
+                if msg.startswith("event:"):
                     # Handle status updates - update placeholder directly
                     status_text = msg.replace("event: ", "")
                     if status_text.strip():
                         status_placeholder.info(f"Status: {status_text.strip()}")
                         print(f"Status Update: {status_text.strip()}")
                         logger.info(f"Status Update: {status_text.strip()}")
+
+                if msg.startswith("event: end"):
+                    await websocket.close(code=1000, reason="Normal Closure")
+                    break
                 elif msg.startswith("data: "):
                     msg = msg.replace("data: ", "")
                     msg = msg.split("$%$%Plot:")
