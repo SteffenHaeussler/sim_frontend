@@ -1,0 +1,15 @@
+[DEV]
+CONFIG_NAME = "DEV"
+DEBUG = true
+
+[PROD]
+CONFIG_NAME = "PROD"
+DEBUG = false
+
+[STAGE]
+CONFIG_NAME = "STAGE"
+DEBUG = false
+
+[TEST]
+CONFIG_NAME = "TEST"
+DEBUG = true
