@@ -4,10 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-**Local Development:**
-- `make dev` - Run Streamlit app locally on port 8501 with debug logging
-- `make prod` - Run Streamlit app in production mode
-- `uv run streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --logger.level=debug`
+**Backend API Development:**
+- `make dev` - Run FastAPI backend in development mode on port 5055 with debug logging
+- `make prod` - Run FastAPI backend in production mode with 2 workers
+- `uv run python -m uvicorn src.app.main:app --host 0.0.0.0 --port 5055 --workers 1 --log-level debug`
+
+**Streamlit Frontend Development:**
+- `uv run streamlit run streamlit/app.py --server.port=8501 --server.address=0.0.0.0 --logger.level=debug`
 
 **Docker Development:**
 - `make build` - Build Docker image
@@ -17,12 +20,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-This is a Streamlit-based frontend that communicates with an external agent API via WebSocket and SSE (Server-Sent Events) connections.
+This is a dual-component application with both a FastAPI backend and Streamlit frontend that communicates with external agent APIs.
 
-**Core Components:**
-- `app.py` - Main WebSocket-based implementation with image support
-- `app_sse.py` - SSE-based implementation with image support  
-- `app_ws.py` - Basic WebSocket implementation without image parsing
+**Backend Components (`src/app/`):**
+- `main.py` - FastAPI application entry point with middleware and routing
+- `core/` - Core API functionality and routing
+- `v1/` - Version 1 API endpoints
+- `config.py` - Application configuration management
+- `logging.py` - Logging setup and configuration
+
+**Frontend Components (`streamlit/`):**
+- `app.py` - Main WebSocket-based Streamlit app with image support
+- `app_sse.py` - SSE-based Streamlit implementation with image support  
+- `app_ws.py` - Basic WebSocket Streamlit implementation without image parsing
 
 **Communication Flow:**
 1. User enters question in Streamlit UI
@@ -36,4 +46,4 @@ This is a Streamlit-based frontend that communicates with an external agent API 
 - Python 3.12+ required
 
 **Image Handling:**
-The app parses special message format `$%$%Plot:base64data` to extract and display images inline with text responses.
+The Streamlit apps parse special message format `$%$%Plot:base64data` to extract and display images inline with text responses.
