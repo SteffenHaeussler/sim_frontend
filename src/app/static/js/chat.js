@@ -26,8 +26,12 @@ class ChatApp {
         this.logoButton = document.querySelector('.icon-item.logo');
         this.iconBar = document.querySelector('.icon-bar');
         this.themeToggleButton = document.getElementById('theme-toggle-btn');
+        this.askAgentButton = document.getElementById('ask-agent-btn');
+        this.lookupServiceButton = document.getElementById('lookup-service-btn');
+        this.currentActiveService = 'ask-agent'; // Default to ask-agent
         this.originalPlaceholder = this.questionInput.placeholder;
         this.initializeTheme();
+        this.setActiveService(this.currentActiveService);
     }
 
     setupEventListeners() {
@@ -35,6 +39,8 @@ class ChatApp {
         this.newSessionButton.addEventListener('click', () => this.handleNewSession());
         this.logoButton.addEventListener('click', () => this.toggleIconBar());
         this.themeToggleButton.addEventListener('click', () => this.toggleTheme());
+        this.askAgentButton.addEventListener('click', () => this.setActiveService('ask-agent'));
+        this.lookupServiceButton.addEventListener('click', () => this.setActiveService('lookup-service'));
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.handleSendMessage();
@@ -186,14 +192,42 @@ class ChatApp {
     }
 
     async triggerEvent(question) {
-        const url = new URL('/answer', window.location.origin);
-        url.searchParams.append('question', question);
-
-        const response = await fetch(url.toString());
-        const data = await response.json();
-        this.sessionId = data.session_id;
-        this.updateSessionId();
-        return data;
+        let endpoint;
+        
+        if (this.currentActiveService === 'lookup-service') {
+            // Use internal health service for lookup
+            endpoint = '/health';
+        } else {
+            // Default to ask-agent endpoint
+            endpoint = '/answer';
+        }
+        
+        const url = new URL(endpoint, window.location.origin);
+        
+        if (this.currentActiveService === 'lookup-service') {
+            // For health endpoint, make a simple GET request
+            const response = await fetch(url.toString());
+            const data = await response.json();
+            
+            // Create a mock session for health service
+            this.sessionId = this.generateSessionId();
+            this.updateSessionId();
+            
+            // Add health response as a message
+            this.addMessage(`Health Status: ${data.status || 'OK'}`, false, false);
+            this.updateStatus('Ready');
+            this.sendButton.disabled = false;
+            
+            return data;
+        } else {
+            // Original ask-agent logic
+            url.searchParams.append('question', question);
+            const response = await fetch(url.toString());
+            const data = await response.json();
+            this.sessionId = data.session_id;
+            this.updateSessionId();
+            return data;
+        }
     }
 
     async connectWebSocket() {
@@ -253,7 +287,11 @@ class ChatApp {
 
         try {
             await this.triggerEvent(question);
-            await this.connectWebSocket();
+            
+            // Only connect WebSocket for ask-agent service
+            if (this.currentActiveService === 'ask-agent') {
+                await this.connectWebSocket();
+            }
         } catch (error) {
             console.error('Error:', error);
             this.updateStatus('Error');
@@ -336,6 +374,24 @@ class ChatApp {
         localStorage.setItem('theme', newTheme);
         
         console.log(`Theme switched to: ${newTheme}`);
+    }
+
+    setActiveService(service) {
+        // Remove active class from all service buttons
+        this.askAgentButton.classList.remove('active');
+        this.lookupServiceButton.classList.remove('active');
+        
+        // Add active class to selected service
+        if (service === 'ask-agent') {
+            this.askAgentButton.classList.add('active');
+        } else if (service === 'lookup-service') {
+            this.lookupServiceButton.classList.add('active');
+        }
+        
+        // Update current active service
+        this.currentActiveService = service;
+        
+        console.log(`Active service set to: ${service}`);
     }
 }
 
