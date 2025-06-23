@@ -22,16 +22,29 @@ class ChatApp {
         this.messagesElement = document.getElementById('messages');
         this.questionInput = document.getElementById('question');
         this.sendButton = document.getElementById('send-btn');
+        this.newSessionButton = document.getElementById('new-session-btn');
+        this.logoButton = document.querySelector('.icon-item.logo');
+        this.iconBar = document.querySelector('.icon-bar');
         this.originalPlaceholder = this.questionInput.placeholder;
     }
 
     setupEventListeners() {
         this.sendButton.addEventListener('click', () => this.handleSendMessage());
+        this.newSessionButton.addEventListener('click', () => this.handleNewSession());
+        this.logoButton.addEventListener('click', () => this.toggleIconBar());
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.handleSendMessage();
             }
         });
+        
+        // Add click listeners to template items
+        document.querySelectorAll('.template-text').forEach(template => {
+            template.addEventListener('click', () => this.handleTemplateClick(template));
+        });
+        
+        // Add click listeners to icon labels
+        document.querySelector('#new-session-btn .icon-label').addEventListener('click', () => this.handleNewSession());
     }
 
     updateSessionId() {
@@ -242,6 +255,47 @@ class ChatApp {
             this.updateStatus('Error');
             this.sendButton.disabled = false;
         }
+    }
+
+    handleNewChat() {
+        // Generate new session ID
+        this.sessionId = this.generateSessionId();
+        this.updateSessionId();
+        
+        // Clear all messages
+        this.messagesElement.innerHTML = '';
+        
+        // Clear input field
+        this.questionInput.value = '';
+        
+        // Reset status
+        this.updateStatus('Ready');
+        
+        // Close any existing WebSocket connection
+        if (this.websocket) {
+            this.websocket.close();
+            this.websocket = null;
+        }
+        
+        // Re-enable send button
+        this.sendButton.disabled = false;
+        
+        console.log('New chat started with session ID:', this.sessionId);
+    }
+
+    handleNewSession() {
+        // Same functionality as handleNewChat
+        this.handleNewChat();
+    }
+
+    toggleIconBar() {
+        this.iconBar.classList.toggle('expanded');
+    }
+
+    handleTemplateClick(template) {
+        const templateText = template.textContent.trim();
+        this.questionInput.value = templateText;
+        this.questionInput.focus();
     }
 }
 
