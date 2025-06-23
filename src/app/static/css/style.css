@@ -143,15 +143,20 @@ body {
     padding: 0;
     background: none;
     border: none;
-    max-width: 240px;
+    border-radius: 6px;
+    max-width: 220px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
 }
 
 .template-text:hover {
-    color: var(--text-tertiary);
+    color: #1f2937 !important;
+    background-color: #e5e7eb !important;
+    border-color: #d1d5db !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 .icon-item {
