@@ -8,7 +8,7 @@ body {
 }
 
 .app-layout {
-    display: flex;
+    position: relative;
     width: 100%;
     height: 100vh;
 }
@@ -19,9 +19,19 @@ body {
     border-right: 1px solid #e5e7eb;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     padding: 15px 6px;
     gap: 4px;
+    transition: width 0.3s ease;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 10;
+}
+
+.icon-bar.expanded {
+    width: 120px;
 }
 
 .icon-item {
@@ -43,13 +53,12 @@ body {
 }
 
 .icon-item.logo {
-    cursor: default;
     background-color: #f3f4f6;
 }
 
 .icon-item.logo:hover {
-    transform: none;
-    background-color: #f3f4f6;
+    background-color: #e5e7eb;
+    transform: scale(1.05);
 }
 
 .icon-item.logo {
@@ -74,10 +83,12 @@ body {
 }
 
 .main-area {
-    flex: 1;
+    width: 100%;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    min-width: 0;
+    margin-left: 44px;
+    position: relative;
 }
 
 .container {

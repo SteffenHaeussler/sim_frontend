@@ -23,12 +23,15 @@ class ChatApp {
         this.questionInput = document.getElementById('question');
         this.sendButton = document.getElementById('send-btn');
         this.newSessionButton = document.getElementById('new-session-btn');
+        this.logoButton = document.querySelector('.icon-item.logo');
+        this.iconBar = document.querySelector('.icon-bar');
         this.originalPlaceholder = this.questionInput.placeholder;
     }
 
     setupEventListeners() {
         this.sendButton.addEventListener('click', () => this.handleSendMessage());
         this.newSessionButton.addEventListener('click', () => this.handleNewSession());
+        this.logoButton.addEventListener('click', () => this.toggleIconBar());
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.handleSendMessage();
@@ -275,6 +278,10 @@ class ChatApp {
     handleNewSession() {
         // Same functionality as handleNewChat
         this.handleNewChat();
+    }
+
+    toggleIconBar() {
+        this.iconBar.classList.toggle('expanded');
     }
 }
 
