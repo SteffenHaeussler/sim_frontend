@@ -2,7 +2,7 @@ class ChatApp {
     constructor() {
         this.sessionId = this.generateSessionId();
         this.websocket = null;
-        
+
         this.initializeElements();
         this.setupEventListeners();
         this.updateSessionId();
@@ -51,7 +51,7 @@ class ChatApp {
     updateStatus(message) {
         // Replace placeholder text with spinner + status when processing
         if (message !== 'Ready') {
-            this.questionInput.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' + 
+            this.questionInput.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' +
                 encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="6.28" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 6 6;360 6 6" dur="1s" repeatCount="indefinite"/></circle></svg>') + '")';
             this.questionInput.style.backgroundRepeat = 'no-repeat';
             this.questionInput.style.backgroundPosition = '10px center';
@@ -93,31 +93,31 @@ class ChatApp {
         if (!isImage && !isQuestion) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
-            
+
             const buttonRow = document.createElement('div');
             buttonRow.className = 'button-row';
-            
+
             // Copy button
             const copyBtn = document.createElement('button');
             copyBtn.className = 'action-btn copy-btn';
             copyBtn.innerHTML = '<img src="/static/icons/copy.svg" alt="Copy">';
             copyBtn.title = 'Copy to clipboard';
             copyBtn.onclick = () => this.copyMessage(content, copyBtn);
-            
+
             // Thumbs up button
             const thumbsUpBtn = document.createElement('button');
             thumbsUpBtn.className = 'action-btn thumbs-up-btn';
             thumbsUpBtn.innerHTML = '<img src="/static/icons/thumbs-up.svg" alt="Good">';
             thumbsUpBtn.title = 'Good response';
             thumbsUpBtn.onclick = () => this.rateMessage(content, 'up', thumbsUpBtn, thumbsDownBtn, actionsDiv);
-            
+
             // Thumbs down button
             const thumbsDownBtn = document.createElement('button');
             thumbsDownBtn.className = 'action-btn thumbs-down-btn';
             thumbsDownBtn.innerHTML = '<img src="/static/icons/thumbs-down.svg" alt="Bad">';
             thumbsDownBtn.title = 'Poor response';
             thumbsDownBtn.onclick = () => this.rateMessage(content, 'down', thumbsDownBtn, thumbsUpBtn, actionsDiv);
-            
+
             buttonRow.appendChild(copyBtn);
             buttonRow.appendChild(thumbsUpBtn);
             buttonRow.appendChild(thumbsDownBtn);
@@ -133,9 +133,9 @@ class ChatApp {
         try {
             await navigator.clipboard.writeText(content);
             console.log('Message copied to clipboard');
-            
+
             // Show visual feedback - permanent
-            button.innerHTML = '<img src="/static/icons/check.svg" alt="Copied">';
+            button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
             button.disabled = true;
             button.title = 'Copied to clipboard';
         } catch (err) {
@@ -146,25 +146,25 @@ class ChatApp {
     rateMessage(content, rating, button, otherButton, actionsDiv) {
         console.log(`Message rated as: ${rating}`);
         console.log('Content:', content);
-        
+
         // Show visual feedback - permanent
-        const activeIcon = rating === 'up' ? 
-            '/static/icons/thumbs-up-active.svg' : 
+        const activeIcon = rating === 'up' ?
+            '/static/icons/thumbs-up-active.svg' :
             '/static/icons/thumbs-down-active.svg';
-        
+
         button.innerHTML = `<img src="${activeIcon}" alt="${rating}">`;
         button.disabled = true;
         button.title = `Rated as ${rating === 'up' ? 'good' : 'poor'}`;
-        
+
         // Hide the opposite button
         otherButton.style.display = 'none';
-        
+
         // Add thank you message below the button row
         const thankYouMsg = document.createElement('div');
         thankYouMsg.className = 'thank-you-message';
         thankYouMsg.textContent = 'Thank you!';
         actionsDiv.appendChild(thankYouMsg);
-        
+
         // You can implement actual rating logic here (API call, etc.)
     }
 
@@ -186,17 +186,17 @@ class ChatApp {
 
         const wsUrl = `${this.wsBase}?session_id=${this.sessionId}`;
         this.websocket = new WebSocket(wsUrl);
-        
+
         this.websocket.onmessage = (event) => {
             const message = event.data;
-            
+
             if (message.startsWith("event: ")) {
                 // Handle status updates
                 const statusText = message.replace("event: ", "").trim();
                 if (statusText) {
                     this.updateStatus(statusText);
                 }
-                
+
                 // Check for end event
                 if (message.startsWith("event: end")) {
                     this.updateStatus('Ready');
