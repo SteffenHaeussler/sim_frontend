@@ -2,7 +2,6 @@ class ChatApp {
     constructor() {
         this.sessionId = this.generateSessionId();
         this.websocket = null;
-        this.isConnected = false;
         
         this.initializeElements();
         this.setupEventListeners();
@@ -19,11 +18,11 @@ class ChatApp {
     }
 
     initializeElements() {
-        this.sessionIdElement = document.getElementById('session-id');
-        this.statusElement = document.getElementById('status');
+        this.sessionIdBottomElement = document.getElementById('session-id-bottom');
         this.messagesElement = document.getElementById('messages');
         this.questionInput = document.getElementById('question');
         this.sendButton = document.getElementById('send-btn');
+        this.originalPlaceholder = this.questionInput.placeholder;
     }
 
     setupEventListeners() {
@@ -36,55 +35,47 @@ class ChatApp {
     }
 
     updateSessionId() {
-        this.sessionIdElement.textContent = this.sessionId;
+        this.sessionIdBottomElement.textContent = this.sessionId;
     }
 
     async loadConfig() {
         try {
-            // Load environment variables from backend
             const response = await fetch('/config');
             const config = await response.json();
-            console.log('Loaded config:', config);
-            
-            this.apiUrl = config.agent_api_base + config.agent_api_url;
             this.wsBase = config.agent_ws_base;
-            
-            console.log('API URL:', this.apiUrl);
-            console.log('WebSocket Base:', this.wsBase);
-            
-            if (!this.apiUrl || this.apiUrl === 'undefined' || this.apiUrl === 'nullnull') {
-                throw new Error('Invalid API URL configuration');
-            }
         } catch (error) {
             console.error('Failed to load configuration:', error);
-            this.updateStatus('Error: Failed to load configuration', 'error');
         }
     }
 
-    updateStatus(message, type = 'info') {
-        this.statusElement.textContent = `Status: ${message}`;
-        this.statusElement.className = `status ${type}`;
+    updateStatus(message) {
+        // Replace placeholder text with spinner + status when processing
+        if (message !== 'Ready') {
+            this.questionInput.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' + 
+                encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="6.28" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 6 6;360 6 6" dur="1s" repeatCount="indefinite"/></circle></svg>') + '")';
+            this.questionInput.style.backgroundRepeat = 'no-repeat';
+            this.questionInput.style.backgroundPosition = '10px center';
+            this.questionInput.style.paddingLeft = '30px';
+            this.questionInput.placeholder = message;
+        } else {
+            this.questionInput.style.backgroundImage = 'none';
+            this.questionInput.style.paddingLeft = '10px';
+            this.questionInput.placeholder = this.originalPlaceholder;
+        }
     }
 
-    addMessage(content, isImage = false) {
+    addMessage(content, isImage = false, isQuestion = false) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message';
+        messageDiv.className = isQuestion ? 'message question' : 'message';
 
         if (isImage) {
             const img = document.createElement('img');
             img.src = content;
-            img.alt = 'Generated Plot';
             messageDiv.appendChild(img);
         } else {
-            // Split content by lines and create paragraphs
-            const lines = content.split('\n');
-            lines.forEach(line => {
-                if (line.trim()) {
-                    const p = document.createElement('p');
-                    p.textContent = line;
-                    messageDiv.appendChild(p);
-                }
-            });
+            const p = document.createElement('p');
+            p.textContent = content;
+            messageDiv.appendChild(p);
         }
 
         this.messagesElement.appendChild(messageDiv);
@@ -92,41 +83,14 @@ class ChatApp {
     }
 
     async triggerEvent(question) {
-        try {
-            // Make request to local FastAPI backend /answer endpoint
-            const url = new URL('/answer', window.location.origin);
-            url.searchParams.append('question', question);
+        const url = new URL('/answer', window.location.origin);
+        url.searchParams.append('question', question);
 
-            console.log('Triggering request to:', url.toString());
-
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                signal: AbortSignal.timeout(2000)
-            });
-
-            console.log('Trigger response status:', response.status);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Trigger response data:', data);
-                
-                // Update session ID to match the one used by the backend
-                this.sessionId = data.session_id;
-                this.updateSessionId();
-                
-                return data;
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-        } catch (error) {
-            console.error('Trigger request failed:', error);
-            this.updateStatus('Failed to trigger request', 'error');
-            throw error;
-        }
+        const response = await fetch(url.toString());
+        const data = await response.json();
+        this.sessionId = data.session_id;
+        this.updateSessionId();
+        return data;
     }
 
     async connectWebSocket() {
@@ -135,115 +99,66 @@ class ChatApp {
         }
 
         const wsUrl = `${this.wsBase}?session_id=${this.sessionId}`;
+        this.websocket = new WebSocket(wsUrl);
         
-        try {
-            this.websocket = new WebSocket(wsUrl);
+        this.websocket.onmessage = (event) => {
+            const message = event.data;
             
-            this.websocket.onopen = () => {
-                this.isConnected = true;
-                this.updateStatus('Connected to WebSocket', 'info');
-            };
+            if (message.startsWith("event: ")) {
+                // Handle status updates
+                const statusText = message.replace("event: ", "").trim();
+                if (statusText) {
+                    this.updateStatus(statusText);
+                }
+                
+                // Check for end event
+                if (message.startsWith("event: end")) {
+                    this.updateStatus('Ready');
+                    if (this.websocket) {
+                        this.websocket.close();
+                    }
+                }
+            } else if (message.startsWith("data: ")) {
+                const data = message.replace("data: ", "");
+                const parts = data.split("$%$%Plot:");
 
-            this.websocket.onmessage = (event) => {
-                this.handleWebSocketMessage(event.data);
-            };
+                if (parts[0].trim()) {
+                    this.addMessage(parts[0].trim());
+                }
 
-            this.websocket.onclose = () => {
-                this.isConnected = false;
-                this.updateStatus('WebSocket disconnected', 'ready');
-                this.sendButton.disabled = false;
-            };
-
-            this.websocket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                this.updateStatus('WebSocket error occurred', 'error');
-                this.sendButton.disabled = false;
-            };
-
-        } catch (error) {
-            console.error('Failed to connect WebSocket:', error);
-            this.updateStatus('Failed to connect WebSocket', 'error');
-            this.sendButton.disabled = false;
-        }
-    }
-
-    handleWebSocketMessage(message) {
-        console.log('Received WebSocket message:', message);
-        
-        if (message.startsWith("event:")) {
-            // Handle status updates - exactly like Streamlit version
-            const statusText = message.replace("event: ", "").trim();
-            if (statusText) {
-                this.updateStatus(statusText, 'info');
-                console.log('Status Update:', statusText);
-            }
-
-            // Check for end event
-            if (message.startsWith("event: end")) {
-                this.updateStatus('Processing complete', 'ready');
-                if (this.websocket) {
-                    this.websocket.close();
+                if (parts.length > 1) {
+                    const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                    this.addMessage(imageData, true);
                 }
             }
-        } else if (message.startsWith("data: ")) {
-            // Handle data messages
-            const data = message.replace("data: ", "");
-            const parts = data.split("$%$%Plot:");
+        };
 
-            // Display text content
-            if (parts[0].trim()) {
-                this.addMessage(parts[0].trim());
-            }
-
-            // Display image if present
-            if (parts.length > 1) {
-                const base64Data = parts[1].trim();
-                const imageData = `data:image/png;base64,${base64Data}`;
-                this.addMessage(imageData, true);
-            }
-        }
+        this.websocket.onclose = () => {
+            this.updateStatus('Ready');
+            this.sendButton.disabled = false;
+        };
     }
 
     async handleSendMessage() {
         const question = this.questionInput.value.trim();
         if (!question) return;
 
-        // Disable send button and show loading state
         this.sendButton.disabled = true;
-        this.sendButton.innerHTML = '<span class="loading"></span> Sending...';
-        
-        // Clear input
         this.questionInput.value = '';
-
-        // Add user question to chat
-        this.addMessage(`Question: ${question}`);
-
-        // Update status to show processing
-        this.updateStatus('Sending question to agent...', 'processing');
+        this.addMessage(`Question: ${question}`, false, true);
+        this.updateStatus('Processing...');
 
         try {
-            // Trigger the API call
             await this.triggerEvent(question);
-            
-            // Update status
-            this.updateStatus('Connecting to response stream...', 'info');
-            
-            // Connect to WebSocket to listen for responses
             await this.connectWebSocket();
-            
         } catch (error) {
-            console.error('Error sending message:', error);
-            this.updateStatus('Error sending message', 'error');
+            console.error('Error:', error);
+            this.updateStatus('Error');
             this.sendButton.disabled = false;
-            this.sendButton.textContent = 'Answer question';
         }
-
-        // Reset button text (will be re-enabled when WebSocket closes)
-        this.sendButton.textContent = 'Answer question';
     }
 }
 
-// Initialize the chat app when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     new ChatApp();
 });

@@ -3,31 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API-based Agent</title>
+    <title>Chat</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>API-based Agent</h1>
-        
-        <div class="session-info">
-            <p>Session ID: <code id="session-id"></code></p>
-        </div>
-        
-        <div class="status-container">
-            <div id="status" class="status">Status: Ready</div>
-        </div>
+        <h1>Chat</h1>
         
         <div class="chat-container">
             <div id="messages" class="messages"></div>
         </div>
         
         <div class="input-container">
-            <input type="text" id="question" placeholder="Enter your question..." />
-            <button id="send-btn">Answer question</button>
+            <input type="text" id="question" placeholder="Ask your question..." />
+            <button id="send-btn">Send</button>
+        </div>
+        
+        <div class="bottom-session">
+            Session: <span id="session-id-bottom"></span>
         </div>
     </div>
 
+    <!-- Add markdown parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <script src="{{ url_for('static', path='/js/chat.js') }}"></script>
 </body>
 </html>
