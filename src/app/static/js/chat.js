@@ -37,6 +37,11 @@ class ChatApp {
                 this.handleSendMessage();
             }
         });
+        
+        // Add click listeners to template items
+        document.querySelectorAll('.template-text').forEach(template => {
+            template.addEventListener('click', () => this.handleTemplateClick(template));
+        });
     }
 
     updateSessionId() {
@@ -282,6 +287,12 @@ class ChatApp {
 
     toggleIconBar() {
         this.iconBar.classList.toggle('expanded');
+    }
+
+    handleTemplateClick(template) {
+        const templateText = template.textContent.trim();
+        this.questionInput.value = templateText;
+        this.questionInput.focus();
     }
 }
 

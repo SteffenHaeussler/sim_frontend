@@ -50,6 +50,38 @@ body {
     opacity: 1;
 }
 
+.template-list {
+    margin-top: 20px;
+    margin-left: 6px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.icon-bar.expanded .template-list {
+    opacity: 1;
+}
+
+.template-header {
+    font-size: 12px;
+    font-weight: bold;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.template-text {
+    font-size: 14px;
+    color: #374151;
+    margin-bottom: 8px;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    border: none;
+    max-width: 140px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .icon-item {
     width: 32px;
     height: 32px;
@@ -63,6 +95,7 @@ body {
     flex-shrink: 0;
     position: relative;
 }
+
 
 .icon-item:hover {
     background-color: #e5e7eb;
