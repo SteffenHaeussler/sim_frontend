@@ -14,7 +14,7 @@ body {
 }
 
 .icon-bar {
-    width: 44px;
+    width: 32px;
     background-color: #f8f9fa;
     border-right: 1px solid #e5e7eb;
     display: flex;
@@ -31,7 +31,23 @@ body {
 }
 
 .icon-bar.expanded {
-    width: 120px;
+    width: 140px;
+}
+
+.icon-label {
+    position: absolute;
+    left: 44px;
+    font-size: 14px;
+    color: #374151;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    line-height: 32px;
+}
+
+.icon-bar.expanded .icon-label {
+    opacity: 1;
 }
 
 .icon-item {
@@ -45,6 +61,7 @@ body {
     transition: all 0.2s ease;
     background-color: transparent;
     flex-shrink: 0;
+    position: relative;
 }
 
 .icon-item:hover {
