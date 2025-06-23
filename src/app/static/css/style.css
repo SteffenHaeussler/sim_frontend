@@ -48,6 +48,30 @@ body {
 
 .icon-bar.expanded .icon-label {
     opacity: 1;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.icon-bar.expanded .icon-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 140px;
+    height: 32px;
+    background-color: transparent;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    z-index: -1;
+}
+
+.icon-bar.expanded .icon-item:hover::before {
+    background-color: #e5e7eb;
+}
+
+.icon-bar.expanded .icon-item:hover {
+    transform: none;
+    background-color: transparent;
 }
 
 .template-list {

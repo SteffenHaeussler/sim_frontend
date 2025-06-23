@@ -42,6 +42,9 @@ class ChatApp {
         document.querySelectorAll('.template-text').forEach(template => {
             template.addEventListener('click', () => this.handleTemplateClick(template));
         });
+        
+        // Add click listeners to icon labels
+        document.querySelector('#new-session-btn .icon-label').addEventListener('click', () => this.handleNewSession());
     }
 
     updateSessionId() {
