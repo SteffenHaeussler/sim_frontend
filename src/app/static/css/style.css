@@ -179,6 +179,23 @@ body {
     transform: scale(1.05);
 }
 
+.icon-item.active {
+    background-color: var(--accent-primary);
+    color: white;
+}
+
+.icon-item.active .icon-svg {
+    filter: brightness(0) invert(1);
+}
+
+.icon-item.active .icon-label {
+    color: white !important;
+}
+
+.icon-bar.expanded .icon-item.active::before {
+    background-color: var(--accent-primary) !important;
+}
+
 .icon-item.logo {
     background-color: var(--hover-secondary);
 }
