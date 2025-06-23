@@ -22,11 +22,13 @@ class ChatApp {
         this.messagesElement = document.getElementById('messages');
         this.questionInput = document.getElementById('question');
         this.sendButton = document.getElementById('send-btn');
+        this.newSessionButton = document.getElementById('new-session-btn');
         this.originalPlaceholder = this.questionInput.placeholder;
     }
 
     setupEventListeners() {
         this.sendButton.addEventListener('click', () => this.handleSendMessage());
+        this.newSessionButton.addEventListener('click', () => this.handleNewSession());
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.handleSendMessage();
@@ -242,6 +244,37 @@ class ChatApp {
             this.updateStatus('Error');
             this.sendButton.disabled = false;
         }
+    }
+
+    handleNewChat() {
+        // Generate new session ID
+        this.sessionId = this.generateSessionId();
+        this.updateSessionId();
+        
+        // Clear all messages
+        this.messagesElement.innerHTML = '';
+        
+        // Clear input field
+        this.questionInput.value = '';
+        
+        // Reset status
+        this.updateStatus('Ready');
+        
+        // Close any existing WebSocket connection
+        if (this.websocket) {
+            this.websocket.close();
+            this.websocket = null;
+        }
+        
+        // Re-enable send button
+        this.sendButton.disabled = false;
+        
+        console.log('New chat started with session ID:', this.sessionId);
+    }
+
+    handleNewSession() {
+        // Same functionality as handleNewChat
+        this.handleNewChat();
     }
 }
 

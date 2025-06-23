@@ -7,18 +7,43 @@
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div class="chat-container">
-            <div id="messages" class="messages"></div>
+    <div class="app-layout">
+        <div class="icon-bar">
+            <div class="icon-item logo">
+                <img src="/static/icons/logo.svg" alt="Logo" class="icon-svg">
+            </div>
+            <div class="icon-item" id="new-session-btn">
+                <img src="/static/icons/new-session.svg" alt="New Session" class="icon-svg">
+            </div>
+            <div class="icon-item" id="ask-agent-btn">
+                <img src="/static/icons/ask-agent.svg" alt="Ask Agent" class="icon-svg">
+            </div>
+            <div class="icon-item" id="lookup-service-btn">
+                <img src="/static/icons/lookup-service.svg" alt="Lookup Service" class="icon-svg">
+            </div>
+            <div class="icon-item" id="search-btn">
+                <img src="/static/icons/search.svg" alt="Search" class="icon-svg">
+            </div>
+            <div class="icon-item" id="library-btn">
+                <img src="/static/icons/library.svg" alt="Library" class="icon-svg">
+            </div>
         </div>
         
-        <div class="input-container">
-            <input type="text" id="question" placeholder="Ask your question..." />
-            <button id="send-btn">Send</button>
-        </div>
-        
-        <div class="bottom-session">
-            Session: <span id="session-id-bottom"></span>
+        <div class="main-area">
+            <div class="container">
+                <div class="chat-container">
+                    <div id="messages" class="messages"></div>
+                </div>
+                
+                <div class="input-container">
+                    <input type="text" id="question" placeholder="Ask your question..." />
+                    <button id="send-btn">Send</button>
+                </div>
+                
+                <div class="bottom-session">
+                    Session: <span id="session-id-bottom"></span>
+                </div>
+            </div>
         </div>
     </div>
 

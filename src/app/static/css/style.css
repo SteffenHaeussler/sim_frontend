@@ -5,16 +5,89 @@ body {
     padding: 0;
     height: 100vh;
     display: flex;
+}
+
+.app-layout {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+}
+
+.icon-bar {
+    width: 44px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
     flex-direction: column;
+    align-items: center;
+    padding: 15px 6px;
+    gap: 4px;
+}
+
+.icon-item {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: transparent;
+    flex-shrink: 0;
+}
+
+.icon-item:hover {
+    background-color: #e5e7eb;
+    transform: scale(1.05);
+}
+
+.icon-item.logo {
+    cursor: default;
+    background-color: #f3f4f6;
+}
+
+.icon-item.logo:hover {
+    transform: none;
+    background-color: #f3f4f6;
+}
+
+.icon-item.logo {
+    margin-bottom: 8px;
+}
+
+.icon {
+    font-size: 18px;
+    user-select: none;
+}
+
+.icon-svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.icon-item:hover .icon-svg {
+    opacity: 1;
+}
+
+.main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 .container {
-    width: 1000px;
+    max-width: 1000px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     height: 100vh;
     padding: 20px;
+    width: 100%;
 }
 
 
@@ -26,8 +99,6 @@ body {
     padding: 10px;
     margin-bottom: 20px;
     background-color: transparent;
-    margin-right: calc(-50vw + 500px);
-    padding-right: calc(50vw - 500px + 10px);
 }
 
 .message {
