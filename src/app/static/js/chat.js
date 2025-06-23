@@ -73,13 +73,99 @@ class ChatApp {
             img.src = content;
             messageDiv.appendChild(img);
         } else {
-            const p = document.createElement('p');
-            p.textContent = content;
-            messageDiv.appendChild(p);
+            if (isQuestion) {
+                // Keep user questions as plain text
+                const p = document.createElement('p');
+                p.textContent = content;
+                messageDiv.appendChild(p);
+            } else {
+                // Render AI responses as markdown with line breaks
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+                const markdownContent = marked.parse(content);
+                messageDiv.innerHTML = markdownContent;
+            }
+        }
+
+        // Add action buttons for AI responses only (not questions or images)
+        if (!isImage && !isQuestion) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'message-actions';
+            
+            const buttonRow = document.createElement('div');
+            buttonRow.className = 'button-row';
+            
+            // Copy button
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'action-btn copy-btn';
+            copyBtn.innerHTML = '<img src="/static/icons/copy.svg" alt="Copy">';
+            copyBtn.title = 'Copy to clipboard';
+            copyBtn.onclick = () => this.copyMessage(content, copyBtn);
+            
+            // Thumbs up button
+            const thumbsUpBtn = document.createElement('button');
+            thumbsUpBtn.className = 'action-btn thumbs-up-btn';
+            thumbsUpBtn.innerHTML = '<img src="/static/icons/thumbs-up.svg" alt="Good">';
+            thumbsUpBtn.title = 'Good response';
+            thumbsUpBtn.onclick = () => this.rateMessage(content, 'up', thumbsUpBtn, thumbsDownBtn, actionsDiv);
+            
+            // Thumbs down button
+            const thumbsDownBtn = document.createElement('button');
+            thumbsDownBtn.className = 'action-btn thumbs-down-btn';
+            thumbsDownBtn.innerHTML = '<img src="/static/icons/thumbs-down.svg" alt="Bad">';
+            thumbsDownBtn.title = 'Poor response';
+            thumbsDownBtn.onclick = () => this.rateMessage(content, 'down', thumbsDownBtn, thumbsUpBtn, actionsDiv);
+            
+            buttonRow.appendChild(copyBtn);
+            buttonRow.appendChild(thumbsUpBtn);
+            buttonRow.appendChild(thumbsDownBtn);
+            actionsDiv.appendChild(buttonRow);
+            messageDiv.appendChild(actionsDiv);
         }
 
         this.messagesElement.appendChild(messageDiv);
         this.messagesElement.scrollTop = this.messagesElement.scrollHeight;
+    }
+
+    async copyMessage(content, button) {
+        try {
+            await navigator.clipboard.writeText(content);
+            console.log('Message copied to clipboard');
+            
+            // Show visual feedback - permanent
+            button.innerHTML = '<img src="/static/icons/check.svg" alt="Copied">';
+            button.disabled = true;
+            button.title = 'Copied to clipboard';
+        } catch (err) {
+            console.error('Failed to copy message: ', err);
+        }
+    }
+
+    rateMessage(content, rating, button, otherButton, actionsDiv) {
+        console.log(`Message rated as: ${rating}`);
+        console.log('Content:', content);
+        
+        // Show visual feedback - permanent
+        const activeIcon = rating === 'up' ? 
+            '/static/icons/thumbs-up-active.svg' : 
+            '/static/icons/thumbs-down-active.svg';
+        
+        button.innerHTML = `<img src="${activeIcon}" alt="${rating}">`;
+        button.disabled = true;
+        button.title = `Rated as ${rating === 'up' ? 'good' : 'poor'}`;
+        
+        // Hide the opposite button
+        otherButton.style.display = 'none';
+        
+        // Add thank you message below the button row
+        const thankYouMsg = document.createElement('div');
+        thankYouMsg.className = 'thank-you-message';
+        thankYouMsg.textContent = 'Thank you!';
+        actionsDiv.appendChild(thankYouMsg);
+        
+        // You can implement actual rating logic here (API call, etc.)
     }
 
     async triggerEvent(question) {

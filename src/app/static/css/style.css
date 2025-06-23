@@ -17,10 +17,6 @@ body {
     padding: 20px;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-}
 
 
 .chat-container {
@@ -30,6 +26,8 @@ h1 {
     padding: 10px;
     margin-bottom: 20px;
     background-color: transparent;
+    margin-right: calc(-50vw + 500px);
+    padding-right: calc(50vw - 500px + 10px);
 }
 
 .message {
@@ -38,7 +36,9 @@ h1 {
     margin-bottom: 10px;
     border-radius: 5px;
     border: none;
+    position: relative;
 }
+
 
 .message.question {
     background-color: #f5f5f5;
@@ -106,4 +106,46 @@ h1 {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.message-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: 8px;
+    opacity: 1;
+}
+
+.message-actions .button-row {
+    display: flex;
+    gap: 3px;
+}
+
+.action-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn img {
+    width: 12px;
+    height: 12px;
+    opacity: 0.7;
+}
+
+.action-btn:hover img {
+    opacity: 1;
+}
+
+.thank-you-message {
+    font-size: 9px;
+    color: #666;
+    margin-top: 4px;
+    text-align: center;
+    font-style: italic;
 }
