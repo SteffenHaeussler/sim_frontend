@@ -25,13 +25,16 @@ class ChatApp {
         this.newSessionButton = document.getElementById('new-session-btn');
         this.logoButton = document.querySelector('.icon-item.logo');
         this.iconBar = document.querySelector('.icon-bar');
+        this.themeToggleButton = document.getElementById('theme-toggle-btn');
         this.originalPlaceholder = this.questionInput.placeholder;
+        this.initializeTheme();
     }
 
     setupEventListeners() {
         this.sendButton.addEventListener('click', () => this.handleSendMessage());
         this.newSessionButton.addEventListener('click', () => this.handleNewSession());
         this.logoButton.addEventListener('click', () => this.toggleIconBar());
+        this.themeToggleButton.addEventListener('click', () => this.toggleTheme());
         this.questionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.handleSendMessage();
@@ -45,6 +48,7 @@ class ChatApp {
         
         // Add click listeners to icon labels
         document.querySelector('#new-session-btn .icon-label').addEventListener('click', () => this.handleNewSession());
+        document.querySelector('#theme-toggle-btn .icon-label').addEventListener('click', () => this.toggleTheme());
     }
 
     updateSessionId() {
@@ -296,6 +300,42 @@ class ChatApp {
         const templateText = template.textContent.trim();
         this.questionInput.value = templateText;
         this.questionInput.focus();
+    }
+
+    initializeTheme() {
+        // Check for saved theme preference or default to 'light'
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this.currentTheme = savedTheme;
+        this.applyTheme(savedTheme);
+    }
+
+    applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        // Update button icon and label
+        const icon = this.themeToggleButton.querySelector('.icon-svg');
+        const label = this.themeToggleButton.querySelector('.icon-label');
+        
+        if (theme === 'dark') {
+            icon.src = '/static/icons/sun.svg';
+            icon.alt = 'Light Mode';
+            label.textContent = 'Light Mode';
+        } else {
+            icon.src = '/static/icons/moon.svg';
+            icon.alt = 'Dark Mode';
+            label.textContent = 'Dark Mode';
+        }
+    }
+
+    toggleTheme() {
+        const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+        this.currentTheme = newTheme;
+        this.applyTheme(newTheme);
+        
+        // Save theme preference
+        localStorage.setItem('theme', newTheme);
+        
+        console.log(`Theme switched to: ${newTheme}`);
     }
 }
 
