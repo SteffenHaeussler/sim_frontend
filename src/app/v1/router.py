@@ -2,30 +2,36 @@ import asyncio
 import os
 import threading
 import uuid
+from pathlib import Path
 from time import time
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from loguru import logger
 from pydantic import ValidationError
 
 from src.app.v1.schema import HealthCheckResponse
 
+BASEDIR = Path(__file__).resolve().parent
+
 load_dotenv()
 
 v1 = APIRouter()
 
+templates = Jinja2Templates(directory=f"{BASEDIR}/templates")
+
 
 @v1.get("/health", response_model=HealthCheckResponse)
-def health(request: Request) -> HealthCheckResponse:
+def get_health(request: Request) -> HealthCheckResponse:
     logger.debug(f"Methode: {request.method} on {request.url.path}")
     return {"version": request.app.state.VERSION, "timestamp": time()}
 
 
 @v1.post("/health", response_model=HealthCheckResponse)
-def health(request: Request) -> HealthCheckResponse:
+def post_health(request: Request) -> HealthCheckResponse:
     logger.debug(f"Methode: {request.method} on {request.url.path}")
     return {"version": request.app.state.VERSION, "timestamp": time()}
 
@@ -54,7 +60,7 @@ async def health(websocket: WebSocket) -> None:
 @v1.get("/", response_class=HTMLResponse)
 async def frontend(request: Request):
     """Serve the chat frontend"""
-    return request.app.templates.TemplateResponse("chat.html", {"request": request})
+    return templates.TemplateResponse("chat.html", {"request": request})
 
 
 @v1.get("/config")
@@ -67,7 +73,7 @@ async def get_config():
     }
 
 
-@v1.get("/answer")
+@v1.get("/agent")
 async def answer_question(question: str):
     """Handle question from frontend and trigger external agent API"""
     # Generate session ID for this request

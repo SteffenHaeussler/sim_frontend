@@ -91,9 +91,10 @@ class ChatApp {
 
     async loadConfig() {
         try {
-            const response = await fetch('/config');
+            const response = await fetch('/v1/config');
             const config = await response.json();
             this.wsBase = config.agent_ws_base;
+            this.agentApiUrl = config.agent_api_url;
         } catch (error) {
             console.error('Failed to load configuration:', error);
         }
@@ -226,8 +227,8 @@ class ChatApp {
             // Map question to specific lookup endpoint
             endpoint = this.lookupEndpoints[question] || '/lookup/default';
         } else {
-            // Default to ask-agent endpoint
-            endpoint = '/answer';
+            // Default to v1 agent endpoint
+            endpoint = '/v1/agent';
         }
 
         const url = new URL(endpoint, window.location.origin);

@@ -4,7 +4,6 @@ from typing import Dict
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from loguru import logger
 
 from src.app.config import Config
@@ -47,9 +46,12 @@ def get_application(config: Dict) -> FastAPI:
 
     # Mount static files and templates
     application.mount(
-        "/static", StaticFiles(directory=f"{BASEDIR}/static"), name="static"
+        "/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static"
     )
-    application.templates = Jinja2Templates(directory=f"{BASEDIR}/templates")
+
+    application.mount(
+        "/v1/static", StaticFiles(directory=f"{BASEDIR}/v1/static"), name="v1_static"
+    )
 
     logger.info(f"API running in {config.api_mode.CONFIG_NAME} mode")
     return application
