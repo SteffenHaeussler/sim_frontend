@@ -94,6 +94,10 @@ class ChatApp {
         this.wsBase = window.ENV?.AGENT_WS_BASE || 'ws://localhost:5062/ws';
         this.agentApiUrl = window.ENV?.AGENT_URL || '/agent';
         this.agentApiBase = window.ENV?.AGENT_BASE || '';
+        this.semanticApiBase = window.ENV?.SEMANTIC_BASE || '';
+        this.semanticEmbUrl = window.ENV?.SEMANTIC_EMB_URL || '';
+        this.semanticRankUrl = window.ENV?.SEMANTIC_RANK_URL || '';
+        this.semanticSearchUrl = window.ENV?.SEMANTIC_SEARCH_URL || '';
     }
 
     updateStatus(message) {
@@ -391,6 +395,18 @@ class ChatApp {
             `;
         }
 
+        // Clear semantic search
+        if (this.semanticQuery) {
+            this.semanticQuery.value = '';
+        }
+        if (this.semanticResults) {
+            this.semanticResults.innerHTML = `
+                <div class="semantic-placeholder">
+                    Enter a search query to find semantically similar content
+                </div>
+            `;
+        }
+
         // Reload all assets
         this.loadAllAssets();
 
@@ -507,6 +523,7 @@ class ChatApp {
         const assetSearch = document.querySelector('.asset-search-main');
         const assetInfo = document.querySelector('.asset-info-main');
         const neighborSearch = document.querySelector('.neighbor-search-main');
+        const semanticSearch = document.querySelector('.semantic-search-main');
         const chatContainer = document.querySelector('.chat-container');
         if (!templateContainer) return;
 
@@ -527,6 +544,10 @@ class ChatApp {
                 neighborSearch.style.display = 'block';
                 this.initializeNeighborSearch();
             }
+            if (semanticSearch) {
+                semanticSearch.style.display = 'block';
+                this.initializeSemanticSearch();
+            }
         } else {
             // Show template section for ask-agent
             templateContainer.style.display = '';
@@ -540,6 +561,9 @@ class ChatApp {
             }
             if (neighborSearch) {
                 neighborSearch.style.display = 'none';
+            }
+            if (semanticSearch) {
+                semanticSearch.style.display = 'none';
             }
 
             // Get templates for the selected service
@@ -1015,6 +1039,150 @@ class ChatApp {
             }, 2000);
         } catch (err) {
             console.error('Failed to copy neighbor ID: ', err);
+        }
+    }
+
+    initializeSemanticSearch() {
+        if (this.semanticSearchInitialized) return;
+        
+        this.semanticSearchInitialized = true;
+        
+        // Get DOM elements
+        this.semanticQuery = document.getElementById('semantic-query');
+        this.performSemanticSearchBtn = document.getElementById('perform-semantic-search');
+        this.semanticResults = document.getElementById('semantic-results');
+        
+        // Set up event listeners
+        this.performSemanticSearchBtn.addEventListener('click', () => this.handleSemanticSearch());
+        this.semanticQuery.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleSemanticSearch();
+            }
+        });
+    }
+
+    async handleSemanticSearch() {
+        const query = this.semanticQuery.value.trim();
+        if (!query) {
+            this.showSemanticResults(null, 'Please enter a search query');
+            return;
+        }
+
+        try {
+            // Show loading state
+            this.showSemanticResults(null, 'Searching...', true);
+
+            // Add query to chat log
+            this.addMessage(`Semantic Search: "${query}"`, false, true);
+
+            // Make semantic search API call
+            const response = await fetch('/lookout/semantic', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.error) {
+                this.showSemanticResults(null, `Error: ${data.error} (${data.step || 'unknown'})`);
+            } else {
+                this.showSemanticResults(data, null);
+            }
+        } catch (error) {
+            console.error('Failed to perform semantic search:', error);
+            this.showSemanticResults(null, 'Failed to perform semantic search');
+        }
+    }
+
+    showSemanticResults(resultData, errorMessage, isLoading = false) {
+        if (isLoading) {
+            this.semanticResults.innerHTML = `
+                <div class="semantic-placeholder">
+                    <div class="loading-spinner"></div>
+                    ${errorMessage || 'Processing semantic search...'}
+                </div>
+            `;
+            return;
+        }
+
+        if (errorMessage) {
+            this.semanticResults.innerHTML = `
+                <div class="semantic-placeholder">
+                    ${errorMessage}
+                </div>
+            `;
+            return;
+        }
+
+        if (!resultData) {
+            this.semanticResults.innerHTML = `
+                <div class="semantic-placeholder">
+                    Enter a search query to find semantically similar content
+                </div>
+            `;
+            return;
+        }
+
+        // Display semantic search results
+        let resultsHtml = '';
+        
+        // Add summary information
+        resultsHtml += `
+            <div class="semantic-summary">
+                <h3>Search Results</h3>
+                <p>Query: <strong>${resultData.query || 'N/A'}</strong></p>
+                <p>Results found: <strong>${resultData.final_count || 0}</strong></p>
+            </div>
+        `;
+        
+        // Display individual results
+        const results = resultData.final_results || [resultData];
+        results.forEach((result, index) => {
+            const score = result.score || 'N/A';
+            const content = result.content || result.text || result.description || JSON.stringify(result);
+            const escapedContent = content.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            
+            resultsHtml += `
+                <div class="semantic-result-item">
+                    <div class="result-header">
+                        <span class="result-rank">#${index + 1}</span>
+                        <span class="result-score">Score: ${score}</span>
+                        <button class="copy-result-btn" onclick="window.chatApp.copySemanticResult('${escapedContent}', this)" title="Copy result">
+                            <img src="/static/icons/copy.svg" alt="Copy">
+                        </button>
+                    </div>
+                    <div class="result-content">${content}</div>
+                </div>
+            `;
+        });
+        
+        this.semanticResults.innerHTML = resultsHtml;
+    }
+
+    async copySemanticResult(content, button) {
+        try {
+            await navigator.clipboard.writeText(content);
+            console.log('Semantic result copied to clipboard');
+
+            // Show visual feedback
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+            button.disabled = true;
+            button.title = 'Copied!';
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+                button.disabled = false;
+                button.title = 'Copy result';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy semantic result: ', err);
         }
     }
 }

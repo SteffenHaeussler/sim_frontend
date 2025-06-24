@@ -131,6 +131,26 @@
                     </div>
                 </div>
 
+                <!-- Semantic Search Section -->
+                <div class="semantic-search-main" id="semantic-search" style="display: none;">
+                    <div class="semantic-section">
+                        <h2>Semantic Search</h2>
+                        
+                        <div class="semantic-controls">
+                            <div class="semantic-row">
+                                <input type="text" id="semantic-query" placeholder="Enter search query..." />
+                                <button id="perform-semantic-search">Search</button>
+                            </div>
+                        </div>
+                        
+                        <div class="semantic-results" id="semantic-results">
+                            <div class="semantic-placeholder">
+                                Enter a search query to find semantically similar content
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -159,7 +179,11 @@
             API_ASSET_URL: "{{ api_asset_url }}",
             API_NEIGHBOR_URL: "{{ api_neighbor_url }}",
             API_NAME_URL: "{{ api_name_url }}",
-            API_ID_URL: "{{ api_id_url }}"
+            API_ID_URL: "{{ api_id_url }}",
+            SEMANTIC_BASE: "{{ semantic_base }}",
+            SEMANTIC_EMB_URL: "{{ semantic_emb_url }}",
+            SEMANTIC_RANK_URL: "{{ semantic_rank_url }}",
+            SEMANTIC_SEARCH_URL: "{{ semantic_search_url }}"
         };
     </script>
 
