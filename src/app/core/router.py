@@ -63,10 +63,13 @@ async def frontend(request: Request):
         "agent_ws_base": os.getenv("agent_ws_base", ""),
         "agent_url": os.getenv("agent_url", ""),
         "agent_base": os.getenv("agent_base", ""),
+        "api_base": os.getenv("api_base", ""),
+        "api_asset_url": os.getenv("api_asset_url", ""),
+        "api_neighbor_url": os.getenv("api_neighbor_url", ""),
+        "api_name_url": os.getenv("api_name_url", ""),
+        "api_id_url": os.getenv("api_id_url", ""),
     }
     return templates.TemplateResponse("chat.html", context)
-
-
 
 
 @core.get("/agent")
@@ -101,3 +104,82 @@ async def answer_question(question: str):
     threading.Thread(target=send_request, daemon=True).start()
 
     return {"status": "triggered", "session_id": session_id, "question": question}
+
+
+@core.get("/api/asset/{asset_id}")
+async def get_asset_info(asset_id: str):
+    """Get asset information by asset ID"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_asset_url", "")
+    full_url = f"{api_base}{api_url}/{asset_id}"
+
+    logger.info(f"Getting asset info for: {asset_id}")
+    logger.info(f"Forwarding to: {full_url}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Asset API request failed: {e}")
+        return {"error": str(e), "asset_id": asset_id}
+
+
+@core.get("/api/neighbor/{asset_id}")
+async def get_neighbor_assets(asset_id: str):
+    """Get neighboring assets by asset ID"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_neighbor_url", "")
+    full_url = f"{api_base}{api_url}/{asset_id}"
+
+    logger.info(f"Getting neighbors for: {asset_id}")
+    logger.info(f"Forwarding to: {full_url}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Neighbor API request failed: {e}")
+        return {"error": str(e), "asset_id": asset_id}
+
+
+@core.get("/api/name/{asset_id}")
+async def get_name_from_id(asset_id: str):
+    """Get asset name from asset ID"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_name_url", "")
+    full_url = f"{api_base}{api_url}/{asset_id}"
+
+    logger.info(f"Getting name for asset: {asset_id}")
+    logger.info(f"Forwarding to: {full_url}")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Name API request failed: {e}")
+        return {"error": str(e), "asset_id": asset_id}
+
+
+@core.get("/api/id/{name}")
+async def get_id_from_name(name: str):
+    """Get asset ID from asset name"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_id_url", "")
+    full_url = f"{api_base}{api_url}/{name}"
+
+    logger.info(f"Getting ID for asset name: {name}")
+    logger.info(f"Forwarding to: {full_url}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"ID API request failed: {e}")
+        return {"error": str(e), "name": name}

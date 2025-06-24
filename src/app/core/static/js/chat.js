@@ -16,19 +16,19 @@ class ChatApp {
                 "What assets are next to Asset BA100?"
             ],
             'lookup-service': [
-                "Asset names",
-                "Asset Information",
-                "Neighbouring assets",
-                "Assed Ids"
+                "Get Asset Info",
+                "Get Neighbors", 
+                "Get Asset Name",
+                "Get Asset ID"
             ]
         };
 
         // Endpoint mapping for lookup service templates
         this.lookupEndpoints = {
-            "Asset names": "/lookup/asset-names",
-            "Asset Information": "/lookup/asset-info",
-            "Neighbouring assets": "/lookup/neighbouring-assets",
-            "Assed Ids": "/lookup/asset-ids"
+            "Get Asset Info": "/api/asset/Tank A",
+            "Get Neighbors": "/api/neighbor/12345678-1234-4567-8901-123456789abc",
+            "Get Asset Name": "/api/name/12345678-1234-4567-8901-123456789abc", 
+            "Get Asset ID": "/api/id/Tank A"
         };
 
         this.initializeElements();
@@ -91,7 +91,7 @@ class ChatApp {
 
     setEnvVariables() {
         // Get environment variables from window.ENV injected by template
-        this.wsBase = window.ENV?.AGENT_WS_BASE || 'ws://localhost:8000/ws';
+        this.wsBase = window.ENV?.AGENT_WS_BASE || 'ws://localhost:5062/ws';
         this.agentApiUrl = window.ENV?.AGENT_URL || '/agent';
         this.agentApiBase = window.ENV?.AGENT_BASE || '';
     }
@@ -221,7 +221,7 @@ class ChatApp {
 
         if (this.currentActiveService === 'lookup-service') {
             // Map question to specific lookup endpoint
-            endpoint = this.lookupEndpoints[question] || '/lookup/default';
+            endpoint = this.lookupEndpoints[question] || '/api/asset/Tank A';
         } else {
             // Default to core agent endpoint
             endpoint = '/agent';
@@ -361,8 +361,28 @@ class ChatApp {
 
     handleTemplateClick(template) {
         const templateText = template.textContent.trim();
-        this.questionInput.value = templateText;
-        this.questionInput.focus();
+        
+        if (this.currentActiveService === 'lookup-service') {
+            // For lookup service, directly trigger the API call
+            this.handleLookupRequest(templateText);
+        } else {
+            // For ask-agent, fill the input field as before
+            this.questionInput.value = templateText;
+            this.questionInput.focus();
+        }
+    }
+
+    async handleLookupRequest(templateText) {
+        // Add the template text as a question message
+        this.addMessage(`Lookup: ${templateText}`, false, true);
+        this.updateStatus('Processing...');
+
+        try {
+            await this.triggerEvent(templateText);
+        } catch (error) {
+            console.error('Error:', error);
+            this.updateStatus('Error');
+        }
     }
 
     initializeTheme() {
@@ -419,6 +439,9 @@ class ChatApp {
         // Update templates for the selected service
         this.updateTemplates(service);
 
+        // Show/hide input area based on service
+        this.toggleInputArea(service);
+
         console.log(`Active service set to: ${service}`);
     }
 
@@ -426,21 +449,42 @@ class ChatApp {
         const templateContainer = document.querySelector('.template-list');
         if (!templateContainer) return;
 
-        // Get templates for the selected service
-        const serviceTemplates = this.templates[service] || this.templates['ask-agent'];
+        if (service === 'lookup-service') {
+            // Hide the entire template section for lookup service
+            templateContainer.style.display = 'none';
+        } else {
+            // Show template section for ask-agent
+            templateContainer.style.display = '';
 
-        // Clear existing templates except the header
-        const templateTexts = templateContainer.querySelectorAll('.template-text');
-        templateTexts.forEach(template => template.remove());
+            // Get templates for the selected service
+            const serviceTemplates = this.templates[service] || this.templates['ask-agent'];
 
-        // Add new templates
-        serviceTemplates.forEach(templateText => {
-            const templateDiv = document.createElement('div');
-            templateDiv.className = 'template-text';
-            templateDiv.textContent = templateText;
-            templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
-            templateContainer.appendChild(templateDiv);
-        });
+            // Clear existing templates except the header
+            const templateTexts = templateContainer.querySelectorAll('.template-text');
+            templateTexts.forEach(template => template.remove());
+
+            // Add new templates
+            serviceTemplates.forEach(templateText => {
+                const templateDiv = document.createElement('div');
+                templateDiv.className = 'template-text';
+                templateDiv.textContent = templateText;
+                templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
+                templateContainer.appendChild(templateDiv);
+            });
+        }
+    }
+
+    toggleInputArea(service) {
+        const inputArea = document.querySelector('.input-area');
+        if (!inputArea) return;
+
+        if (service === 'lookup-service') {
+            // Hide input area for lookup service
+            inputArea.style.display = 'none';
+        } else {
+            // Show input area for ask-agent service (restore original)
+            inputArea.style.display = '';
+        }
     }
 }
 
