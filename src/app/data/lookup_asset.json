@@ -220,11 +220,6 @@
         "type": "indicator"
     },
     {
-        "name": "PI-P0017",
-        "asset_type": "instrument",
-        "type": "indicator"
-    },
-    {
         "name": "PI-P0019",
         "asset_type": "instrument",
         "type": "indicator"
