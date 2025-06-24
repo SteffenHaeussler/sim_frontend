@@ -14,21 +14,7 @@ class ChatApp {
                 "What is the level in Tank B?",
                 "What is the id of TI-T0022?",
                 "What assets are next to Asset BA100?"
-            ],
-            'lookup-service': [
-                "Get Asset Info",
-                "Get Neighbors", 
-                "Get Asset Name",
-                "Get Asset ID"
             ]
-        };
-
-        // Endpoint mapping for lookup service templates
-        this.lookupEndpoints = {
-            "Get Asset Info": "/api/asset/Tank A",
-            "Get Neighbors": "/api/neighbor/12345678-1234-4567-8901-123456789abc",
-            "Get Asset Name": "/api/name/12345678-1234-4567-8901-123456789abc", 
-            "Get Asset ID": "/api/id/Tank A"
         };
 
         this.initializeElements();
@@ -217,19 +203,12 @@ class ChatApp {
         thankYouMsg.textContent = 'Thank you!';
         actionsDiv.appendChild(thankYouMsg);
 
-        // You can implement actual rating logic here (API call, etc.)
     }
 
     async triggerEvent(question) {
         let endpoint;
 
-        if (this.currentActiveService === 'lookup-service') {
-            // Map question to specific lookup endpoint
-            endpoint = this.lookupEndpoints[question] || '/api/asset/Tank A';
-        } else {
-            // Default to core agent endpoint
-            endpoint = '/agent';
-        }
+        endpoint = '/agent';
 
         const url = new URL(endpoint, window.location.origin);
 
@@ -427,7 +406,7 @@ class ChatApp {
 
     handleTemplateClick(template) {
         const templateText = template.textContent.trim();
-        
+
         if (this.currentActiveService === 'lookup-service') {
             // For lookup service, directly trigger the API call
             this.handleLookupRequest(templateText);
@@ -599,10 +578,10 @@ class ChatApp {
 
     initializeAssetSearch() {
         if (this.assetSearchInitialized) return;
-        
+
         this.currentPage = 1;
         this.assetSearchInitialized = true;
-        
+
         // Get DOM elements
         this.assetNameSearch = document.getElementById('asset-name-search');
         this.assetTypeFilter = document.getElementById('asset-type-filter');
@@ -613,7 +592,7 @@ class ChatApp {
         this.prevPageBtn = document.getElementById('prev-page');
         this.nextPageBtn = document.getElementById('next-page');
         this.pageInfo = document.getElementById('page-info');
-        
+
         // Set up event listeners
         this.assetNameSearch.addEventListener('input', () => this.searchAssets());
         this.assetTypeFilter.addEventListener('change', () => this.searchAssets());
@@ -621,7 +600,7 @@ class ChatApp {
         this.clearFiltersBtn.addEventListener('click', () => this.clearFilters());
         this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
         this.nextPageBtn.addEventListener('click', () => this.changePage(1));
-        
+
         // Load initial data and populate table
         this.loadFilterOptions();
         this.loadAllAssets();
@@ -631,7 +610,7 @@ class ChatApp {
         try {
             const response = await fetch('/lookup/search');
             const data = await response.json();
-            
+
             // Populate asset type filter
             this.assetTypeFilter.innerHTML = '<option value="">Assets</option>';
             data.asset_types.forEach(type => {
@@ -640,7 +619,7 @@ class ChatApp {
                 option.textContent = type;
                 this.assetTypeFilter.appendChild(option);
             });
-            
+
             // Populate type filter
             this.typeFilter.innerHTML = '<option value="">Types</option>';
             data.types.forEach(type => {
@@ -664,20 +643,20 @@ class ChatApp {
         const name = this.assetNameSearch.value.trim();
         const assetType = this.assetTypeFilter.value;
         const type = this.typeFilter.value;
-        
+
         try {
             const params = new URLSearchParams({
                 page: this.currentPage,
                 limit: 10
             });
-            
+
             if (name) params.append('name', name);
             if (assetType) params.append('asset_type', assetType);
             if (type) params.append('type', type);
-            
+
             const response = await fetch(`/lookup/search?${params}`);
             const data = await response.json();
-            
+
             this.displayAssets(data);
         } catch (error) {
             console.error('Search failed:', error);
@@ -687,10 +666,10 @@ class ChatApp {
     displayAssets(data) {
         // Update results count
         this.resultsCount.textContent = `${data.total_count} assets`;
-        
+
         // Clear and populate asset list
         this.assetList.innerHTML = '';
-        
+
         data.assets.forEach(asset => {
             const assetItem = document.createElement('div');
             assetItem.className = 'asset-item';
@@ -701,7 +680,7 @@ class ChatApp {
             assetItem.addEventListener('click', () => this.selectAsset(asset));
             this.assetList.appendChild(assetItem);
         });
-        
+
         // Update pagination
         this.updatePagination(data);
     }
@@ -729,7 +708,7 @@ class ChatApp {
         // Add selected asset to chat
         this.addMessage(`Selected Asset: ${asset.name} (${asset.asset_type})`, false, true);
         console.log('Selected asset:', asset);
-        
+
         // Populate the asset name in the input field
         if (this.assetInfoName) {
             this.assetInfoName.value = asset.name;
@@ -740,14 +719,14 @@ class ChatApp {
 
     initializeAssetInfo() {
         if (this.assetInfoInitialized) return;
-        
+
         this.assetInfoInitialized = true;
-        
+
         // Get DOM elements
         this.assetInfoName = document.getElementById('asset-info-name');
         this.getAssetInfoBtn = document.getElementById('get-asset-info');
         this.assetDetails = document.getElementById('asset-details');
-        
+
         // Set up event listeners
         this.getAssetInfoBtn.addEventListener('click', () => this.handleGetAssetInfo());
         this.assetInfoName.addEventListener('keypress', (e) => {
@@ -782,7 +761,7 @@ class ChatApp {
                 console.log('Input detected as name, fetching ID for:', assetInput);
                 const idResponse = await fetch(`/api/id/${encodeURIComponent(assetInput)}`);
                 const idData = await idResponse.json();
-                
+
                 if (idData.error) {
                     this.showAssetDetails(null, `Asset name "${assetInput}" was not found. Please check the spelling and try again.`);
                     return;
@@ -799,7 +778,7 @@ class ChatApp {
             // Get asset details using the ID
             const assetResponse = await fetch(`/api/asset/${encodeURIComponent(assetId)}`);
             const assetData = await assetResponse.json();
-            
+
             if (assetData.error) {
                 this.showAssetDetails(null, `Asset with ${inputType} "${assetInput}" was not found. Please check and try again.`);
             } else {
@@ -832,14 +811,14 @@ class ChatApp {
 
         // Display JSON response as key-value rows with custom ordering
         let detailsHtml = '';
-        
+
         // Collect all key-value pairs first
         const allFields = {};
-        
+
         const processObject = (obj, prefix = '') => {
             for (const [key, value] of Object.entries(obj)) {
                 const displayKey = prefix ? `${prefix}.${key}` : key;
-                
+
                 if (value && typeof value === 'object' && !Array.isArray(value)) {
                     // Nested object - recurse
                     processObject(value, displayKey);
@@ -849,12 +828,12 @@ class ChatApp {
                 }
             }
         };
-        
+
         processObject(assetData);
-        
+
         // Define priority order for important fields
         const priorityFields = ['name', 'id', 'description'];
-        
+
         // Create rows for priority fields first
         priorityFields.forEach(fieldName => {
             if (allFields[fieldName]) {
@@ -872,7 +851,7 @@ class ChatApp {
                 delete allFields[fieldName]; // Remove from remaining fields
             }
         });
-        
+
         // Sort remaining fields alphabetically and create rows
         const remainingFields = Object.keys(allFields).sort();
         remainingFields.forEach(fieldName => {
@@ -888,7 +867,7 @@ class ChatApp {
                 </div>
             `;
         });
-        
+
         this.assetDetails.innerHTML = detailsHtml;
     }
 
@@ -916,14 +895,14 @@ class ChatApp {
 
     initializeNeighborSearch() {
         if (this.neighborSearchInitialized) return;
-        
+
         this.neighborSearchInitialized = true;
-        
+
         // Get DOM elements
         this.neighborAssetId = document.getElementById('neighbor-asset-id');
         this.getNeighborsBtn = document.getElementById('get-neighbors');
         this.neighborResults = document.getElementById('neighbor-results');
-        
+
         // Set up event listeners
         this.getNeighborsBtn.addEventListener('click', () => this.handleGetNeighbors());
         this.neighborAssetId.addEventListener('keypress', (e) => {
@@ -944,7 +923,7 @@ class ChatApp {
             // Make API call to neighbor endpoint
             const response = await fetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
             const data = await response.json();
-            
+
             if (data.error) {
                 this.showNeighborResults(null, `Asset ID "${assetId}" was not found. Please check and try again.`);
             } else {
@@ -977,7 +956,7 @@ class ChatApp {
 
         // Display neighbor IDs as a list
         let neighborsHtml = '';
-        
+
         // Handle different response formats - could be array or object with array
         let neighborIds = [];
         if (Array.isArray(neighborData)) {
@@ -1016,7 +995,7 @@ class ChatApp {
                 </div>
             `;
         });
-        
+
         this.neighborResults.innerHTML = neighborsHtml;
     }
 
@@ -1044,14 +1023,14 @@ class ChatApp {
 
     initializeSemanticSearch() {
         if (this.semanticSearchInitialized) return;
-        
+
         this.semanticSearchInitialized = true;
-        
+
         // Get DOM elements
         this.semanticQuery = document.getElementById('semantic-query');
         this.performSemanticSearchBtn = document.getElementById('perform-semantic-search');
         this.semanticResults = document.getElementById('semantic-results');
-        
+
         // Set up event listeners
         this.performSemanticSearchBtn.addEventListener('click', () => this.handleSemanticSearch());
         this.semanticQuery.addEventListener('keypress', (e) => {
@@ -1087,9 +1066,9 @@ class ChatApp {
             });
 
             const data = await response.json();
-            
+
             if (data.error) {
-                this.showSemanticResults(null, `Error: ${data.error} (${data.step || 'unknown'})`);
+                this.showSemanticResults(null, `Search query "${query}" could not processed. Please check and try again.`);
             } else {
                 this.showSemanticResults(data, null);
             }
@@ -1128,46 +1107,89 @@ class ChatApp {
             return;
         }
 
-        // Display semantic search results
-        let resultsHtml = '';
-        
-        // Add summary information
-        resultsHtml += `
-            <div class="semantic-summary">
-                <h3>Search Results</h3>
-                <p>Query: <strong>${resultData.query || 'N/A'}</strong></p>
-                <p>Results found: <strong>${resultData.final_count || 0}</strong></p>
-            </div>
-        `;
-        
-        // Display individual results
-        const results = resultData.final_results || [resultData];
-        results.forEach((result, index) => {
-            const score = result.score || 'N/A';
-            const content = result.content || result.text || result.description || JSON.stringify(result);
-            const escapedContent = content.replace(/'/g, "\\'").replace(/"/g, '\\"');
-            
-            resultsHtml += `
-                <div class="semantic-result-item">
-                    <div class="result-header">
-                        <span class="result-rank">#${index + 1}</span>
-                        <span class="result-score">Score: ${score}</span>
-                        <button class="copy-result-btn" onclick="window.chatApp.copySemanticResult('${escapedContent}', this)" title="Copy result">
+        // Display semantic search results as key-value pairs similar to asset information
+        let detailsHtml = '';
+
+        // Collect all key-value pairs first
+        const allFields = {};
+
+        const processObject = (obj, prefix = '') => {
+            for (const [fieldName, value] of Object.entries(obj)) {
+                const displayKey = prefix ? `${prefix}.${fieldName}` : fieldName;
+
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    // Nested object - recurse
+                    processObject(value, displayKey);
+                } else {
+                    // Simple value - store in collection
+                    allFields[displayKey] = Array.isArray(value) ? JSON.stringify(value) : String(value);
+                }
+            }
+        };
+
+        processObject(resultData);
+
+        // Define priority order for important fields
+        const priorityFields = ['question', 'text', 'description', 'score'];
+
+        // Create rows for priority fields first
+        priorityFields.forEach(fieldName => {
+            if (allFields[fieldName]) {
+                const displayValue = allFields[fieldName];
+                const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                detailsHtml += `
+                    <div class="asset-detail-item">
+                        <span class="detail-label">${fieldName}:</span>
+                        <span class="detail-value">${displayValue}</span>
+                        <button class="copy-value-btn" onclick="window.chatApp.copySemanticValue('${escapedValue}', this)" title="Copy value">
                             <img src="/static/icons/copy.svg" alt="Copy">
                         </button>
                     </div>
-                    <div class="result-content">${content}</div>
+                `;
+                delete allFields[fieldName]; // Remove from remaining fields
+            }
+        });
+
+        // Sort remaining fields alphabetically and create rows
+        const remainingFields = Object.keys(allFields).sort();
+        remainingFields.forEach(fieldName => {
+            const displayValue = allFields[fieldName];
+            const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            detailsHtml += `
+                <div class="asset-detail-item">
+                    <span class="detail-label">${fieldName}:</span>
+                    <span class="detail-value">${displayValue}</span>
+                    <button class="copy-value-btn" onclick="window.chatApp.copySemanticValue('${escapedValue}', this)" title="Copy value">
+                        <img src="/static/icons/copy.svg" alt="Copy">
+                    </button>
                 </div>
             `;
         });
-        
-        this.semanticResults.innerHTML = resultsHtml;
+
+        // Add disclaimer and rating buttons at the end
+        detailsHtml += `
+            <div class="semantic-disclaimer">
+                <p style="font-size: 12px; color: var(--text-secondary); font-style: italic; margin: 15px 0 10px 0;">
+                    Note: These results are not necessarily used by the agent and are for reference only.
+                </p>
+                <div class="semantic-rating" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+                    <button class="action-btn thumbs-up-btn" onclick="window.chatApp.rateSemanticResult('up', this)" title="Good result">
+                        <img src="/static/icons/thumbs-up.svg" alt="Good">
+                    </button>
+                    <button class="action-btn thumbs-down-btn" onclick="window.chatApp.rateSemanticResult('down', this)" title="Poor result">
+                        <img src="/static/icons/thumbs-down.svg" alt="Bad">
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.semanticResults.innerHTML = detailsHtml;
     }
 
-    async copySemanticResult(content, button) {
+    async copySemanticValue(value, button) {
         try {
-            await navigator.clipboard.writeText(content);
-            console.log('Semantic result copied to clipboard');
+            await navigator.clipboard.writeText(value);
+            console.log('Semantic value copied to clipboard:', value);
 
             // Show visual feedback
             const originalIcon = button.innerHTML;
@@ -1179,11 +1201,41 @@ class ChatApp {
             setTimeout(() => {
                 button.innerHTML = originalIcon;
                 button.disabled = false;
-                button.title = 'Copy result';
+                button.title = 'Copy value';
             }, 2000);
         } catch (err) {
-            console.error('Failed to copy semantic result: ', err);
+            console.error('Failed to copy semantic value: ', err);
         }
+    }
+
+    rateSemanticResult(rating, button) {
+        console.log(`Semantic result rated as: ${rating}`);
+
+        // Find the other button (thumbs up/down counterpart)
+        const ratingContainer = button.parentElement;
+        const otherButton = rating === 'up' ? 
+            ratingContainer.querySelector('.thumbs-down-btn') : 
+            ratingContainer.querySelector('.thumbs-up-btn');
+
+        // Show visual feedback - permanent
+        const activeIcon = rating === 'up' ?
+            '/static/icons/thumbs-up-active.svg' :
+            '/static/icons/thumbs-down-active.svg';
+
+        button.innerHTML = `<img src="${activeIcon}" alt="${rating}">`;
+        button.disabled = true;
+        button.title = `Rated as ${rating === 'up' ? 'good' : 'poor'}`;
+
+        // Hide the opposite button
+        if (otherButton) {
+            otherButton.style.display = 'none';
+        }
+
+        // Add thank you message below the rating buttons
+        const thankYouMsg = document.createElement('div');
+        thankYouMsg.style.cssText = 'font-size: 9px; color: var(--text-secondary); margin-top: 4px; text-align: right; font-style: italic;';
+        thankYouMsg.textContent = 'Thank you!';
+        ratingContainer.appendChild(thankYouMsg);
     }
 }
 
