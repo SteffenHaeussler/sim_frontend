@@ -480,6 +480,13 @@ class ChatApp {
         // Show/hide input area based on service
         this.toggleInputArea(service);
 
+        // Auto-trigger new session when switching services to clear state
+        if (service === 'lookup-service') {
+            this.handleNewLookupSession();
+        } else {
+            this.handleNewChat();
+        }
+
         console.log(`Active service set to: ${service}`);
     }
 
@@ -705,35 +712,50 @@ class ChatApp {
     }
 
     async handleGetAssetInfo() {
-        const assetName = this.assetInfoName.value.trim();
-        if (!assetName) {
-            this.showAssetDetails(null, 'Please enter an asset name');
+        const assetInput = this.assetInfoName.value.trim();
+        if (!assetInput) {
+            this.showAssetDetails(null, 'Please enter an asset name or ID');
             return;
         }
 
         try {
-            // Step 1: Get asset ID from name
-            const idResponse = await fetch(`/api/id/${encodeURIComponent(assetName)}`);
-            const idData = await idResponse.json();
-            
-            if (idData.error) {
-                this.showAssetDetails(null, `Error getting asset ID: ${idData.error}`);
-                return;
+            let assetId;
+            let inputType;
+
+            // Check if input looks like a UUID (asset ID)
+            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const isUuid = uuidPattern.test(assetInput);
+            inputType = isUuid ? 'ID' : 'name';
+
+            if (isUuid) {
+                // Input is already an asset ID, skip the first API call
+                assetId = assetInput;
+                console.log('Input detected as UUID, using directly:', assetId);
+            } else {
+                // Input is an asset name, get ID from name first
+                console.log('Input detected as name, fetching ID for:', assetInput);
+                const idResponse = await fetch(`/api/id/${encodeURIComponent(assetInput)}`);
+                const idData = await idResponse.json();
+                
+                if (idData.error) {
+                    this.showAssetDetails(null, `Asset name "${assetInput}" was not found. Please check the spelling and try again.`);
+                    return;
+                }
+
+                // Extract the asset ID from the response
+                assetId = idData.id || idData.asset_id || idData;
+                if (!assetId) {
+                    this.showAssetDetails(null, `No ID found for asset name "${assetInput}". Please verify the name is correct.`);
+                    return;
+                }
             }
 
-            // Extract the asset ID from the response
-            const assetId = idData.id || idData.asset_id || idData;
-            if (!assetId) {
-                this.showAssetDetails(null, 'Asset ID not found in response');
-                return;
-            }
-
-            // Step 2: Get asset details using the ID
+            // Get asset details using the ID
             const assetResponse = await fetch(`/api/asset/${encodeURIComponent(assetId)}`);
             const assetData = await assetResponse.json();
             
             if (assetData.error) {
-                this.showAssetDetails(null, `Error getting asset details: ${assetData.error}`);
+                this.showAssetDetails(null, `Asset with ${inputType} "${assetInput}" was not found. Please check and try again.`);
             } else {
                 this.showAssetDetails(assetData, null);
             }
@@ -762,10 +784,12 @@ class ChatApp {
             return;
         }
 
-        // Display JSON response as key-value rows
+        // Display JSON response as key-value rows with custom ordering
         let detailsHtml = '';
         
-        // Recursively process the JSON object
+        // Collect all key-value pairs first
+        const allFields = {};
+        
         const processObject = (obj, prefix = '') => {
             for (const [key, value] of Object.entries(obj)) {
                 const displayKey = prefix ? `${prefix}.${key}` : key;
@@ -774,23 +798,77 @@ class ChatApp {
                     // Nested object - recurse
                     processObject(value, displayKey);
                 } else {
-                    // Simple value - create row
-                    const displayValue = Array.isArray(value) ? JSON.stringify(value) : String(value);
-                    detailsHtml += `
-                        <div class="asset-detail-item">
-                            <span class="detail-label">${displayKey}:</span>
-                            <span class="detail-value">${displayValue}</span>
-                        </div>
-                    `;
+                    // Simple value - store in collection
+                    allFields[displayKey] = Array.isArray(value) ? JSON.stringify(value) : String(value);
                 }
             }
         };
         
         processObject(assetData);
+        
+        // Define priority order for important fields
+        const priorityFields = ['name', 'id', 'description'];
+        
+        // Create rows for priority fields first
+        priorityFields.forEach(fieldName => {
+            if (allFields[fieldName]) {
+                const displayValue = allFields[fieldName];
+                const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                detailsHtml += `
+                    <div class="asset-detail-item">
+                        <span class="detail-label">${fieldName}:</span>
+                        <span class="detail-value">${displayValue}</span>
+                        <button class="copy-value-btn" onclick="window.chatApp.copyAssetValue('${escapedValue}', this)" title="Copy value">
+                            <img src="/static/icons/copy.svg" alt="Copy">
+                        </button>
+                    </div>
+                `;
+                delete allFields[fieldName]; // Remove from remaining fields
+            }
+        });
+        
+        // Sort remaining fields alphabetically and create rows
+        const remainingFields = Object.keys(allFields).sort();
+        remainingFields.forEach(fieldName => {
+            const displayValue = allFields[fieldName];
+            const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            detailsHtml += `
+                <div class="asset-detail-item">
+                    <span class="detail-label">${fieldName}:</span>
+                    <span class="detail-value">${displayValue}</span>
+                    <button class="copy-value-btn" onclick="window.chatApp.copyAssetValue('${escapedValue}', this)" title="Copy value">
+                        <img src="/static/icons/copy.svg" alt="Copy">
+                    </button>
+                </div>
+            `;
+        });
+        
         this.assetDetails.innerHTML = detailsHtml;
+    }
+
+    async copyAssetValue(value, button) {
+        try {
+            await navigator.clipboard.writeText(value);
+            console.log('Asset value copied to clipboard:', value);
+
+            // Show visual feedback
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+            button.disabled = true;
+            button.title = 'Copied!';
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+                button.disabled = false;
+                button.title = 'Copy value';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy asset value: ', err);
+        }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new ChatApp();
+    window.chatApp = new ChatApp();
 });
