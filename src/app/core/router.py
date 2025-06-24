@@ -288,7 +288,6 @@ async def semantic_search(request: SemanticRequest):
         return {"error": "Semantic service not configured", "step": "config"}
 
     logger.info(f"Starting semantic search for query: {request.query}")
-
     try:
         async with httpx.AsyncClient() as client:
             # Step 1: Get embedding for the query
@@ -309,7 +308,7 @@ async def semantic_search(request: SemanticRequest):
 
             search_payload = {
                 "embedding": embedding_data.get("embedding"),
-                "top_k": 10,  # Default value
+                "n_items": 10,  # Default value
                 "table": semantic_table,
             }
 
@@ -335,16 +334,22 @@ async def semantic_search(request: SemanticRequest):
                     "text": candidate["description"],
                 }
 
-                rank_response = await client.post(
-                    rank_endpoint, json=rank_payload, timeout=30
+                rank_response = await client.get(
+                    rank_endpoint, params=rank_payload, timeout=30
                 )
                 rank_response.raise_for_status()
                 rank_data = rank_response.json()
-                candidates.append(rank_data)
+
+                candidate["score"] = rank_data.get("score")
+                candidate["question"] = rank_data.get("question")
+
+                candidates.append(candidate)
 
             logger.info("Step 3: Ranking completed, returning best result")
 
-            candidates = sorted(candidates, key=lambda x: getattr(x, 'score', 0), reverse=True)
+            candidates = sorted(
+                candidates, key=lambda x: getattr(x, "score", 0), reverse=True
+            )
 
             # Return the final ranked results with metadata
             return candidates[0]
