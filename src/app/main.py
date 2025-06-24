@@ -1,4 +1,5 @@
 # !/usr/bin/env python
+import json
 from pathlib import Path
 from typing import Dict
 
@@ -17,6 +18,19 @@ BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
 
 load_dotenv(".env")
+
+
+def load_lookup_assets() -> list:
+    """Load lookup asset data from JSON file"""
+    try:
+        lookup_file = BASEDIR / "data" / "lookup_asset.json"
+        with open(lookup_file, 'r') as f:
+            assets = json.load(f)
+        logger.info(f"Loaded {len(assets)} lookup assets from {lookup_file}")
+        return assets
+    except Exception as e:
+        logger.error(f"Failed to load lookup assets: {e}")
+        return []
 
 
 def get_application(config: Dict) -> FastAPI:
@@ -38,6 +52,9 @@ def get_application(config: Dict) -> FastAPI:
     application = FastAPI(openapi_tags=tags_metadata)
 
     application.state = config
+    
+    # Load lookup assets into application state
+    application.state.lookup_assets = load_lookup_assets()
 
     application.middleware("http")(request_timer)
     application.middleware("http")(add_request_id)

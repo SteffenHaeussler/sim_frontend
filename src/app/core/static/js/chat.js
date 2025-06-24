@@ -16,19 +16,19 @@ class ChatApp {
                 "What assets are next to Asset BA100?"
             ],
             'lookup-service': [
-                "Asset names",
-                "Asset Information",
-                "Neighbouring assets",
-                "Assed Ids"
+                "Get Asset Info",
+                "Get Neighbors", 
+                "Get Asset Name",
+                "Get Asset ID"
             ]
         };
 
         // Endpoint mapping for lookup service templates
         this.lookupEndpoints = {
-            "Asset names": "/lookup/asset-names",
-            "Asset Information": "/lookup/asset-info",
-            "Neighbouring assets": "/lookup/neighbouring-assets",
-            "Assed Ids": "/lookup/asset-ids"
+            "Get Asset Info": "/api/asset/Tank A",
+            "Get Neighbors": "/api/neighbor/12345678-1234-4567-8901-123456789abc",
+            "Get Asset Name": "/api/name/12345678-1234-4567-8901-123456789abc", 
+            "Get Asset ID": "/api/id/Tank A"
         };
 
         this.initializeElements();
@@ -91,7 +91,7 @@ class ChatApp {
 
     setEnvVariables() {
         // Get environment variables from window.ENV injected by template
-        this.wsBase = window.ENV?.AGENT_WS_BASE || 'ws://localhost:8000/ws';
+        this.wsBase = window.ENV?.AGENT_WS_BASE || 'ws://localhost:5062/ws';
         this.agentApiUrl = window.ENV?.AGENT_URL || '/agent';
         this.agentApiBase = window.ENV?.AGENT_BASE || '';
     }
@@ -221,7 +221,7 @@ class ChatApp {
 
         if (this.currentActiveService === 'lookup-service') {
             // Map question to specific lookup endpoint
-            endpoint = this.lookupEndpoints[question] || '/lookup/default';
+            endpoint = this.lookupEndpoints[question] || '/api/asset/Tank A';
         } else {
             // Default to core agent endpoint
             endpoint = '/agent';
@@ -350,9 +350,59 @@ class ChatApp {
         console.log('New chat started with session ID:', this.sessionId);
     }
 
+    handleNewLookupSession() {
+        // Generate new session ID
+        this.sessionId = this.generateSessionId();
+        this.updateSessionId();
+
+        // Clear asset search
+        if (this.assetNameSearch) {
+            this.assetNameSearch.value = '';
+        }
+        if (this.assetTypeFilter) {
+            this.assetTypeFilter.value = '';
+        }
+        if (this.typeFilter) {
+            this.typeFilter.value = '';
+        }
+        this.currentPage = 1;
+
+        // Clear asset information
+        if (this.assetInfoName) {
+            this.assetInfoName.value = '';
+        }
+        if (this.assetDetails) {
+            this.assetDetails.innerHTML = `
+                <div class="details-placeholder">
+                    Enter an asset name to view details
+                </div>
+            `;
+        }
+
+        // Clear neighbor search
+        if (this.neighborAssetId) {
+            this.neighborAssetId.value = '';
+        }
+        if (this.neighborResults) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    Enter an asset ID to find neighboring assets
+                </div>
+            `;
+        }
+
+        // Reload all assets
+        this.loadAllAssets();
+
+        console.log('New lookup session started with session ID:', this.sessionId);
+    }
+
     handleNewSession() {
-        // Same functionality as handleNewChat
-        this.handleNewChat();
+        if (this.currentActiveService === 'lookup-service') {
+            this.handleNewLookupSession();
+        } else {
+            this.handleNewChat();
+        }
     }
 
     toggleIconBar() {
@@ -361,8 +411,28 @@ class ChatApp {
 
     handleTemplateClick(template) {
         const templateText = template.textContent.trim();
-        this.questionInput.value = templateText;
-        this.questionInput.focus();
+        
+        if (this.currentActiveService === 'lookup-service') {
+            // For lookup service, directly trigger the API call
+            this.handleLookupRequest(templateText);
+        } else {
+            // For ask-agent, fill the input field as before
+            this.questionInput.value = templateText;
+            this.questionInput.focus();
+        }
+    }
+
+    async handleLookupRequest(templateText) {
+        // Add the template text as a question message
+        this.addMessage(`Lookup: ${templateText}`, false, true);
+        this.updateStatus('Processing...');
+
+        try {
+            await this.triggerEvent(templateText);
+        } catch (error) {
+            console.error('Error:', error);
+            this.updateStatus('Error');
+        }
     }
 
     initializeTheme() {
@@ -419,31 +489,534 @@ class ChatApp {
         // Update templates for the selected service
         this.updateTemplates(service);
 
+        // Show/hide input area based on service
+        this.toggleInputArea(service);
+
+        // Auto-trigger new session when switching services to clear state
+        if (service === 'lookup-service') {
+            this.handleNewLookupSession();
+        } else {
+            this.handleNewChat();
+        }
+
         console.log(`Active service set to: ${service}`);
     }
 
     updateTemplates(service) {
         const templateContainer = document.querySelector('.template-list');
+        const assetSearch = document.querySelector('.asset-search-main');
+        const assetInfo = document.querySelector('.asset-info-main');
+        const neighborSearch = document.querySelector('.neighbor-search-main');
+        const chatContainer = document.querySelector('.chat-container');
         if (!templateContainer) return;
 
-        // Get templates for the selected service
-        const serviceTemplates = this.templates[service] || this.templates['ask-agent'];
+        if (service === 'lookup-service') {
+            // Hide the entire template section for lookup service
+            templateContainer.style.display = 'none';
+            // Hide chat container and show asset sections
+            if (chatContainer) chatContainer.style.display = 'none';
+            if (assetSearch) {
+                assetSearch.style.display = 'block';
+                this.initializeAssetSearch();
+            }
+            if (assetInfo) {
+                assetInfo.style.display = 'block';
+                this.initializeAssetInfo();
+            }
+            if (neighborSearch) {
+                neighborSearch.style.display = 'block';
+                this.initializeNeighborSearch();
+            }
+        } else {
+            // Show template section for ask-agent
+            templateContainer.style.display = '';
+            // Show chat container and hide asset sections
+            if (chatContainer) chatContainer.style.display = 'block';
+            if (assetSearch) {
+                assetSearch.style.display = 'none';
+            }
+            if (assetInfo) {
+                assetInfo.style.display = 'none';
+            }
+            if (neighborSearch) {
+                neighborSearch.style.display = 'none';
+            }
 
-        // Clear existing templates except the header
-        const templateTexts = templateContainer.querySelectorAll('.template-text');
-        templateTexts.forEach(template => template.remove());
+            // Get templates for the selected service
+            const serviceTemplates = this.templates[service] || this.templates['ask-agent'];
 
-        // Add new templates
-        serviceTemplates.forEach(templateText => {
-            const templateDiv = document.createElement('div');
-            templateDiv.className = 'template-text';
-            templateDiv.textContent = templateText;
-            templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
-            templateContainer.appendChild(templateDiv);
+            // Clear existing templates except the header
+            const templateTexts = templateContainer.querySelectorAll('.template-text');
+            templateTexts.forEach(template => template.remove());
+
+            // Add new templates
+            serviceTemplates.forEach(templateText => {
+                const templateDiv = document.createElement('div');
+                templateDiv.className = 'template-text';
+                templateDiv.textContent = templateText;
+                templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
+                templateContainer.appendChild(templateDiv);
+            });
+        }
+    }
+
+    toggleInputArea(service) {
+        const inputArea = document.querySelector('.input-area');
+        if (!inputArea) return;
+
+        if (service === 'lookup-service') {
+            // Hide input area for lookup service
+            inputArea.style.display = 'none';
+        } else {
+            // Show input area for ask-agent service (restore original)
+            inputArea.style.display = '';
+        }
+    }
+
+    initializeAssetSearch() {
+        if (this.assetSearchInitialized) return;
+        
+        this.currentPage = 1;
+        this.assetSearchInitialized = true;
+        
+        // Get DOM elements
+        this.assetNameSearch = document.getElementById('asset-name-search');
+        this.assetTypeFilter = document.getElementById('asset-type-filter');
+        this.typeFilter = document.getElementById('type-filter');
+        this.clearFiltersBtn = document.getElementById('clear-filters');
+        this.assetList = document.getElementById('asset-list');
+        this.resultsCount = document.getElementById('results-count');
+        this.prevPageBtn = document.getElementById('prev-page');
+        this.nextPageBtn = document.getElementById('next-page');
+        this.pageInfo = document.getElementById('page-info');
+        
+        // Set up event listeners
+        this.assetNameSearch.addEventListener('input', () => this.searchAssets());
+        this.assetTypeFilter.addEventListener('change', () => this.searchAssets());
+        this.typeFilter.addEventListener('change', () => this.searchAssets());
+        this.clearFiltersBtn.addEventListener('click', () => this.clearFilters());
+        this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
+        this.nextPageBtn.addEventListener('click', () => this.changePage(1));
+        
+        // Load initial data and populate table
+        this.loadFilterOptions();
+        this.loadAllAssets();
+    }
+
+    async loadFilterOptions() {
+        try {
+            const response = await fetch('/lookup/search');
+            const data = await response.json();
+            
+            // Populate asset type filter
+            this.assetTypeFilter.innerHTML = '<option value="">Assets</option>';
+            data.asset_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                this.assetTypeFilter.appendChild(option);
+            });
+            
+            // Populate type filter
+            this.typeFilter.innerHTML = '<option value="">Types</option>';
+            data.types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                this.typeFilter.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to load filter options:', error);
+        }
+    }
+
+    async loadAllAssets() {
+        // Reset to first page and clear filters for initial load
+        this.currentPage = 1;
+        this.searchAssets();
+    }
+
+    async searchAssets() {
+        const name = this.assetNameSearch.value.trim();
+        const assetType = this.assetTypeFilter.value;
+        const type = this.typeFilter.value;
+        
+        try {
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                limit: 10
+            });
+            
+            if (name) params.append('name', name);
+            if (assetType) params.append('asset_type', assetType);
+            if (type) params.append('type', type);
+            
+            const response = await fetch(`/lookup/search?${params}`);
+            const data = await response.json();
+            
+            this.displayAssets(data);
+        } catch (error) {
+            console.error('Search failed:', error);
+        }
+    }
+
+    displayAssets(data) {
+        // Update results count
+        this.resultsCount.textContent = `${data.total_count} assets`;
+        
+        // Clear and populate asset list
+        this.assetList.innerHTML = '';
+        
+        data.assets.forEach(asset => {
+            const assetItem = document.createElement('div');
+            assetItem.className = 'asset-item';
+            assetItem.innerHTML = `
+                <span class="asset-name">${asset.name}</span>
+                <span class="asset-type">${asset.asset_type}</span>
+            `;
+            assetItem.addEventListener('click', () => this.selectAsset(asset));
+            this.assetList.appendChild(assetItem);
         });
+        
+        // Update pagination
+        this.updatePagination(data);
+    }
+
+    updatePagination(data) {
+        this.pageInfo.textContent = `Page ${data.page} of ${data.total_pages}`;
+        this.prevPageBtn.disabled = data.page <= 1;
+        this.nextPageBtn.disabled = data.page >= data.total_pages;
+    }
+
+    changePage(direction) {
+        this.currentPage += direction;
+        this.searchAssets();
+    }
+
+    clearFilters() {
+        this.assetNameSearch.value = '';
+        this.assetTypeFilter.value = '';
+        this.typeFilter.value = '';
+        this.currentPage = 1;
+        this.searchAssets();
+    }
+
+    selectAsset(asset) {
+        // Add selected asset to chat
+        this.addMessage(`Selected Asset: ${asset.name} (${asset.asset_type})`, false, true);
+        console.log('Selected asset:', asset);
+        
+        // Populate only the asset name in the input field
+        if (this.assetInfoName) {
+            this.assetInfoName.value = asset.name;
+        }
+    }
+
+    initializeAssetInfo() {
+        if (this.assetInfoInitialized) return;
+        
+        this.assetInfoInitialized = true;
+        
+        // Get DOM elements
+        this.assetInfoName = document.getElementById('asset-info-name');
+        this.getAssetInfoBtn = document.getElementById('get-asset-info');
+        this.assetDetails = document.getElementById('asset-details');
+        
+        // Set up event listeners
+        this.getAssetInfoBtn.addEventListener('click', () => this.handleGetAssetInfo());
+        this.assetInfoName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleGetAssetInfo();
+            }
+        });
+    }
+
+    async handleGetAssetInfo() {
+        const assetInput = this.assetInfoName.value.trim();
+        if (!assetInput) {
+            this.showAssetDetails(null, 'Please enter an asset name or ID');
+            return;
+        }
+
+        try {
+            let assetId;
+            let inputType;
+
+            // Check if input looks like a UUID (asset ID)
+            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            const isUuid = uuidPattern.test(assetInput);
+            inputType = isUuid ? 'ID' : 'name';
+
+            if (isUuid) {
+                // Input is already an asset ID, skip the first API call
+                assetId = assetInput;
+                console.log('Input detected as UUID, using directly:', assetId);
+            } else {
+                // Input is an asset name, get ID from name first
+                console.log('Input detected as name, fetching ID for:', assetInput);
+                const idResponse = await fetch(`/api/id/${encodeURIComponent(assetInput)}`);
+                const idData = await idResponse.json();
+                
+                if (idData.error) {
+                    this.showAssetDetails(null, `Asset name "${assetInput}" was not found. Please check the spelling and try again.`);
+                    return;
+                }
+
+                // Extract the asset ID from the response
+                assetId = idData.id || idData.asset_id || idData;
+                if (!assetId) {
+                    this.showAssetDetails(null, `No ID found for asset name "${assetInput}". Please verify the name is correct.`);
+                    return;
+                }
+            }
+
+            // Get asset details using the ID
+            const assetResponse = await fetch(`/api/asset/${encodeURIComponent(assetId)}`);
+            const assetData = await assetResponse.json();
+            
+            if (assetData.error) {
+                this.showAssetDetails(null, `Asset with ${inputType} "${assetInput}" was not found. Please check and try again.`);
+            } else {
+                this.showAssetDetails(assetData, null);
+            }
+        } catch (error) {
+            console.error('Failed to get asset info:', error);
+            this.showAssetDetails(null, 'Failed to fetch asset information');
+        }
+    }
+
+    showAssetDetails(assetData, errorMessage) {
+        if (errorMessage) {
+            this.assetDetails.innerHTML = `
+                <div class="details-placeholder">
+                    ${errorMessage}
+                </div>
+            `;
+            return;
+        }
+
+        if (!assetData) {
+            this.assetDetails.innerHTML = `
+                <div class="details-placeholder">
+                    Enter an asset name to view details
+                </div>
+            `;
+            return;
+        }
+
+        // Display JSON response as key-value rows with custom ordering
+        let detailsHtml = '';
+        
+        // Collect all key-value pairs first
+        const allFields = {};
+        
+        const processObject = (obj, prefix = '') => {
+            for (const [key, value] of Object.entries(obj)) {
+                const displayKey = prefix ? `${prefix}.${key}` : key;
+                
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    // Nested object - recurse
+                    processObject(value, displayKey);
+                } else {
+                    // Simple value - store in collection
+                    allFields[displayKey] = Array.isArray(value) ? JSON.stringify(value) : String(value);
+                }
+            }
+        };
+        
+        processObject(assetData);
+        
+        // Define priority order for important fields
+        const priorityFields = ['name', 'id', 'description'];
+        
+        // Create rows for priority fields first
+        priorityFields.forEach(fieldName => {
+            if (allFields[fieldName]) {
+                const displayValue = allFields[fieldName];
+                const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                detailsHtml += `
+                    <div class="asset-detail-item">
+                        <span class="detail-label">${fieldName}:</span>
+                        <span class="detail-value">${displayValue}</span>
+                        <button class="copy-value-btn" onclick="window.chatApp.copyAssetValue('${escapedValue}', this)" title="Copy value">
+                            <img src="/static/icons/copy.svg" alt="Copy">
+                        </button>
+                    </div>
+                `;
+                delete allFields[fieldName]; // Remove from remaining fields
+            }
+        });
+        
+        // Sort remaining fields alphabetically and create rows
+        const remainingFields = Object.keys(allFields).sort();
+        remainingFields.forEach(fieldName => {
+            const displayValue = allFields[fieldName];
+            const escapedValue = displayValue.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            detailsHtml += `
+                <div class="asset-detail-item">
+                    <span class="detail-label">${fieldName}:</span>
+                    <span class="detail-value">${displayValue}</span>
+                    <button class="copy-value-btn" onclick="window.chatApp.copyAssetValue('${escapedValue}', this)" title="Copy value">
+                        <img src="/static/icons/copy.svg" alt="Copy">
+                    </button>
+                </div>
+            `;
+        });
+        
+        this.assetDetails.innerHTML = detailsHtml;
+    }
+
+    async copyAssetValue(value, button) {
+        try {
+            await navigator.clipboard.writeText(value);
+            console.log('Asset value copied to clipboard:', value);
+
+            // Show visual feedback
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+            button.disabled = true;
+            button.title = 'Copied!';
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+                button.disabled = false;
+                button.title = 'Copy value';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy asset value: ', err);
+        }
+    }
+
+    initializeNeighborSearch() {
+        if (this.neighborSearchInitialized) return;
+        
+        this.neighborSearchInitialized = true;
+        
+        // Get DOM elements
+        this.neighborAssetId = document.getElementById('neighbor-asset-id');
+        this.getNeighborsBtn = document.getElementById('get-neighbors');
+        this.neighborResults = document.getElementById('neighbor-results');
+        
+        // Set up event listeners
+        this.getNeighborsBtn.addEventListener('click', () => this.handleGetNeighbors());
+        this.neighborAssetId.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleGetNeighbors();
+            }
+        });
+    }
+
+    async handleGetNeighbors() {
+        const assetId = this.neighborAssetId.value.trim();
+        if (!assetId) {
+            this.showNeighborResults(null, 'Please enter an asset ID');
+            return;
+        }
+
+        try {
+            // Make API call to neighbor endpoint
+            const response = await fetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                this.showNeighborResults(null, `Asset ID "${assetId}" was not found. Please check and try again.`);
+            } else {
+                this.showNeighborResults(data, null);
+            }
+        } catch (error) {
+            console.error('Failed to get neighbors:', error);
+            this.showNeighborResults(null, 'Failed to fetch neighbor information');
+        }
+    }
+
+    showNeighborResults(neighborData, errorMessage) {
+        if (errorMessage) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    ${errorMessage}
+                </div>
+            `;
+            return;
+        }
+
+        if (!neighborData) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    Enter an asset ID to find neighboring assets
+                </div>
+            `;
+            return;
+        }
+
+        // Display neighbor IDs as a list
+        let neighborsHtml = '';
+        
+        // Handle different response formats - could be array or object with array
+        let neighborIds = [];
+        if (Array.isArray(neighborData)) {
+            neighborIds = neighborData;
+        } else if (neighborData.neighbors && Array.isArray(neighborData.neighbors)) {
+            neighborIds = neighborData.neighbors;
+        } else if (neighborData.ids && Array.isArray(neighborData.ids)) {
+            neighborIds = neighborData.ids;
+        } else {
+            // Try to extract any array from the response
+            for (const [key, value] of Object.entries(neighborData)) {
+                if (Array.isArray(value)) {
+                    neighborIds = value;
+                    break;
+                }
+            }
+        }
+
+        if (neighborIds.length === 0) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    No neighboring assets found for this ID
+                </div>
+            `;
+            return;
+        }
+
+        neighborIds.forEach(neighborId => {
+            const escapedId = String(neighborId).replace(/'/g, "\\'").replace(/"/g, '\\"');
+            neighborsHtml += `
+                <div class="neighbor-item">
+                    <span class="neighbor-id">${neighborId}</span>
+                    <button class="neighbor-copy-btn" onclick="window.chatApp.copyNeighborId('${escapedId}', this)" title="Copy neighbor ID">
+                        <img src="/static/icons/copy.svg" alt="Copy">
+                    </button>
+                </div>
+            `;
+        });
+        
+        this.neighborResults.innerHTML = neighborsHtml;
+    }
+
+    async copyNeighborId(neighborId, button) {
+        try {
+            await navigator.clipboard.writeText(neighborId);
+            console.log('Neighbor ID copied to clipboard:', neighborId);
+
+            // Show visual feedback
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+            button.disabled = true;
+            button.title = 'Copied!';
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+                button.disabled = false;
+                button.title = 'Copy neighbor ID';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy neighbor ID: ', err);
+        }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new ChatApp();
+    window.chatApp = new ChatApp();
 });

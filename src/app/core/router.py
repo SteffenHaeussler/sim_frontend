@@ -63,10 +63,13 @@ async def frontend(request: Request):
         "agent_ws_base": os.getenv("agent_ws_base", ""),
         "agent_url": os.getenv("agent_url", ""),
         "agent_base": os.getenv("agent_base", ""),
+        "api_base": os.getenv("api_base", ""),
+        "api_asset_url": os.getenv("api_asset_url", ""),
+        "api_neighbor_url": os.getenv("api_neighbor_url", ""),
+        "api_name_url": os.getenv("api_name_url", ""),
+        "api_id_url": os.getenv("api_id_url", ""),
     }
     return templates.TemplateResponse("chat.html", context)
-
-
 
 
 @core.get("/agent")
@@ -101,3 +104,162 @@ async def answer_question(question: str):
     threading.Thread(target=send_request, daemon=True).start()
 
     return {"status": "triggered", "session_id": session_id, "question": question}
+
+
+@core.get("/api/asset/{asset_id}")
+async def get_asset_info(asset_id: str):
+    """Get asset information by asset ID"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_asset_url", "")
+    full_url = f"{api_base}{api_url}/{asset_id}"
+
+    logger.info(f"Getting asset info for: {asset_id}")
+    logger.info(f"Forwarding to: {full_url}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Asset API request failed: {e}")
+        return {"error": str(e), "asset_id": asset_id}
+
+
+@core.get("/api/neighbor/{asset_id}")
+async def get_neighbor_assets(asset_id: str):
+    """Get neighboring assets by asset ID"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_neighbor_url", "")
+    full_url = f"{api_base}{api_url}/{asset_id}"
+
+    logger.info(f"Getting neighbors for: {asset_id}")
+    logger.info(f"Forwarding to: {full_url}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Neighbor API request failed: {e}")
+        return {"error": str(e), "asset_id": asset_id}
+
+
+@core.get("/api/name/{asset_id}")
+async def get_name_from_id(asset_id: str):
+    """Get asset name from asset ID"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_name_url", "")
+    full_url = f"{api_base}{api_url}/{asset_id}"
+
+    logger.info(f"Getting name for asset: {asset_id}")
+    logger.info(f"Forwarding to: {full_url}")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"Name API request failed: {e}")
+        return {"error": str(e), "asset_id": asset_id}
+
+
+@core.get("/api/id/{name}")
+async def get_id_from_name(name: str):
+    """Get asset ID from asset name"""
+    api_base = os.getenv("api_base", "")
+    api_url = os.getenv("api_id_url", "")
+    full_url = f"{api_base}{api_url}/{name}"
+
+    logger.info(f"Getting ID for asset name: {name}")
+    logger.info(f"Forwarding to: {full_url}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(full_url, timeout=10)
+            response.raise_for_status()
+            return response.json()
+    except Exception as e:
+        logger.error(f"ID API request failed: {e}")
+        return {"error": str(e), "name": name}
+
+
+@core.get("/lookup/assets")
+async def get_lookup_assets(request: Request):
+    """Get all lookup assets from application state"""
+    try:
+        assets = request.app.state.lookup_assets
+        return {"assets": assets, "count": len(assets)}
+    except Exception as e:
+        logger.error(f"Failed to get lookup assets: {e}")
+        return {"error": str(e), "assets": [], "count": 0}
+
+
+@core.get("/lookup/search")
+async def search_assets(
+    request: Request,
+    name: str = None,
+    asset_type: str = None,
+    type: str = None,
+    page: int = 1,
+    limit: int = 50
+):
+    """Search and filter lookup assets with pagination"""
+    try:
+        assets = request.app.state.lookup_assets
+        filtered_assets = assets
+        
+        # Filter by name (case-insensitive partial match)
+        if name:
+            filtered_assets = [
+                asset for asset in filtered_assets 
+                if name.lower() in asset.get("name", "").lower()
+            ]
+        
+        # Filter by asset_type (exact match)
+        if asset_type:
+            filtered_assets = [
+                asset for asset in filtered_assets 
+                if asset.get("asset_type", "").lower() == asset_type.lower()
+            ]
+        
+        # Filter by type (exact match)
+        if type:
+            filtered_assets = [
+                asset for asset in filtered_assets 
+                if asset.get("type", "").lower() == type.lower()
+            ]
+        
+        # Calculate pagination
+        total_count = len(filtered_assets)
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_assets = filtered_assets[start_idx:end_idx]
+        
+        # Get unique asset types and types for filter options
+        asset_types = list(set(asset.get("asset_type", "") for asset in assets))
+        asset_types = [t for t in asset_types if t]  # Remove empty strings
+        asset_types.sort()
+        
+        types = list(set(asset.get("type", "") for asset in assets))
+        types = [t for t in types if t]  # Remove empty strings
+        types.sort()
+        
+        return {
+            "assets": paginated_assets,
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit,
+            "asset_types": asset_types,
+            "types": types,
+            "filters": {
+                "name": name,
+                "asset_type": asset_type,
+                "type": type
+            }
+        }
+    except Exception as e:
+        logger.error(f"Failed to search assets: {e}")
+        return {"error": str(e), "assets": [], "total_count": 0}
