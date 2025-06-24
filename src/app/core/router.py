@@ -69,7 +69,7 @@ async def frontend(request: Request):
         "api_name_url": os.getenv("api_name_url", ""),
         "api_id_url": os.getenv("api_id_url", ""),
     }
-    return templates.TemplateResponse("chat.html", context)
+    return templates.TemplateResponse(request, "chat.html", context)
 
 
 @core.get("/agent")

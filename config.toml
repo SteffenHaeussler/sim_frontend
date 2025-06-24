@@ -1,3 +1,6 @@
+FASTAPI_ENV = "DEV"
+VERSION = "0.1.0"
+
 [DEV]
 CONFIG_NAME = "DEV"
 DEBUG = true
@@ -13,3 +16,4 @@ DEBUG = false
 [TEST]
 CONFIG_NAME = "TEST"
 DEBUG = true
+VERSION = "0.1.0-test"
