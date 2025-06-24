@@ -2,6 +2,7 @@
 from pathlib import Path
 from typing import Dict
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -14,6 +15,8 @@ from src.app.middleware import RequestTimer, add_request_id
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
+
+load_dotenv(".env")
 
 
 def get_application(config: Dict) -> FastAPI:

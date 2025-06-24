@@ -6,7 +6,6 @@ from pathlib import Path
 from time import time
 
 import httpx
-from dotenv import load_dotenv
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -17,7 +16,6 @@ from src.app.core.schema import HealthCheckResponse
 
 BASEDIR = Path(__file__).resolve().parent
 
-load_dotenv()
 
 core = APIRouter()
 
@@ -60,17 +58,15 @@ async def health(websocket: WebSocket) -> None:
 @core.get("/", response_class=HTMLResponse)
 async def frontend(request: Request):
     """Serve the chat frontend"""
-    return templates.TemplateResponse("chat.html", {"request": request})
-
-
-@core.get("/config")
-async def get_config():
-    """Provide frontend configuration"""
-    return {
-        "agent_api_base": os.getenv("agent_base", ""),
-        "agent_api_url": os.getenv("agent_url", ""),
+    context = {
+        "request": request,
         "agent_ws_base": os.getenv("agent_ws_base", ""),
+        "agent_url": os.getenv("agent_url", ""),
+        "agent_base": os.getenv("agent_base", ""),
     }
+    return templates.TemplateResponse("chat.html", context)
+
+
 
 
 @core.get("/agent")

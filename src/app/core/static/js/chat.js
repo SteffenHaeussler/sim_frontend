@@ -34,7 +34,7 @@ class ChatApp {
         this.initializeElements();
         this.setupEventListeners();
         this.updateSessionId();
-        this.loadConfig();
+        this.setEnvVariables();
     }
 
     generateSessionId() {
@@ -89,15 +89,11 @@ class ChatApp {
         this.sessionIdBottomElement.textContent = this.sessionId;
     }
 
-    async loadConfig() {
-        try {
-            const response = await fetch('/config');
-            const config = await response.json();
-            this.wsBase = config.agent_ws_base;
-            this.agentApiUrl = config.agent_api_url;
-        } catch (error) {
-            console.error('Failed to load configuration:', error);
-        }
+    setEnvVariables() {
+        // Get environment variables from window.ENV injected by template
+        this.wsBase = window.ENV?.AGENT_WS_BASE || 'ws://localhost:8000/ws';
+        this.agentApiUrl = window.ENV?.AGENT_URL || '/agent';
+        this.agentApiBase = window.ENV?.AGENT_BASE || '';
     }
 
     updateStatus(message) {
