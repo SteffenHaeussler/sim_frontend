@@ -350,9 +350,47 @@ class ChatApp {
         console.log('New chat started with session ID:', this.sessionId);
     }
 
+    handleNewLookupSession() {
+        // Generate new session ID
+        this.sessionId = this.generateSessionId();
+        this.updateSessionId();
+
+        // Clear asset search
+        if (this.assetNameSearch) {
+            this.assetNameSearch.value = '';
+        }
+        if (this.assetTypeFilter) {
+            this.assetTypeFilter.value = '';
+        }
+        if (this.typeFilter) {
+            this.typeFilter.value = '';
+        }
+        this.currentPage = 1;
+
+        // Clear asset information
+        if (this.assetInfoName) {
+            this.assetInfoName.value = '';
+        }
+        if (this.assetDetails) {
+            this.assetDetails.innerHTML = `
+                <div class="details-placeholder">
+                    Enter an asset name to view details
+                </div>
+            `;
+        }
+
+        // Reload all assets
+        this.loadAllAssets();
+
+        console.log('New lookup session started with session ID:', this.sessionId);
+    }
+
     handleNewSession() {
-        // Same functionality as handleNewChat
-        this.handleNewChat();
+        if (this.currentActiveService === 'lookup-service') {
+            this.handleNewLookupSession();
+        } else {
+            this.handleNewChat();
+        }
     }
 
     toggleIconBar() {
@@ -641,11 +679,10 @@ class ChatApp {
         this.addMessage(`Selected Asset: ${asset.name} (${asset.asset_type})`, false, true);
         console.log('Selected asset:', asset);
         
-        // Populate asset information section
+        // Populate only the asset name in the input field
         if (this.assetInfoName) {
             this.assetInfoName.value = asset.name;
         }
-        this.showAssetDetails(asset, null);
     }
 
     initializeAssetInfo() {
@@ -675,14 +712,30 @@ class ChatApp {
         }
 
         try {
-            // Call the asset API endpoint
-            const response = await fetch(`/api/asset/${encodeURIComponent(assetName)}`);
-            const data = await response.json();
+            // Step 1: Get asset ID from name
+            const idResponse = await fetch(`/api/id/${encodeURIComponent(assetName)}`);
+            const idData = await idResponse.json();
             
-            if (data.error) {
-                this.showAssetDetails(null, `Error: ${data.error}`);
+            if (idData.error) {
+                this.showAssetDetails(null, `Error getting asset ID: ${idData.error}`);
+                return;
+            }
+
+            // Extract the asset ID from the response
+            const assetId = idData.id || idData.asset_id || idData;
+            if (!assetId) {
+                this.showAssetDetails(null, 'Asset ID not found in response');
+                return;
+            }
+
+            // Step 2: Get asset details using the ID
+            const assetResponse = await fetch(`/api/asset/${encodeURIComponent(assetId)}`);
+            const assetData = await assetResponse.json();
+            
+            if (assetData.error) {
+                this.showAssetDetails(null, `Error getting asset details: ${assetData.error}`);
             } else {
-                this.showAssetDetails(data, null);
+                this.showAssetDetails(assetData, null);
             }
         } catch (error) {
             console.error('Failed to get asset info:', error);
@@ -709,22 +762,31 @@ class ChatApp {
             return;
         }
 
-        // Display asset information
-        const detailsHtml = `
-            <div class="asset-detail-item">
-                <span class="detail-label">Name:</span>
-                <span class="detail-value">${assetData.name || 'N/A'}</span>
-            </div>
-            <div class="asset-detail-item">
-                <span class="detail-label">Asset Type:</span>
-                <span class="detail-value">${assetData.asset_type || 'N/A'}</span>
-            </div>
-            <div class="asset-detail-item">
-                <span class="detail-label">Type:</span>
-                <span class="detail-value">${assetData.type || 'N/A'}</span>
-            </div>
-        `;
-
+        // Display JSON response as key-value rows
+        let detailsHtml = '';
+        
+        // Recursively process the JSON object
+        const processObject = (obj, prefix = '') => {
+            for (const [key, value] of Object.entries(obj)) {
+                const displayKey = prefix ? `${prefix}.${key}` : key;
+                
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    // Nested object - recurse
+                    processObject(value, displayKey);
+                } else {
+                    // Simple value - create row
+                    const displayValue = Array.isArray(value) ? JSON.stringify(value) : String(value);
+                    detailsHtml += `
+                        <div class="asset-detail-item">
+                            <span class="detail-label">${displayKey}:</span>
+                            <span class="detail-value">${displayValue}</span>
+                        </div>
+                    `;
+                }
+            }
+        };
+        
+        processObject(assetData);
         this.assetDetails.innerHTML = detailsHtml;
     }
 }
