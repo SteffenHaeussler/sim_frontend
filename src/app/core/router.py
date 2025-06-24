@@ -1,28 +1,35 @@
 import asyncio
 import os
+import threading
+import uuid
+from pathlib import Path
 from time import time
 
+import httpx
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from loguru import logger
 from pydantic import ValidationError
-from dotenv import load_dotenv
 
 from src.app.core.schema import HealthCheckResponse
 
-load_dotenv()
+BASEDIR = Path(__file__).resolve().parent
+
 
 core = APIRouter()
 
+templates = Jinja2Templates(directory=f"{BASEDIR}/templates")
+
 
 @core.get("/health", response_model=HealthCheckResponse)
-def health(request: Request) -> HealthCheckResponse:
+def get_health(request: Request) -> HealthCheckResponse:
     logger.debug(f"Methode: {request.method} on {request.url.path}")
     return {"version": request.app.state.VERSION, "timestamp": time()}
 
 
 @core.post("/health", response_model=HealthCheckResponse)
-def health(request: Request) -> HealthCheckResponse:
+def post_health(request: Request) -> HealthCheckResponse:
     logger.debug(f"Methode: {request.method} on {request.url.path}")
     return {"version": request.app.state.VERSION, "timestamp": time()}
 
@@ -51,36 +58,30 @@ async def health(websocket: WebSocket) -> None:
 @core.get("/", response_class=HTMLResponse)
 async def frontend(request: Request):
     """Serve the chat frontend"""
-    return request.app.templates.TemplateResponse("chat.html", {"request": request})
-
-
-@core.get("/config")
-async def get_config():
-    """Provide frontend configuration"""
-    return {
-        "agent_api_base": os.getenv("agent_api_base", ""),
-        "agent_api_url": os.getenv("agent_api_url", ""),
-        "agent_ws_base": os.getenv("agent_ws_base", "")
+    context = {
+        "request": request,
+        "agent_ws_base": os.getenv("agent_ws_base", ""),
+        "agent_url": os.getenv("agent_url", ""),
+        "agent_base": os.getenv("agent_base", ""),
     }
+    return templates.TemplateResponse("chat.html", context)
 
 
-@core.get("/answer")
+
+
+@core.get("/agent")
 async def answer_question(question: str):
     """Handle question from frontend and trigger external agent API"""
-    import threading
-    import httpx
-    import uuid
-    
     # Generate session ID for this request
     session_id = str(uuid.uuid4())
-    
+
     # Get external API URL from environment
-    api_url = os.getenv("agent_api_base", "") + os.getenv("agent_api_url", "")
-    
+    api_url = os.getenv("agent_base", "") + os.getenv("agent_url", "")
+
     logger.info(f"Received question: {question}")
     logger.info(f"Session ID: {session_id}")
     logger.info(f"Forwarding to: {api_url}")
-    
+
     def send_request():
         try:
             with httpx.Client() as client:
@@ -98,9 +99,5 @@ async def answer_question(question: str):
 
     # Fire and forget request to external API
     threading.Thread(target=send_request, daemon=True).start()
-    
-    return {
-        "status": "triggered", 
-        "session_id": session_id,
-        "question": question
-    }
+
+    return {"status": "triggered", "session_id": session_id, "question": question}

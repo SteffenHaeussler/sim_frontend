@@ -75,6 +75,16 @@
 
     <!-- Add markdown parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    
+    <!-- Environment variables -->
+    <script>
+        window.ENV = {
+            AGENT_WS_BASE: "{{ agent_ws_base }}",
+            AGENT_URL: "{{ agent_url }}",
+            AGENT_BASE: "{{ agent_base }}"
+        };
+    </script>
+    
     <script src="{{ url_for('static', path='/js/chat.js') }}"></script>
 </body>
 </html>

@@ -2,9 +2,9 @@
 from pathlib import Path
 from typing import Dict
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from loguru import logger
 
 from src.app.config import Config
@@ -12,10 +12,11 @@ from src.app.core import router as core_router
 from src.app.logging import setup_logger
 from src.app.meta import tags_metadata
 from src.app.middleware import RequestTimer, add_request_id
-from src.app.v1 import router as v1_router
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
+
+load_dotenv(".env")
 
 
 def get_application(config: Dict) -> FastAPI:
@@ -43,13 +44,16 @@ def get_application(config: Dict) -> FastAPI:
 
     application.include_router(core_router.core, tags=["core"])
 
-    application.include_router(v1_router.v1, prefix="/v1", tags=["v1"])
+    # application.include_router(v1_router.v1, prefix="/v1", tags=["v1"])
 
     # Mount static files and templates
     application.mount(
-        "/static", StaticFiles(directory=f"{BASEDIR}/static"), name="static"
+        "/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static"
     )
-    application.templates = Jinja2Templates(directory=f"{BASEDIR}/templates")
+
+    # application.mount(
+    #     "/v1/static", StaticFiles(directory=f"{BASEDIR}/v1/static"), name="v1_static"
+    # )
 
     logger.info(f"API running in {config.api_mode.CONFIG_NAME} mode")
     return application
