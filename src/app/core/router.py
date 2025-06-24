@@ -10,7 +10,7 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from src.app.core.schema import HealthCheckResponse
 
@@ -68,6 +68,10 @@ async def frontend(request: Request):
         "api_neighbor_url": os.getenv("api_neighbor_url", ""),
         "api_name_url": os.getenv("api_name_url", ""),
         "api_id_url": os.getenv("api_id_url", ""),
+        "semantic_base": os.getenv("semantic_base", ""),
+        "semantic_emb_url": os.getenv("semantic_emb_url", ""),
+        "semantic_rank_url": os.getenv("semantic_rank_url", ""),
+        "semantic_search_url": os.getenv("semantic_search_url", ""),
     }
     return templates.TemplateResponse(request, "chat.html", context)
 
@@ -203,49 +207,52 @@ async def search_assets(
     asset_type: str = None,
     type: str = None,
     page: int = 1,
-    limit: int = 50
+    limit: int = 50,
 ):
     """Search and filter lookup assets with pagination"""
     try:
         assets = request.app.state.lookup_assets
         filtered_assets = assets
-        
+
         # Filter by name (case-insensitive partial match)
         if name:
             filtered_assets = [
-                asset for asset in filtered_assets 
+                asset
+                for asset in filtered_assets
                 if name.lower() in asset.get("name", "").lower()
             ]
-        
+
         # Filter by asset_type (exact match)
         if asset_type:
             filtered_assets = [
-                asset for asset in filtered_assets 
+                asset
+                for asset in filtered_assets
                 if asset.get("asset_type", "").lower() == asset_type.lower()
             ]
-        
+
         # Filter by type (exact match)
         if type:
             filtered_assets = [
-                asset for asset in filtered_assets 
+                asset
+                for asset in filtered_assets
                 if asset.get("type", "").lower() == type.lower()
             ]
-        
+
         # Calculate pagination
         total_count = len(filtered_assets)
         start_idx = (page - 1) * limit
         end_idx = start_idx + limit
         paginated_assets = filtered_assets[start_idx:end_idx]
-        
+
         # Get unique asset types and types for filter options
         asset_types = list(set(asset.get("asset_type", "") for asset in assets))
         asset_types = [t for t in asset_types if t]  # Remove empty strings
         asset_types.sort()
-        
+
         types = list(set(asset.get("type", "") for asset in assets))
         types = [t for t in types if t]  # Remove empty strings
         types.sort()
-        
+
         return {
             "assets": paginated_assets,
             "total_count": total_count,
@@ -254,12 +261,111 @@ async def search_assets(
             "total_pages": (total_count + limit - 1) // limit,
             "asset_types": asset_types,
             "types": types,
-            "filters": {
-                "name": name,
-                "asset_type": asset_type,
-                "type": type
-            }
+            "filters": {"name": name, "asset_type": asset_type, "type": type},
         }
     except Exception as e:
         logger.error(f"Failed to search assets: {e}")
         return {"error": str(e), "assets": [], "total_count": 0}
+
+
+class SemanticRequest(BaseModel):
+    query: str
+
+
+@core.post("/lookout/semantic")
+async def semantic_search(request: SemanticRequest):
+    """
+    Perform semantic search with embedding → search → ranking pipeline
+    """
+    semantic_base = os.getenv("semantic_base", "")
+    emb_url = os.getenv("semantic_emb_url", "")
+    search_url = os.getenv("semantic_search_url", "")
+    rank_url = os.getenv("semantic_rank_url", "")
+    semantic_table = os.getenv("semantic_table", "")
+
+    if not semantic_base:
+        logger.error("semantic_base environment variable not set")
+        return {"error": "Semantic service not configured", "step": "config"}
+
+    logger.info(f"Starting semantic search for query: {request.query}")
+    try:
+        async with httpx.AsyncClient() as client:
+            # Step 1: Get embedding for the query
+            embedding_endpoint = f"{semantic_base}{emb_url}"
+            logger.info(f"Step 1: Getting embedding from {embedding_endpoint}")
+
+            emb_response = await client.get(
+                embedding_endpoint, params={"text": request.query}, timeout=30
+            )
+            emb_response.raise_for_status()
+            embedding_data = emb_response.json()
+
+            logger.info("Step 1: Embedding completed successfully")
+
+            # Step 2: Perform search using embedding
+            search_endpoint = f"{semantic_base}{search_url}"
+            logger.info(f"Step 2: Performing search at {search_endpoint}")
+
+            search_payload = {
+                "embedding": embedding_data.get("embedding"),
+                "n_items": 10,  # Default value
+                "table": semantic_table,
+            }
+
+            search_response = await client.post(
+                search_endpoint, json=search_payload, timeout=30
+            )
+            search_response.raise_for_status()
+            search_data = search_response.json()
+
+            logger.info(
+                f"Step 2: Search completed, found {len(search_data.get('results', []))} results"
+            )
+
+            # Step 3: Rank the search results
+            rank_endpoint = f"{semantic_base}{rank_url}"
+            logger.info(f"Step 3: Ranking results at {rank_endpoint}")
+
+            candidates = []
+
+            for candidate in search_data.get("results", []):
+                rank_payload = {
+                    "question": request.query,
+                    "text": candidate["description"],
+                }
+
+                rank_response = await client.get(
+                    rank_endpoint, params=rank_payload, timeout=30
+                )
+                rank_response.raise_for_status()
+                rank_data = rank_response.json()
+
+                candidate["score"] = rank_data.get("score")
+                candidate["question"] = rank_data.get("question")
+
+                candidates.append(candidate)
+
+            logger.info("Step 3: Ranking completed, returning best result")
+
+            candidates = sorted(
+                candidates, key=lambda x: getattr(x, "score", 0), reverse=True
+            )
+
+            # Return the final ranked results with metadata
+            return candidates[0]
+
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            f"Semantic API HTTP error: {e.response.status_code} - {e.response.text}"
+        )
+        return {
+            "error": f"Semantic API error: {e.response.status_code}",
+            "details": e.response.text,
+            "step": "api_call",
+        }
+    except httpx.TimeoutException as e:
+        logger.error(f"Semantic API timeout: {e}")
+        return {"error": "Semantic API timeout", "step": "timeout"}
+    except Exception as e:
+        logger.error(f"Semantic search failed: {e}")
+        return {"error": str(e), "step": "unknown"}
