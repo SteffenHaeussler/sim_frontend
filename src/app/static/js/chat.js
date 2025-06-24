@@ -3,6 +3,34 @@ class ChatApp {
         this.sessionId = this.generateSessionId();
         this.websocket = null;
 
+        // Template sets for different services
+        this.templates = {
+            'ask-agent': [
+                "What is the daily maximum value of PI-P0017 for the last two weeks?",
+                "How much was produced in the first two weeks of 2025?",
+                "Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?",
+                "What is the current pressure in the distillation?",
+                "Can you plot me the temperature of the distillation cooler A for the last two weeks?",
+                "What is the level in Tank B?",
+                "What is the id of TI-T0022?",
+                "What assets are next to Asset BA100?"
+            ],
+            'lookup-service': [
+                "Asset names",
+                "Asset Information",
+                "Neighbouring assets",
+                "Assed Ids"
+            ]
+        };
+
+        // Endpoint mapping for lookup service templates
+        this.lookupEndpoints = {
+            "Asset names": "/lookup/asset-names",
+            "Asset Information": "/lookup/asset-info",
+            "Neighbouring assets": "/lookup/neighbouring-assets",
+            "Assed Ids": "/lookup/asset-ids"
+        };
+
         this.initializeElements();
         this.setupEventListeners();
         this.updateSessionId();
@@ -46,12 +74,12 @@ class ChatApp {
                 this.handleSendMessage();
             }
         });
-        
+
         // Add click listeners to template items
         document.querySelectorAll('.template-text').forEach(template => {
             template.addEventListener('click', () => this.handleTemplateClick(template));
         });
-        
+
         // Add click listeners to icon labels
         document.querySelector('#new-session-btn .icon-label').addEventListener('click', () => this.handleNewSession());
         document.querySelector('#theme-toggle-btn .icon-label').addEventListener('click', () => this.toggleTheme());
@@ -193,31 +221,31 @@ class ChatApp {
 
     async triggerEvent(question) {
         let endpoint;
-        
+
         if (this.currentActiveService === 'lookup-service') {
-            // Use internal health service for lookup
-            endpoint = '/health';
+            // Map question to specific lookup endpoint
+            endpoint = this.lookupEndpoints[question] || '/lookup/default';
         } else {
             // Default to ask-agent endpoint
             endpoint = '/answer';
         }
-        
+
         const url = new URL(endpoint, window.location.origin);
-        
+
         if (this.currentActiveService === 'lookup-service') {
-            // For health endpoint, make a simple GET request
+            // For lookup endpoints, make a simple GET request
             const response = await fetch(url.toString());
             const data = await response.json();
-            
-            // Create a mock session for health service
+
+            // Create a mock session for lookup service
             this.sessionId = this.generateSessionId();
             this.updateSessionId();
-            
-            // Add health response as a message
-            this.addMessage(`Health Status: ${data.status || 'OK'}`, false, false);
+
+            // Add lookup response as a message
+            this.addMessage(`Lookup Result: ${JSON.stringify(data, null, 2)}`, false, false);
             this.updateStatus('Ready');
             this.sendButton.disabled = false;
-            
+
             return data;
         } else {
             // Original ask-agent logic
@@ -287,7 +315,7 @@ class ChatApp {
 
         try {
             await this.triggerEvent(question);
-            
+
             // Only connect WebSocket for ask-agent service
             if (this.currentActiveService === 'ask-agent') {
                 await this.connectWebSocket();
@@ -303,25 +331,25 @@ class ChatApp {
         // Generate new session ID
         this.sessionId = this.generateSessionId();
         this.updateSessionId();
-        
+
         // Clear all messages
         this.messagesElement.innerHTML = '';
-        
+
         // Clear input field
         this.questionInput.value = '';
-        
+
         // Reset status
         this.updateStatus('Ready');
-        
+
         // Close any existing WebSocket connection
         if (this.websocket) {
             this.websocket.close();
             this.websocket = null;
         }
-        
+
         // Re-enable send button
         this.sendButton.disabled = false;
-        
+
         console.log('New chat started with session ID:', this.sessionId);
     }
 
@@ -349,11 +377,11 @@ class ChatApp {
 
     applyTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
-        
+
         // Update button icon and label
         const icon = this.themeToggleButton.querySelector('.icon-svg');
         const label = this.themeToggleButton.querySelector('.icon-label');
-        
+
         if (theme === 'dark') {
             icon.src = '/static/icons/sun.svg';
             icon.alt = 'Light Mode';
@@ -369,10 +397,10 @@ class ChatApp {
         const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
         this.currentTheme = newTheme;
         this.applyTheme(newTheme);
-        
+
         // Save theme preference
         localStorage.setItem('theme', newTheme);
-        
+
         console.log(`Theme switched to: ${newTheme}`);
     }
 
@@ -380,18 +408,42 @@ class ChatApp {
         // Remove active class from all service buttons
         this.askAgentButton.classList.remove('active');
         this.lookupServiceButton.classList.remove('active');
-        
+
         // Add active class to selected service
         if (service === 'ask-agent') {
             this.askAgentButton.classList.add('active');
         } else if (service === 'lookup-service') {
             this.lookupServiceButton.classList.add('active');
         }
-        
+
         // Update current active service
         this.currentActiveService = service;
-        
+
+        // Update templates for the selected service
+        this.updateTemplates(service);
+
         console.log(`Active service set to: ${service}`);
+    }
+
+    updateTemplates(service) {
+        const templateContainer = document.querySelector('.template-list');
+        if (!templateContainer) return;
+
+        // Get templates for the selected service
+        const serviceTemplates = this.templates[service] || this.templates['ask-agent'];
+
+        // Clear existing templates except the header
+        const templateTexts = templateContainer.querySelectorAll('.template-text');
+        templateTexts.forEach(template => template.remove());
+
+        // Add new templates
+        serviceTemplates.forEach(templateText => {
+            const templateDiv = document.createElement('div');
+            templateDiv.className = 'template-text';
+            templateDiv.textContent = templateText;
+            templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
+            templateContainer.appendChild(templateDiv);
+        });
     }
 }
 

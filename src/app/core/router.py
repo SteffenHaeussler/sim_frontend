@@ -2,11 +2,11 @@ import asyncio
 import os
 from time import time
 
+from dotenv import load_dotenv
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from loguru import logger
 from pydantic import ValidationError
-from dotenv import load_dotenv
 
 from src.app.core.schema import HealthCheckResponse
 
@@ -60,7 +60,7 @@ async def get_config():
     return {
         "agent_api_base": os.getenv("agent_api_base", ""),
         "agent_api_url": os.getenv("agent_api_url", ""),
-        "agent_ws_base": os.getenv("agent_ws_base", "")
+        "agent_ws_base": os.getenv("agent_ws_base", ""),
     }
 
 
@@ -68,19 +68,20 @@ async def get_config():
 async def answer_question(question: str):
     """Handle question from frontend and trigger external agent API"""
     import threading
-    import httpx
     import uuid
-    
+
+    import httpx
+
     # Generate session ID for this request
     session_id = str(uuid.uuid4())
-    
+
     # Get external API URL from environment
     api_url = os.getenv("agent_api_base", "") + os.getenv("agent_api_url", "")
-    
+
     logger.info(f"Received question: {question}")
     logger.info(f"Session ID: {session_id}")
     logger.info(f"Forwarding to: {api_url}")
-    
+
     def send_request():
         try:
             with httpx.Client() as client:
@@ -98,9 +99,6 @@ async def answer_question(question: str):
 
     # Fire and forget request to external API
     threading.Thread(target=send_request, daemon=True).start()
-    
-    return {
-        "status": "triggered", 
-        "session_id": session_id,
-        "question": question
-    }
+
+    return {"status": "triggered", "session_id": session_id, "question": question}
+    return {"status": "triggered", "session_id": session_id, "question": question}
