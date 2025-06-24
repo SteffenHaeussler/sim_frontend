@@ -13,6 +13,7 @@ from pydantic_settings import (
 class Deployment(BaseModel):
     CONFIG_NAME: constr(to_upper=True)
     DEBUG: bool
+    VERSION: str = "0.1.0"
 
 
 class Config(BaseSettings):
@@ -41,10 +42,15 @@ class Config(BaseSettings):
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> Tuple[PydanticBaseSettingsSource, ...]:
         return (
+            init_settings,
             env_settings,
             TomlConfigSettingsSource(settings_cls),
         )
 
     @property
-    def api_mode(self) -> str:
+    def api_mode(self) -> Deployment:
         return dict(self).get(self.FASTAPI_ENV)
+    
+    @property 
+    def current_version(self) -> str:
+        return self.api_mode.VERSION if hasattr(self.api_mode, 'VERSION') else self.VERSION

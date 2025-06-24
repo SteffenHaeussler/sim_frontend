@@ -32,3 +32,6 @@ dev:
 
 prod:
 	FASTAPI_ENV=PROD ./run_app.sh
+
+test:
+	FASTAPI_ENV=TEST ./run_app.sh

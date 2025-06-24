@@ -52,6 +52,8 @@ def get_application(config: Dict) -> FastAPI:
     application = FastAPI(openapi_tags=tags_metadata)
 
     application.state = config
+    # Ensure VERSION is available at state level for backward compatibility
+    application.state.VERSION = config.current_version
     
     # Load lookup assets into application state
     application.state.lookup_assets = load_lookup_assets()

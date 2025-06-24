@@ -706,9 +706,11 @@ class ChatApp {
         this.addMessage(`Selected Asset: ${asset.name} (${asset.asset_type})`, false, true);
         console.log('Selected asset:', asset);
         
-        // Populate only the asset name in the input field
+        // Populate the asset name in the input field
         if (this.assetInfoName) {
             this.assetInfoName.value = asset.name;
+            // Automatically trigger asset info lookup to reset/update the display
+            this.handleGetAssetInfo();
         }
     }
 
