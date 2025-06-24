@@ -447,14 +447,35 @@ class ChatApp {
 
     updateTemplates(service) {
         const templateContainer = document.querySelector('.template-list');
+        const assetSearch = document.querySelector('.asset-search-main');
+        const assetInfo = document.querySelector('.asset-info-main');
+        const chatContainer = document.querySelector('.chat-container');
         if (!templateContainer) return;
 
         if (service === 'lookup-service') {
             // Hide the entire template section for lookup service
             templateContainer.style.display = 'none';
+            // Hide chat container and show asset sections
+            if (chatContainer) chatContainer.style.display = 'none';
+            if (assetSearch) {
+                assetSearch.style.display = 'block';
+                this.initializeAssetSearch();
+            }
+            if (assetInfo) {
+                assetInfo.style.display = 'block';
+                this.initializeAssetInfo();
+            }
         } else {
             // Show template section for ask-agent
             templateContainer.style.display = '';
+            // Show chat container and hide asset sections
+            if (chatContainer) chatContainer.style.display = 'block';
+            if (assetSearch) {
+                assetSearch.style.display = 'none';
+            }
+            if (assetInfo) {
+                assetInfo.style.display = 'none';
+            }
 
             // Get templates for the selected service
             const serviceTemplates = this.templates[service] || this.templates['ask-agent'];
@@ -485,6 +506,226 @@ class ChatApp {
             // Show input area for ask-agent service (restore original)
             inputArea.style.display = '';
         }
+    }
+
+    initializeAssetSearch() {
+        if (this.assetSearchInitialized) return;
+        
+        this.currentPage = 1;
+        this.assetSearchInitialized = true;
+        
+        // Get DOM elements
+        this.assetNameSearch = document.getElementById('asset-name-search');
+        this.assetTypeFilter = document.getElementById('asset-type-filter');
+        this.typeFilter = document.getElementById('type-filter');
+        this.clearFiltersBtn = document.getElementById('clear-filters');
+        this.assetList = document.getElementById('asset-list');
+        this.resultsCount = document.getElementById('results-count');
+        this.prevPageBtn = document.getElementById('prev-page');
+        this.nextPageBtn = document.getElementById('next-page');
+        this.pageInfo = document.getElementById('page-info');
+        
+        // Set up event listeners
+        this.assetNameSearch.addEventListener('input', () => this.searchAssets());
+        this.assetTypeFilter.addEventListener('change', () => this.searchAssets());
+        this.typeFilter.addEventListener('change', () => this.searchAssets());
+        this.clearFiltersBtn.addEventListener('click', () => this.clearFilters());
+        this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
+        this.nextPageBtn.addEventListener('click', () => this.changePage(1));
+        
+        // Load initial data and populate table
+        this.loadFilterOptions();
+        this.loadAllAssets();
+    }
+
+    async loadFilterOptions() {
+        try {
+            const response = await fetch('/lookup/search');
+            const data = await response.json();
+            
+            // Populate asset type filter
+            this.assetTypeFilter.innerHTML = '<option value="">Assets</option>';
+            data.asset_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                this.assetTypeFilter.appendChild(option);
+            });
+            
+            // Populate type filter
+            this.typeFilter.innerHTML = '<option value="">Types</option>';
+            data.types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                this.typeFilter.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to load filter options:', error);
+        }
+    }
+
+    async loadAllAssets() {
+        // Reset to first page and clear filters for initial load
+        this.currentPage = 1;
+        this.searchAssets();
+    }
+
+    async searchAssets() {
+        const name = this.assetNameSearch.value.trim();
+        const assetType = this.assetTypeFilter.value;
+        const type = this.typeFilter.value;
+        
+        try {
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                limit: 10
+            });
+            
+            if (name) params.append('name', name);
+            if (assetType) params.append('asset_type', assetType);
+            if (type) params.append('type', type);
+            
+            const response = await fetch(`/lookup/search?${params}`);
+            const data = await response.json();
+            
+            this.displayAssets(data);
+        } catch (error) {
+            console.error('Search failed:', error);
+        }
+    }
+
+    displayAssets(data) {
+        // Update results count
+        this.resultsCount.textContent = `${data.total_count} assets`;
+        
+        // Clear and populate asset list
+        this.assetList.innerHTML = '';
+        
+        data.assets.forEach(asset => {
+            const assetItem = document.createElement('div');
+            assetItem.className = 'asset-item';
+            assetItem.innerHTML = `
+                <span class="asset-name">${asset.name}</span>
+                <span class="asset-type">${asset.asset_type}</span>
+            `;
+            assetItem.addEventListener('click', () => this.selectAsset(asset));
+            this.assetList.appendChild(assetItem);
+        });
+        
+        // Update pagination
+        this.updatePagination(data);
+    }
+
+    updatePagination(data) {
+        this.pageInfo.textContent = `Page ${data.page} of ${data.total_pages}`;
+        this.prevPageBtn.disabled = data.page <= 1;
+        this.nextPageBtn.disabled = data.page >= data.total_pages;
+    }
+
+    changePage(direction) {
+        this.currentPage += direction;
+        this.searchAssets();
+    }
+
+    clearFilters() {
+        this.assetNameSearch.value = '';
+        this.assetTypeFilter.value = '';
+        this.typeFilter.value = '';
+        this.currentPage = 1;
+        this.searchAssets();
+    }
+
+    selectAsset(asset) {
+        // Add selected asset to chat
+        this.addMessage(`Selected Asset: ${asset.name} (${asset.asset_type})`, false, true);
+        console.log('Selected asset:', asset);
+        
+        // Populate asset information section
+        if (this.assetInfoName) {
+            this.assetInfoName.value = asset.name;
+        }
+        this.showAssetDetails(asset, null);
+    }
+
+    initializeAssetInfo() {
+        if (this.assetInfoInitialized) return;
+        
+        this.assetInfoInitialized = true;
+        
+        // Get DOM elements
+        this.assetInfoName = document.getElementById('asset-info-name');
+        this.getAssetInfoBtn = document.getElementById('get-asset-info');
+        this.assetDetails = document.getElementById('asset-details');
+        
+        // Set up event listeners
+        this.getAssetInfoBtn.addEventListener('click', () => this.handleGetAssetInfo());
+        this.assetInfoName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleGetAssetInfo();
+            }
+        });
+    }
+
+    async handleGetAssetInfo() {
+        const assetName = this.assetInfoName.value.trim();
+        if (!assetName) {
+            this.showAssetDetails(null, 'Please enter an asset name');
+            return;
+        }
+
+        try {
+            // Call the asset API endpoint
+            const response = await fetch(`/api/asset/${encodeURIComponent(assetName)}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                this.showAssetDetails(null, `Error: ${data.error}`);
+            } else {
+                this.showAssetDetails(data, null);
+            }
+        } catch (error) {
+            console.error('Failed to get asset info:', error);
+            this.showAssetDetails(null, 'Failed to fetch asset information');
+        }
+    }
+
+    showAssetDetails(assetData, errorMessage) {
+        if (errorMessage) {
+            this.assetDetails.innerHTML = `
+                <div class="details-placeholder">
+                    ${errorMessage}
+                </div>
+            `;
+            return;
+        }
+
+        if (!assetData) {
+            this.assetDetails.innerHTML = `
+                <div class="details-placeholder">
+                    Enter an asset name to view details
+                </div>
+            `;
+            return;
+        }
+
+        // Display asset information
+        const detailsHtml = `
+            <div class="asset-detail-item">
+                <span class="detail-label">Name:</span>
+                <span class="detail-value">${assetData.name || 'N/A'}</span>
+            </div>
+            <div class="asset-detail-item">
+                <span class="detail-label">Asset Type:</span>
+                <span class="detail-value">${assetData.asset_type || 'N/A'}</span>
+            </div>
+            <div class="asset-detail-item">
+                <span class="detail-label">Type:</span>
+                <span class="detail-value">${assetData.type || 'N/A'}</span>
+            </div>
+        `;
+
+        this.assetDetails.innerHTML = detailsHtml;
     }
 }
 

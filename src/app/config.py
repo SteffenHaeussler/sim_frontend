@@ -29,6 +29,7 @@ class Config(BaseSettings):
     TEST: Deployment
 
     model_config = SettingsConfigDict(toml_file=[_toml_file], env_prefix="")
+    lookup_assets: list = []
 
     @classmethod
     def settings_customise_sources(

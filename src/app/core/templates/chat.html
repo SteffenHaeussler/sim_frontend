@@ -45,7 +45,8 @@
                 <div class="template-text">What is the id of TI-T0022?</div>
                 <div class="template-text">What assets are next to Asset BA100?</div>
             </div>
-            
+
+
             <div class="icon-item" id="theme-toggle-btn" style="margin-top: auto; margin-bottom: 20px;">
                 <img src="/static/icons/moon.svg" alt="Dark Mode" class="icon-svg">
                 <span class="icon-label">Dark Mode</span>
@@ -58,9 +59,61 @@
                     <div id="messages" class="messages"></div>
                 </div>
 
+                <!-- Asset Search Section (hidden by default) -->
+                <div class="asset-search-main" id="asset-search" style="display: none;">
+                    <div class="search-section">
+                        <h2>Asset Search</h2>
+
+                        <div class="search-controls-main">
+                            <div class="search-row">
+                                <input type="text" id="asset-name-search" placeholder="Search by name..." />
+                                <select id="asset-type-filter">
+                                    <option value="">Assets</option>
+                                </select>
+                                <select id="type-filter">
+                                    <option value="">Types</option>
+                                </select>
+                                <button id="clear-filters">Clear Filters</button>
+                            </div>
+                        </div>
+
+                        <div class="asset-results-main" id="asset-results">
+                            <div class="results-header-main">
+                                <span id="results-count">0 assets</span>
+                            </div>
+                            <div class="asset-list-main" id="asset-list"></div>
+                            <div class="pagination-main" id="pagination">
+                                <button id="prev-page" disabled>Previous</button>
+                                <span id="page-info">Page 1 of 1</span>
+                                <button id="next-page" disabled>Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Asset Information Section -->
+                <div class="asset-info-main" id="asset-info" style="display: none;">
+                    <div class="info-section">
+                        <h2>Asset Information</h2>
+                        
+                        <div class="info-controls">
+                            <div class="info-row">
+                                <input type="text" id="asset-info-name" placeholder="Enter asset name..." />
+                                <button id="get-asset-info">Get Information</button>
+                            </div>
+                        </div>
+                        
+                        <div class="asset-details" id="asset-details">
+                            <div class="details-placeholder">
+                                Enter an asset name to view details
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
-        
+
         <div class="input-area">
             <div class="input-container">
                 <input type="text" id="question" placeholder="Ask your question..." />
@@ -75,7 +128,7 @@
 
     <!-- Add markdown parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
-    
+
     <!-- Environment variables -->
     <script>
         window.ENV = {
@@ -89,7 +142,7 @@
             API_ID_URL: "{{ api_id_url }}"
         };
     </script>
-    
+
     <script src="{{ url_for('static', path='/js/chat.js') }}"></script>
 </body>
 </html>
