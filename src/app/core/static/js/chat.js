@@ -379,6 +379,18 @@ class ChatApp {
             `;
         }
 
+        // Clear neighbor search
+        if (this.neighborAssetId) {
+            this.neighborAssetId.value = '';
+        }
+        if (this.neighborResults) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    Enter an asset ID to find neighboring assets
+                </div>
+            `;
+        }
+
         // Reload all assets
         this.loadAllAssets();
 
@@ -494,6 +506,7 @@ class ChatApp {
         const templateContainer = document.querySelector('.template-list');
         const assetSearch = document.querySelector('.asset-search-main');
         const assetInfo = document.querySelector('.asset-info-main');
+        const neighborSearch = document.querySelector('.neighbor-search-main');
         const chatContainer = document.querySelector('.chat-container');
         if (!templateContainer) return;
 
@@ -510,6 +523,10 @@ class ChatApp {
                 assetInfo.style.display = 'block';
                 this.initializeAssetInfo();
             }
+            if (neighborSearch) {
+                neighborSearch.style.display = 'block';
+                this.initializeNeighborSearch();
+            }
         } else {
             // Show template section for ask-agent
             templateContainer.style.display = '';
@@ -520,6 +537,9 @@ class ChatApp {
             }
             if (assetInfo) {
                 assetInfo.style.display = 'none';
+            }
+            if (neighborSearch) {
+                neighborSearch.style.display = 'none';
             }
 
             // Get templates for the selected service
@@ -865,6 +885,134 @@ class ChatApp {
             }, 2000);
         } catch (err) {
             console.error('Failed to copy asset value: ', err);
+        }
+    }
+
+    initializeNeighborSearch() {
+        if (this.neighborSearchInitialized) return;
+        
+        this.neighborSearchInitialized = true;
+        
+        // Get DOM elements
+        this.neighborAssetId = document.getElementById('neighbor-asset-id');
+        this.getNeighborsBtn = document.getElementById('get-neighbors');
+        this.neighborResults = document.getElementById('neighbor-results');
+        
+        // Set up event listeners
+        this.getNeighborsBtn.addEventListener('click', () => this.handleGetNeighbors());
+        this.neighborAssetId.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleGetNeighbors();
+            }
+        });
+    }
+
+    async handleGetNeighbors() {
+        const assetId = this.neighborAssetId.value.trim();
+        if (!assetId) {
+            this.showNeighborResults(null, 'Please enter an asset ID');
+            return;
+        }
+
+        try {
+            // Make API call to neighbor endpoint
+            const response = await fetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                this.showNeighborResults(null, `Asset ID "${assetId}" was not found. Please check and try again.`);
+            } else {
+                this.showNeighborResults(data, null);
+            }
+        } catch (error) {
+            console.error('Failed to get neighbors:', error);
+            this.showNeighborResults(null, 'Failed to fetch neighbor information');
+        }
+    }
+
+    showNeighborResults(neighborData, errorMessage) {
+        if (errorMessage) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    ${errorMessage}
+                </div>
+            `;
+            return;
+        }
+
+        if (!neighborData) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    Enter an asset ID to find neighboring assets
+                </div>
+            `;
+            return;
+        }
+
+        // Display neighbor IDs as a list
+        let neighborsHtml = '';
+        
+        // Handle different response formats - could be array or object with array
+        let neighborIds = [];
+        if (Array.isArray(neighborData)) {
+            neighborIds = neighborData;
+        } else if (neighborData.neighbors && Array.isArray(neighborData.neighbors)) {
+            neighborIds = neighborData.neighbors;
+        } else if (neighborData.ids && Array.isArray(neighborData.ids)) {
+            neighborIds = neighborData.ids;
+        } else {
+            // Try to extract any array from the response
+            for (const [key, value] of Object.entries(neighborData)) {
+                if (Array.isArray(value)) {
+                    neighborIds = value;
+                    break;
+                }
+            }
+        }
+
+        if (neighborIds.length === 0) {
+            this.neighborResults.innerHTML = `
+                <div class="neighbor-placeholder">
+                    No neighboring assets found for this ID
+                </div>
+            `;
+            return;
+        }
+
+        neighborIds.forEach(neighborId => {
+            const escapedId = String(neighborId).replace(/'/g, "\\'").replace(/"/g, '\\"');
+            neighborsHtml += `
+                <div class="neighbor-item">
+                    <span class="neighbor-id">${neighborId}</span>
+                    <button class="neighbor-copy-btn" onclick="window.chatApp.copyNeighborId('${escapedId}', this)" title="Copy neighbor ID">
+                        <img src="/static/icons/copy.svg" alt="Copy">
+                    </button>
+                </div>
+            `;
+        });
+        
+        this.neighborResults.innerHTML = neighborsHtml;
+    }
+
+    async copyNeighborId(neighborId, button) {
+        try {
+            await navigator.clipboard.writeText(neighborId);
+            console.log('Neighbor ID copied to clipboard:', neighborId);
+
+            // Show visual feedback
+            const originalIcon = button.innerHTML;
+            button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+            button.disabled = true;
+            button.title = 'Copied!';
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                button.innerHTML = originalIcon;
+                button.disabled = false;
+                button.title = 'Copy neighbor ID';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy neighbor ID: ', err);
         }
     }
 }

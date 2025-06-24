@@ -823,3 +823,141 @@ body {
         min-width: unset;
     }
 }
+
+/* Neighbor Search Section Styling */
+.neighbor-search-main {
+    max-width: 1000px;
+    margin: 20px auto 0;
+    padding: 15px;
+}
+
+.neighbor-section h2 {
+    color: var(--text-primary);
+    font-size: 20px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--border-light);
+    padding-bottom: 8px;
+}
+
+.neighbor-controls {
+    margin-bottom: 15px;
+}
+
+.neighbor-row {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.neighbor-row input {
+    flex: 3;
+    min-width: 200px;
+    padding: 10px;
+    border: 2px solid var(--border-input);
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.neighbor-row button {
+    padding: 10px 20px;
+    background-color: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.neighbor-row button:hover {
+    background-color: var(--accent-hover);
+}
+
+.neighbor-results {
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-height: 100px;
+}
+
+.neighbor-placeholder {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+}
+
+.neighbor-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.neighbor-item:hover {
+    background-color: var(--hover-light);
+}
+
+.neighbor-item:last-child {
+    border-bottom: none;
+}
+
+.neighbor-id {
+    font-weight: bold;
+    color: var(--text-primary);
+    font-size: 14px;
+    flex: 1;
+    word-break: break-all;
+}
+
+.neighbor-copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+    flex: 0 0 auto;
+}
+
+.neighbor-copy-btn:hover {
+    opacity: 1;
+    background-color: var(--hover-light);
+}
+
+.neighbor-copy-btn:disabled {
+    opacity: 0.8;
+    cursor: not-allowed;
+    background-color: var(--bg-tertiary);
+}
+
+.neighbor-copy-btn img {
+    width: 12px;
+    height: 12px;
+    filter: invert(0.5);
+}
+
+[data-theme="dark"] .neighbor-copy-btn img {
+    filter: invert(0.8);
+}
+
+@media (max-width: 768px) {
+    .neighbor-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .neighbor-row input,
+    .neighbor-row button {
+        width: 100%;
+        min-width: unset;
+    }
+}
