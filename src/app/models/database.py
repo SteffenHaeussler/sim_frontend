@@ -61,7 +61,7 @@ async def init_db() -> None:
         init_database_engine()
     
     # Import all models to ensure they are registered with Base
-    from . import user, role, organization, session, audit, password_reset, api_key
+    from . import user
     
     async with engine.begin() as conn:
         # Create all tables

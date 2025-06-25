@@ -1,12 +1,12 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 from .database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -16,23 +16,13 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     first_name = Column(String(100))
     last_name = Column(String(100))
-    role_id = Column(UUID(as_uuid=True), ForeignKey("roles.id"), nullable=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True)
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
-    is_verified = Column(Boolean, nullable=False, default=False, server_default="false")
-    last_login = Column(DateTime(timezone=True))
-    failed_login_attempts = Column(Integer, nullable=False, default=0, server_default="0")
-    locked_until = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
     
     # Relationships
-    role = relationship("Role", back_populates="users")
     organization = relationship("Organization", back_populates="users")
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
-    api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan")
-    audit_logs = relationship("AuditLog", back_populates="user")
+    api_usage_logs = relationship("ApiUsageLog", back_populates="user")
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}')>"
@@ -47,72 +37,90 @@ class User(Base):
         elif self.last_name:
             return self.last_name
         else:
-            return self.email.split("@")[0]  # Use email prefix as fallback
+            return self.email.split("@")[0]
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
     
-    @property
-    def is_locked(self) -> bool:
-        """Check if user account is locked"""
-        if not self.locked_until:
-            return False
-        return datetime.utcnow() < self.locked_until.replace(tzinfo=None)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False, unique=True, index=True)
+    display_name = Column(String(255), nullable=False)
+    max_users = Column(Integer, nullable=False, default=50)  # User limit for registration
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     
-    @property
-    def can_login(self) -> bool:
-        """Check if user can login (active, verified, not locked)"""
-        return self.is_active and self.is_verified and not self.is_locked
+    # Billing/invoicing info
+    billing_email = Column(String(255))  # Where to send invoices
+    billing_company = Column(String(255))
     
-    def lock_account(self, duration_minutes: int = 30) -> None:
-        """Lock user account for specified duration"""
-        self.locked_until = datetime.utcnow() + timedelta(minutes=duration_minutes)
+    # Relationships
+    users = relationship("User", back_populates="organization")
+    api_usage_logs = relationship("ApiUsageLog", back_populates="organization")
     
-    def unlock_account(self) -> None:
-        """Unlock user account"""
-        self.locked_until = None
-        self.failed_login_attempts = 0
+    def __repr__(self) -> str:
+        return f"<Organization(id={self.id}, name='{self.name}')>"
+
+
+class ApiUsageLog(Base):
+    __tablename__ = "api_usage_logs"
     
-    def increment_failed_login(self, max_attempts: int = 5, lockout_duration: int = 30) -> bool:
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True)
+    
+    # API call details for billing
+    endpoint = Column(String(255), nullable=False, index=True)  # /agent, /lookup, etc.
+    method = Column(String(10), nullable=False)  # GET, POST
+    status_code = Column(String(10))  # 200, 404, etc.
+    
+    # Billing details
+    timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
+    duration_ms = Column(String(50))  # How long the call took
+    
+    # Optional: detailed request info for debugging
+    query_params = Column(String(1000))  # Store query parameters if needed
+    
+    # Relationships
+    user = relationship("User", back_populates="api_usage_logs")
+    organization = relationship("Organization", back_populates="api_usage_logs")
+    
+    def __repr__(self) -> str:
+        return f"<ApiUsageLog(id={self.id}, user={self.user_id}, endpoint='{self.endpoint}')>"
+    
+    @classmethod
+    def log_api_call(
+        cls,
+        user_id: uuid.UUID,
+        organization_id: uuid.UUID,
+        endpoint: str,
+        method: str = "GET",
+        status_code: int = 200,
+        duration_ms: float = None,
+        query_params: str = None
+    ) -> "ApiUsageLog":
         """
-        Increment failed login attempts and lock account if needed
+        Log an API call for billing purposes
         
         Args:
-            max_attempts: Maximum failed attempts before lockout
-            lockout_duration: Lockout duration in minutes
+            user_id: User who made the call
+            organization_id: Organization to bill
+            endpoint: API endpoint called
+            method: HTTP method
+            status_code: Response status
+            duration_ms: Call duration for performance tracking
+            query_params: Query parameters for debugging
         
         Returns:
-            bool: True if account was locked
+            ApiUsageLog: New usage log entry
         """
-        self.failed_login_attempts += 1
-        
-        if self.failed_login_attempts >= max_attempts:
-            self.lock_account(lockout_duration)
-            return True
-        
-        return False
-    
-    def reset_failed_login(self) -> None:
-        """Reset failed login attempts (on successful login)"""
-        self.failed_login_attempts = 0
-        self.locked_until = None
-        self.last_login = datetime.utcnow()
-    
-    def has_permission(self, resource: str, action: str) -> bool:
-        """Check if user has specific permission through their role"""
-        if not self.role:
-            return False
-        return self.role.has_permission(resource, action)
-    
-    @property
-    def is_admin(self) -> bool:
-        """Check if user has admin role"""
-        return self.role and self.role.is_admin
-    
-    @property
-    def is_manager(self) -> bool:
-        """Check if user has manager role or higher"""
-        return self.role and self.role.is_manager
-    
-    def can_access_organization_data(self, target_org_id: uuid.UUID) -> bool:
-        """Check if user can access data from a specific organization"""
-        # Users can only access their own organization's data
-        # Admins might have cross-org access in the future
-        return self.organization_id == target_org_id
+        return cls(
+            user_id=user_id,
+            organization_id=organization_id,
+            endpoint=endpoint,
+            method=method,
+            status_code=str(status_code),
+            duration_ms=str(round(duration_ms, 2)) if duration_ms else None,
+            query_params=query_params,
+            timestamp=datetime.utcnow()
+        )

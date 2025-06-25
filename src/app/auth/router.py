@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import get_config
 from ..models.database import get_db
 from ..models.user import User
+from ..models.organization import Organization
 from .dependencies import require_auth
 from .jwt_utils import create_access_token
 from .password import hash_password, verify_password
@@ -32,16 +33,24 @@ async def register(
             detail="Email already registered"
         )
     
-    # Check total user count (simple approach - can be made per-organization later)
-    user_count_stmt = select(func.count(User.id))
+    # Get the organization to check max_users limit
+    org_stmt = select(Organization).where(Organization.is_active == True).limit(1)
+    org_result = await db.execute(org_stmt)
+    organization = org_result.scalar_one_or_none()
+    
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No active organization available for registration"
+        )
+    
+    # Check current user count for this organization
+    user_count_stmt = select(func.count(User.id)).where(User.organization_id == organization.id)
     user_count_result = await db.execute(user_count_stmt)
-    total_users = user_count_result.scalar()
+    current_users = user_count_result.scalar()
     
-    # Set max users limit (can be configured later)
-    MAX_USERS = 50  # Simple limit for now
-    
-    # Determine if user should be active based on limit
-    is_active = total_users < MAX_USERS
+    # Determine if user should be active based on organization limit
+    is_active = current_users < organization.max_users
     
     # Create new user
     hashed_password = hash_password(register_data.password)
@@ -50,6 +59,7 @@ async def register(
         password_hash=hashed_password,
         first_name=register_data.first_name,
         last_name=register_data.last_name,
+        organization_id=organization.id,
         is_active=is_active,
         is_verified=True,  # Auto-verify for simplicity
     )
