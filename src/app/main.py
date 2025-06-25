@@ -14,7 +14,7 @@ from src.app.logging import setup_logger
 from src.app.meta import tags_metadata
 from src.app.middleware import RequestTimer, add_request_id
 from src.app.models.database import init_database_engine, close_db
-from src.app.auth import auth_router, admin_router
+from src.app.auth import auth_router
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
@@ -78,7 +78,6 @@ def get_application(config: Dict) -> FastAPI:
 
     application.include_router(core_router.core, tags=["core"])
     application.include_router(auth_router, tags=["authentication"])
-    application.include_router(admin_router, tags=["admin"])
 
     # application.include_router(v1_router.v1, prefix="/v1", tags=["v1"])
 

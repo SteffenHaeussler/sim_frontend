@@ -50,14 +50,14 @@ class PasswordResetToken(Base):
 
     def mark_as_used(self) -> None:
         """Mark token as used"""
-        self.used_at = datetime.utcnow()
+        self.used_at = datetime.now(timezone.utc)
 
     @property
     def time_until_expiry(self) -> Optional[timedelta]:
         """Get time remaining until token expires"""
         if self.is_expired:
             return None
-        return self.expires_at.replace(tzinfo=None) - datetime.utcnow()
+        return self.expires_at.replace(tzinfo=None) - datetime.now(timezone.utc)
 
     @classmethod
     def create_token(

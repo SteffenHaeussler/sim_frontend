@@ -16,7 +16,7 @@ class AskAgent {
         if (this.sendButton) {
             this.sendButton.addEventListener('click', () => this.handleSendMessage());
         }
-        
+
         if (this.questionInput) {
             this.questionInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -28,7 +28,7 @@ class AskAgent {
 
     updateStatus(message) {
         if (!this.questionInput) return;
-        
+
         // Replace placeholder text with spinner + status when processing
         if (message !== 'Ready') {
             this.questionInput.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' +
@@ -152,15 +152,15 @@ class AskAgent {
         const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
-        
+
         const response = await fetch(url.toString());
         const data = await response.json();
-        
+
         if (window.app) {
             window.app.sessionId = data.session_id;
             window.app.updateSessionId();
         }
-        
+
         return data;
     }
 
@@ -216,7 +216,7 @@ class AskAgent {
 
     async handleSendMessage() {
         if (!this.questionInput || !this.sendButton) return;
-        
+
         const question = this.questionInput.value.trim();
         if (!question) return;
 
