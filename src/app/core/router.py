@@ -13,7 +13,6 @@ from loguru import logger
 from pydantic import ValidationError
 
 from src.app.core.schema import HealthCheckResponse, SemanticRequest
-from src.app.auth.dependencies import require_active_auth
 
 BASEDIR = Path(__file__).resolve().parent
 
@@ -78,7 +77,7 @@ async def frontend(request: Request):
 
 
 @core.get("/agent")
-async def answer_question(question: str, _=require_active_auth()):
+async def answer_question(question: str):
     """Handle question from frontend and trigger external agent API"""
     # Generate session ID for this request
     session_id = str(uuid.uuid4())
