@@ -6,9 +6,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.database import get_db
-from ..models.user import User
-from .jwt_utils import TokenData, verify_token
+from src.app.auth.jwt_utils import TokenData, verify_token
+from src.app.models.database import get_db
+from src.app.models.user import User
 
 # Simple Bearer token security
 security = HTTPBearer()
@@ -47,20 +47,20 @@ async def require_active_user(
     stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive. Contact administrator.",
         )
-    
+
     return token_data
 
 
