@@ -2,7 +2,7 @@ class App {
     constructor() {
         this.sessionId = this.generateSessionId();
         this.currentActiveService = 'ask-agent'; // Default to ask-agent
-        
+
         this.initializeElements();
         this.setupEventListeners();
         this.updateSessionId();
@@ -139,7 +139,7 @@ class App {
         const templateContainer = document.querySelector('.template-list');
         const chatContainer = document.querySelector('.chat-container');
         const lookupContainer = document.querySelector('.lookup-container');
-        
+
         if (!templateContainer) return;
 
         if (service === 'lookup-service') {

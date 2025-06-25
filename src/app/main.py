@@ -13,6 +13,8 @@ from src.app.core import router as core_router
 from src.app.logging import setup_logger
 from src.app.meta import tags_metadata
 from src.app.middleware import RequestTimer, add_request_id
+from src.app.models.database import init_database_engine, close_db
+from src.app.auth import auth_router
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
@@ -58,10 +60,24 @@ def get_application(config: Dict) -> FastAPI:
     # Load lookup assets into application state
     application.state.lookup_assets = load_lookup_assets()
 
+    # Initialize database connection
+    init_database_engine()
+
+    # Add startup and shutdown events
+    @application.on_event("startup")
+    async def startup_event():
+        logger.info("Application startup - database connection initialized")
+
+    @application.on_event("shutdown")
+    async def shutdown_event():
+        await close_db()
+        logger.info("Application shutdown - database connection closed")
+
     application.middleware("http")(request_timer)
     application.middleware("http")(add_request_id)
 
     application.include_router(core_router.core, tags=["core"])
+    application.include_router(auth_router, tags=["authentication"])
 
     # application.include_router(v1_router.v1, prefix="/v1", tags=["v1"])
 
