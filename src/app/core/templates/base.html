@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/ask-agent.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/lookup-service.css') }}">
+</head>
+<body>
+    <div class="app-layout">
+        {% include "sidebar.html" %}
+        
+        <div class="main-area">
+            <div class="container">
+                {% include "ask-agent.html" %}
+                {% include "lookup-service.html" %}
+            </div>
+        </div>
+
+        {% include "input-area.html" %}
+    </div>
+
+    <!-- Add markdown parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
+    <!-- Environment variables -->
+    <script>
+        window.ENV = {
+            AGENT_WS_BASE: "{{ agent_ws_base }}",
+            AGENT_URL: "{{ agent_url }}",
+            AGENT_BASE: "{{ agent_base }}",
+            API_BASE: "{{ api_base }}",
+            API_ASSET_URL: "{{ api_asset_url }}",
+            API_NEIGHBOR_URL: "{{ api_neighbor_url }}",
+            API_NAME_URL: "{{ api_name_url }}",
+            API_ID_URL: "{{ api_id_url }}",
+            SEMANTIC_BASE: "{{ semantic_base }}",
+            SEMANTIC_EMB_URL: "{{ semantic_emb_url }}",
+            SEMANTIC_RANK_URL: "{{ semantic_rank_url }}",
+            SEMANTIC_SEARCH_URL: "{{ semantic_search_url }}"
+        };
+    </script>
+
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/ask-agent.js') }}"></script>
+    
+    <!-- Lookup Service Modules -->
+    <script src="{{ url_for('static', path='/js/lookup/asset-search.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/lookup/asset-info.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/lookup/neighbor-search.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/lookup/semantic-search.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/lookup-service.js') }}"></script>
+</body>
+</html>
