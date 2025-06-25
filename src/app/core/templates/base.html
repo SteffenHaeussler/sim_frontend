@@ -22,6 +22,73 @@
         {% include "input-area.html" %}
     </div>
 
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Login</h2>
+                <span class="close" id="close-login-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form autocomplete="on">
+                    <div class="form-group">
+                        <label for="login-email">Email:</label>
+                        <input type="email" id="login-email" name="email" placeholder="Enter your email" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password:</label>
+                        <input type="password" id="login-password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                    </div>
+                    <button type="button" id="login-submit" class="btn-primary">Login</button>
+                    <div class="register-link">
+                        Don't have an account? <a href="#" id="register-link">Register here</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Register</h2>
+                <span class="close" id="close-register-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form autocomplete="on">
+                    <div class="form-group">
+                        <label for="register-first-name">First Name:</label>
+                        <input type="text" id="register-first-name" name="first-name" placeholder="Enter your first name" required autocomplete="given-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-last-name">Last Name:</label>
+                        <input type="text" id="register-last-name" name="last-name" placeholder="Enter your last name" required autocomplete="family-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email:</label>
+                        <input type="email" id="register-email" name="email" placeholder="Enter your email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password:</label>
+                        <div class="password-input-group">
+                            <input type="password" id="register-password" name="password" placeholder="Enter your password" required autocomplete="new-password">
+                            <button type="button" id="generate-password-btn" class="btn-generate">Generate</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password-confirm">Confirm Password:</label>
+                        <input type="password" id="register-password-confirm" name="password-confirm" placeholder="Confirm your password" required autocomplete="new-password">
+                    </div>
+                    <button type="button" id="register-submit" class="btn-primary">Register</button>
+                    <div class="register-link">
+                        Already have an account? <a href="#" id="login-link">Login here</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Add markdown parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
 
@@ -52,5 +119,124 @@
     <script src="{{ url_for('static', path='/js/lookup/neighbor-search.js') }}"></script>
     <script src="{{ url_for('static', path='/js/lookup/semantic-search.js') }}"></script>
     <script src="{{ url_for('static', path='/js/lookup-service.js') }}"></script>
+    
+    <!-- Simple Login & Register Modal Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginModal = document.getElementById('login-modal');
+            const registerModal = document.getElementById('register-modal');
+            const loginBtn = document.getElementById('login-btn');
+            const closeLoginModal = document.getElementById('close-login-modal');
+            const closeRegisterModal = document.getElementById('close-register-modal');
+            const registerLink = document.getElementById('register-link');
+            const loginLink = document.getElementById('login-link');
+            const generatePasswordBtn = document.getElementById('generate-password-btn');
+            const registerPasswordInput = document.getElementById('register-password');
+            
+            // Open login modal when login icon is clicked
+            if (loginBtn) {
+                loginBtn.addEventListener('click', () => {
+                    loginModal.style.display = 'block';
+                });
+            }
+            
+            // Open register modal when register link is clicked
+            if (registerLink) {
+                registerLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loginModal.style.display = 'none';
+                    registerModal.style.display = 'block';
+                });
+            }
+            
+            // Open login modal when login link is clicked (from register modal)
+            if (loginLink) {
+                loginLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    registerModal.style.display = 'none';
+                    loginModal.style.display = 'block';
+                });
+            }
+            
+            // Close login modal when X is clicked
+            if (closeLoginModal) {
+                closeLoginModal.addEventListener('click', () => {
+                    loginModal.style.display = 'none';
+                });
+            }
+            
+            // Close register modal when X is clicked
+            if (closeRegisterModal) {
+                closeRegisterModal.addEventListener('click', () => {
+                    registerModal.style.display = 'none';
+                });
+            }
+            
+            // Close modals when clicking outside
+            loginModal.addEventListener('click', (e) => {
+                if (e.target === loginModal) {
+                    loginModal.style.display = 'none';
+                }
+            });
+            
+            registerModal.addEventListener('click', (e) => {
+                if (e.target === registerModal) {
+                    registerModal.style.display = 'none';
+                }
+            });
+            
+            // Close modals with Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (loginModal.style.display === 'block') {
+                        loginModal.style.display = 'none';
+                    }
+                    if (registerModal.style.display === 'block') {
+                        registerModal.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Password generation function
+            function generatePassword() {
+                const length = 12;
+                const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+                let password = "";
+                
+                // Ensure at least one character from each type
+                const lowercase = "abcdefghijklmnopqrstuvwxyz";
+                const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                const numbers = "0123456789";
+                const symbols = "!@#$%^&*";
+                
+                password += lowercase[Math.floor(Math.random() * lowercase.length)];
+                password += uppercase[Math.floor(Math.random() * uppercase.length)];
+                password += numbers[Math.floor(Math.random() * numbers.length)];
+                password += symbols[Math.floor(Math.random() * symbols.length)];
+                
+                // Fill the rest randomly
+                for (let i = 4; i < length; i++) {
+                    password += charset[Math.floor(Math.random() * charset.length)];
+                }
+                
+                // Shuffle the password
+                return password.split('').sort(() => Math.random() - 0.5).join('');
+            }
+            
+            // Generate password button click handler
+            if (generatePasswordBtn && registerPasswordInput) {
+                generatePasswordBtn.addEventListener('click', () => {
+                    const newPassword = generatePassword();
+                    registerPasswordInput.value = newPassword;
+                    registerPasswordInput.type = 'text'; // Show password briefly
+                    
+                    // Hide password after 2 seconds
+                    setTimeout(() => {
+                        registerPasswordInput.type = 'password';
+                    }, 2000);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
