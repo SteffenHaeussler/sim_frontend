@@ -10,9 +10,9 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from loguru import logger
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
-from src.app.core.schema import HealthCheckResponse
+from src.app.core.schema import HealthCheckResponse, SemanticRequest
 
 BASEDIR = Path(__file__).resolve().parent
 
@@ -73,7 +73,7 @@ async def frontend(request: Request):
         "semantic_rank_url": os.getenv("semantic_rank_url", ""),
         "semantic_search_url": os.getenv("semantic_search_url", ""),
     }
-    return templates.TemplateResponse(request, "chat.html", context)
+    return templates.TemplateResponse(request, "base.html", context)
 
 
 @core.get("/agent")
@@ -266,10 +266,6 @@ async def search_assets(
     except Exception as e:
         logger.error(f"Failed to search assets: {e}")
         return {"error": str(e), "assets": [], "total_count": 0}
-
-
-class SemanticRequest(BaseModel):
-    query: str
 
 
 @core.post("/lookout/semantic")
