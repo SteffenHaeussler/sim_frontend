@@ -4,16 +4,60 @@ VERSION = "0.1.0"
 [DEV]
 CONFIG_NAME = "DEV"
 DEBUG = true
+# Authentication settings
+JWT_SECRET_KEY = "dev-secret-key-change-in-production"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
+JWT_REFRESH_EXPIRATION_DAYS = 30
+SESSION_TIMEOUT_MINUTES = 30
+# Database settings
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_NAME = "organisation"
+DB_USER = "postgres"
 
 [PROD]
 CONFIG_NAME = "PROD"
 DEBUG = false
+# Authentication settings (use environment variables)
+JWT_SECRET_KEY = "production-secret-key-change-me"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 8
+JWT_REFRESH_EXPIRATION_DAYS = 7
+SESSION_TIMEOUT_MINUTES = 15
+# Database settings
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_NAME = "organisation"
+DB_USER = "postgres"
 
 [STAGE]
 CONFIG_NAME = "STAGE"
 DEBUG = false
+# Authentication settings
+JWT_SECRET_KEY = "staging-secret-key-change-me"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 12
+JWT_REFRESH_EXPIRATION_DAYS = 14
+SESSION_TIMEOUT_MINUTES = 20
+# Database settings
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_NAME = "organisation"
+DB_USER = "postgres"
 
 [TEST]
 CONFIG_NAME = "TEST"
 DEBUG = true
 VERSION = "0.1.0-test"
+# Authentication settings
+JWT_SECRET_KEY = "test-secret-key"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 1
+JWT_REFRESH_EXPIRATION_DAYS = 1
+SESSION_TIMEOUT_MINUTES = 5
+# Database settings
+DB_HOST = "localhost"
+DB_PORT = 5432
+DB_NAME = "organisation_test"
+DB_USER = "postgres"
