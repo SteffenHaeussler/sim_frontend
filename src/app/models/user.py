@@ -17,8 +17,8 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     first_name = Column(String(100))
     last_name = Column(String(100))
-    organization_id = Column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
+    organisation_id = Column(
+        UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False, index=True
     )
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
     created_at = Column(
@@ -26,7 +26,7 @@ class User(Base):
     )
 
     # Relationships
-    organization = relationship("Organization", back_populates="users")
+    organisation = relationship("Organisation", back_populates="users")
     api_usage_logs = relationship("ApiUsageLog", back_populates="user")
 
     def __repr__(self) -> str:
@@ -45,8 +45,8 @@ class User(Base):
             return self.email.split("@")[0]
 
 
-class Organization(Base):
-    __tablename__ = "organizations"
+class Organisation(Base):
+    __tablename__ = "organisations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, unique=True, index=True)
@@ -64,11 +64,11 @@ class Organization(Base):
     billing_company = Column(String(255))
 
     # Relationships
-    users = relationship("User", back_populates="organization")
-    api_usage_logs = relationship("ApiUsageLog", back_populates="organization")
+    users = relationship("User", back_populates="organisation")
+    api_usage_logs = relationship("ApiUsageLog", back_populates="organisation")
 
     def __repr__(self) -> str:
-        return f"<Organization(id={self.id}, name='{self.name}')>"
+        return f"<Organisation(id={self.id}, name='{self.name}')>"
 
 
 class ApiUsageLog(Base):
@@ -78,8 +78,8 @@ class ApiUsageLog(Base):
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
-    organization_id = Column(
-        UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True
+    organisation_id = Column(
+        UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False, index=True
     )
 
     # API call details for billing
@@ -98,7 +98,7 @@ class ApiUsageLog(Base):
 
     # Relationships
     user = relationship("User", back_populates="api_usage_logs")
-    organization = relationship("Organization", back_populates="api_usage_logs")
+    organisation = relationship("Organisation", back_populates="api_usage_logs")
 
     def __repr__(self) -> str:
         return f"<ApiUsageLog(id={self.id}, user={self.user_id}, endpoint='{self.endpoint}')>"
@@ -107,7 +107,7 @@ class ApiUsageLog(Base):
     def log_api_call(
         cls,
         user_id: uuid.UUID,
-        organization_id: uuid.UUID,
+        organisation_id: uuid.UUID,
         endpoint: str,
         method: str = "GET",
         status_code: int = 200,
@@ -119,7 +119,7 @@ class ApiUsageLog(Base):
 
         Args:
             user_id: User who made the call
-            organization_id: Organization to bill
+            organisation_id: Organisation to bill
             endpoint: API endpoint called
             method: HTTP method
             status_code: Response status
@@ -131,7 +131,7 @@ class ApiUsageLog(Base):
         """
         return cls(
             user_id=user_id,
-            organization_id=organization_id,
+            organisation_id=organisation_id,
             endpoint=endpoint,
             method=method,
             status_code=str(status_code),

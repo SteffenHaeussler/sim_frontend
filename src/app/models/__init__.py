@@ -1,11 +1,11 @@
-from .database import Base, get_db, init_db
-from .user import User, Organization, ApiUsageLog
+from src.app.models.database import Base, get_db, init_db
+from src.app.models.user import ApiUsageLog, Organisation, User
 
 __all__ = [
     "Base",
-    "get_db", 
+    "get_db",
     "init_db",
     "User",
-    "Organization",
+    "Organisation",
     "ApiUsageLog",
 ]

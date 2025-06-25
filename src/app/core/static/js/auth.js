@@ -5,7 +5,7 @@ class AuthManager {
         this.refreshToken = null;
         this.tokenExpiry = null;
         this.isAuthenticated = false;
-        
+
         this.initializeElements();
         this.setupEventListeners();
         this.loadStoredTokens();
@@ -28,7 +28,7 @@ class AuthManager {
     setupEventListeners() {
         this.loginBtn.addEventListener('click', () => this.handleLogin());
         this.logoutBtn.addEventListener('click', () => this.handleLogout());
-        
+
         // Allow Enter key to submit login form
         this.loginEmail.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.handleLogin();
@@ -41,7 +41,7 @@ class AuthManager {
     async handleLogin() {
         const email = this.loginEmail.value.trim();
         const password = this.loginPassword.value;
-        
+
         if (!email || !password) {
             this.showError('Please enter both email and password');
             return;
@@ -74,25 +74,25 @@ class AuthManager {
             this.refreshToken = data.tokens.refresh_token;
             this.user = data.user;
             this.isAuthenticated = true;
-            
+
             // Calculate token expiry
             this.tokenExpiry = Date.now() + (data.tokens.expires_in * 1000);
-            
+
             // Store in localStorage
             this.storeTokens();
-            
+
             // Update UI
             this.updateUI();
-            
+
             // Clear form
             this.loginEmail.value = '';
             this.loginPassword.value = '';
-            
+
             // Notify app of auth change
             if (window.app) {
                 window.app.updateAuthStatus();
             }
-            
+
             console.log('Login successful:', this.user.email);
 
         } catch (error) {
@@ -121,12 +121,12 @@ class AuthManager {
         // Clear local state regardless of API call result
         this.clearTokens();
         this.updateUI();
-        
+
         // Notify app of auth change
         if (window.app) {
             window.app.updateAuthStatus();
         }
-        
+
         console.log('Logged out successfully');
     }
 
@@ -150,7 +150,7 @@ class AuthManager {
             this.refreshToken = refreshToken;
             this.tokenExpiry = parseInt(tokenExpiry);
             this.user = JSON.parse(userData);
-            
+
             // Check if token is still valid
             if (Date.now() < this.tokenExpiry) {
                 this.isAuthenticated = true;
@@ -168,7 +168,7 @@ class AuthManager {
         this.tokenExpiry = null;
         this.user = null;
         this.isAuthenticated = false;
-        
+
         localStorage.removeItem('auth_access_token');
         localStorage.removeItem('auth_refresh_token');
         localStorage.removeItem('auth_token_expiry');
@@ -180,12 +180,12 @@ class AuthManager {
             // Show user info, hide login form
             this.loginForm.style.display = 'none';
             this.userInfo.style.display = 'block';
-            
+
             // Update user details
             this.userName.textContent = this.user.full_name || this.user.email;
             this.userRole.textContent = this.user.role.display_name;
-            this.userOrg.textContent = this.user.organization.display_name;
-            
+            this.userOrg.textContent = this.user.organisation.display_name;
+
         } else {
             // Show login form, hide user info
             this.loginForm.style.display = 'block';
@@ -262,10 +262,10 @@ class AuthManager {
             this.accessToken = data.access_token;
             this.refreshToken = data.refresh_token;
             this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-            
+
             // Store updated tokens
             this.storeTokens();
-            
+
             console.log('Token refreshed successfully');
             return true;
 
