@@ -8,7 +8,7 @@ class App {
         this.updateSessionId();
         this.setEnvVariables();
         this.initializeTheme();
-        this.setActiveService(this.currentActiveService);
+        this.checkInitialAuthState();
     }
 
     generateSessionId() {
@@ -26,15 +26,19 @@ class App {
         this.themeToggleButton = document.getElementById('theme-toggle-btn');
         this.askAgentButton = document.getElementById('ask-agent-btn');
         this.lookupServiceButton = document.getElementById('lookup-service-btn');
+        this.searchButton = document.getElementById('search-btn');
+        this.libraryButton = document.getElementById('library-btn');
         this.newSessionButton = document.getElementById('new-session-btn');
     }
 
     setupEventListeners() {
-        this.newSessionButton.addEventListener('click', () => this.handleNewSession());
+        this.newSessionButton.addEventListener('click', () => this.handleProtectedAction('new-session'));
         this.logoButton.addEventListener('click', () => this.toggleIconBar());
         this.themeToggleButton.addEventListener('click', () => this.toggleTheme());
-        this.askAgentButton.addEventListener('click', () => this.setActiveService('ask-agent'));
-        this.lookupServiceButton.addEventListener('click', () => this.setActiveService('lookup-service'));
+        this.askAgentButton.addEventListener('click', () => this.handleServiceClick('ask-agent'));
+        this.lookupServiceButton.addEventListener('click', () => this.handleServiceClick('lookup-service'));
+        this.searchButton.addEventListener('click', () => this.handleServiceClick('search'));
+        this.libraryButton.addEventListener('click', () => this.handleServiceClick('library'));
 
         // Add click listeners to template items
         document.querySelectorAll('.template-text').forEach(template => {
@@ -42,8 +46,12 @@ class App {
         });
 
         // Add click listeners to icon labels
-        document.querySelector('#new-session-btn .icon-label').addEventListener('click', () => this.handleNewSession());
+        document.querySelector('#new-session-btn .icon-label').addEventListener('click', () => this.handleProtectedAction('new-session'));
         document.querySelector('#theme-toggle-btn .icon-label').addEventListener('click', () => this.toggleTheme());
+        document.querySelector('#ask-agent-btn .icon-label').addEventListener('click', () => this.handleServiceClick('ask-agent'));
+        document.querySelector('#lookup-service-btn .icon-label').addEventListener('click', () => this.handleServiceClick('lookup-service'));
+        document.querySelector('#search-btn .icon-label').addEventListener('click', () => this.handleServiceClick('search'));
+        document.querySelector('#library-btn .icon-label').addEventListener('click', () => this.handleServiceClick('library'));
     }
 
     updateSessionId() {
@@ -99,6 +107,39 @@ class App {
 
     toggleIconBar() {
         this.iconBar.classList.toggle('expanded');
+    }
+
+    handleServiceClick(service) {
+        // Define protected services
+        const protectedServices = ['ask-agent', 'lookup-service', 'search', 'library'];
+        
+        // Check if user is logged in for protected services
+        if (protectedServices.includes(service) && !this.isUserLoggedIn()) {
+            this.showLoginRequired();
+            return;
+        }
+        
+        // For now, only ask-agent and lookup-service are implemented
+        if (service === 'search' || service === 'library') {
+            // Just silently do nothing for unimplemented services
+            return;
+        }
+        
+        // User is logged in and service is implemented, proceed
+        this.setActiveService(service);
+    }
+
+    handleProtectedAction(action) {
+        // Check if user is logged in for protected actions
+        if (!this.isUserLoggedIn()) {
+            this.showLoginRequired();
+            return;
+        }
+        
+        // User is logged in, proceed with action
+        if (action === 'new-session') {
+            this.handleNewSession();
+        }
     }
 
     setActiveService(service) {
@@ -193,6 +234,12 @@ class App {
     }
 
     handleTemplateClick(template) {
+        // Check authentication for protected services
+        if (!this.isUserLoggedIn()) {
+            this.showLoginRequired();
+            return;
+        }
+
         const templateText = template.textContent.trim();
 
         if (this.currentActiveService === 'lookup-service') {
@@ -223,6 +270,34 @@ class App {
         }
 
         console.log('New session started with session ID:', this.sessionId);
+    }
+
+    isUserLoggedIn() {
+        return window.authAPI && window.authAPI.isLoggedIn();
+    }
+
+    showLoginRequired() {
+        // Show login modal if available
+        if (window.authUI && window.authUI.loginModal) {
+            window.authUI.showLoginModal();
+        } else {
+            // Fallback alert
+            alert('Please log in to access this feature.');
+        }
+    }
+
+    checkInitialAuthState() {
+        // Wait a bit for auth system to initialize
+        setTimeout(() => {
+            if (this.isUserLoggedIn()) {
+                // User is logged in, proceed with normal service
+                this.setActiveService(this.currentActiveService);
+            } else {
+                // User not logged in, don't activate any service
+                this.currentActiveService = null;
+                console.log('User not logged in - services disabled');
+            }
+        }, 100);
     }
 }
 

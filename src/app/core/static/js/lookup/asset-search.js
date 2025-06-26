@@ -35,7 +35,7 @@ class AssetSearch {
 
     async loadFilterOptions() {
         try {
-            const response = await fetch('/lookup/search');
+            const response = await window.authAPI.authenticatedFetch('/lookup/search');
             const data = await response.json();
 
             // Populate asset type filter
@@ -71,6 +71,16 @@ class AssetSearch {
     }
 
     async searchAssets() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
+
         const name = this.assetNameSearch ? this.assetNameSearch.value.trim() : '';
         const assetType = this.assetTypeFilter ? this.assetTypeFilter.value : '';
         const type = this.typeFilter ? this.typeFilter.value : '';
@@ -85,7 +95,7 @@ class AssetSearch {
             if (assetType) params.append('asset_type', assetType);
             if (type) params.append('type', type);
 
-            const response = await fetch(`/lookup/search?${params}`);
+            const response = await window.authAPI.authenticatedFetch(`/lookup/search?${params}`);
             const data = await response.json();
 
             this.displayAssets(data);

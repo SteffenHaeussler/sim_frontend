@@ -61,7 +61,6 @@ async def register(
         last_name=register_data.last_name,
         organisation_id=organisation.id,
         is_active=is_active,
-        is_verified=True,  # Auto-verify for simplicity
     )
 
     db.add(new_user)
@@ -80,6 +79,7 @@ async def register(
         access_token=access_token,
         expires_in=config.api_mode.JWT_EXPIRATION_HOURS * 3600,
         user_email=new_user.email,
+        first_name=new_user.first_name or "",
         is_active=is_active,
     )
 
@@ -114,6 +114,7 @@ async def login(
         access_token=access_token,
         expires_in=config.api_mode.JWT_EXPIRATION_HOURS * 3600,
         user_email=user.email,
+        first_name=user.first_name or "",
         is_active=user.is_active,
     )
 

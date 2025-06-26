@@ -35,6 +35,15 @@ class AssetInfo {
     }
 
     async handleGetAssetInfo() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
         const assetInput = this.assetInfoName ? this.assetInfoName.value.trim() : '';
         if (!assetInput) {
             this.showAssetDetails(null, 'Please enter an asset name or ID');
@@ -57,7 +66,7 @@ class AssetInfo {
             } else {
                 // Input is an asset name, get ID from name first
                 console.log('Input detected as name, fetching ID for:', assetInput);
-                const idResponse = await fetch(`/api/id/${encodeURIComponent(assetInput)}`);
+                const idResponse = await window.authAPI.authenticatedFetch(`/api/id/${encodeURIComponent(assetInput)}`);
                 const idData = await idResponse.json();
 
                 if (idData.error) {
@@ -74,7 +83,7 @@ class AssetInfo {
             }
 
             // Get asset details using the ID
-            const assetResponse = await fetch(`/api/asset/${encodeURIComponent(assetId)}`);
+            const assetResponse = await window.authAPI.authenticatedFetch(`/api/asset/${encodeURIComponent(assetId)}`);
             const assetData = await assetResponse.json();
 
             if (assetData.error) {

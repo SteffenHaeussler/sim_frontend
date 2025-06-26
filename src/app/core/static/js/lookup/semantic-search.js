@@ -27,6 +27,15 @@ class SemanticSearch {
     }
 
     async handleSemanticSearch() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
         const query = this.semanticQuery ? this.semanticQuery.value.trim() : '';
         if (!query) {
             this.showSemanticResults(null, 'Please enter a search query');
@@ -38,11 +47,8 @@ class SemanticSearch {
             this.showSemanticResults(null, 'Searching...', true);
 
             // Make semantic search API call
-            const response = await fetch('/lookout/semantic', {
+            const response = await window.authAPI.authenticatedFetch('/lookout/semantic', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     query: query
                 })

@@ -27,6 +27,15 @@ class NeighborSearch {
     }
 
     async handleGetNeighbors() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
         const assetId = this.neighborAssetId ? this.neighborAssetId.value.trim() : '';
         if (!assetId) {
             this.showNeighborResults(null, 'Please enter an asset ID');
@@ -35,7 +44,7 @@ class NeighborSearch {
 
         try {
             // Make API call to neighbor endpoint
-            const response = await fetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
+            const response = await window.authAPI.authenticatedFetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
             const data = await response.json();
 
             if (data.error) {

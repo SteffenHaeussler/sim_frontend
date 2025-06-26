@@ -20,4 +20,5 @@ class AuthResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int  # seconds until token expires
     user_email: str
+    first_name: str
     is_active: bool

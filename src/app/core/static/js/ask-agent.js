@@ -153,7 +153,7 @@ class AskAgent {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
 
-        const response = await fetch(url.toString());
+        const response = await window.authAPI.authenticatedFetch(url.toString());
         const data = await response.json();
 
         if (window.app) {
@@ -216,6 +216,16 @@ class AskAgent {
 
     async handleSendMessage() {
         if (!this.questionInput || !this.sendButton) return;
+
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Ask Agent service.');
+            }
+            return;
+        }
 
         const question = this.questionInput.value.trim();
         if (!question) return;

@@ -18,7 +18,7 @@ class User(Base):
     first_name = Column(String(100))
     last_name = Column(String(100))
     organisation_id = Column(
-        UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("organisation.id"), nullable=False, index=True
     )
     is_active = Column(Boolean, nullable=False, default=True, server_default="true")
     created_at = Column(
@@ -46,7 +46,7 @@ class User(Base):
 
 
 class Organisation(Base):
-    __tablename__ = "organisations"
+    __tablename__ = "organisation"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, unique=True, index=True)
@@ -79,7 +79,7 @@ class ApiUsageLog(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
     organisation_id = Column(
-        UUID(as_uuid=True), ForeignKey("organisations.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("organisation.id"), nullable=False, index=True
     )
 
     # API call details for billing
