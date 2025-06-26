@@ -317,19 +317,22 @@
 
 /* User Greeting Styles */
 .user-greeting.icon-item {
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 4px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
-    padding: 8px;
+    justify-content: center;
+    position: relative;
 }
 
-.icon-bar.expanded .user-greeting {
-    border-bottom: 1px solid var(--border-light);
-}
-
-.icon-bar:not(.expanded) .user-greeting {
-    border-bottom: none;
+/* Position icon absolutely to center it perfectly in both modes */
+.user-greeting.icon-item .icon-svg {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
 }
 
 #user-name {
