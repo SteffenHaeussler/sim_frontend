@@ -35,7 +35,7 @@ class AssetSearch {
 
     async loadFilterOptions() {
         try {
-            const response = await fetch('/lookup/search');
+            const response = await window.authAPI.authenticatedFetch('/lookup/search');
             const data = await response.json();
 
             // Populate asset type filter
@@ -95,7 +95,7 @@ class AssetSearch {
             if (assetType) params.append('asset_type', assetType);
             if (type) params.append('type', type);
 
-            const response = await fetch(`/lookup/search?${params}`);
+            const response = await window.authAPI.authenticatedFetch(`/lookup/search?${params}`);
             const data = await response.json();
 
             this.displayAssets(data);

@@ -47,11 +47,8 @@ class SemanticSearch {
             this.showSemanticResults(null, 'Searching...', true);
 
             // Make semantic search API call
-            const response = await fetch('/lookout/semantic', {
+            const response = await window.authAPI.authenticatedFetch('/lookout/semantic', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     query: query
                 })

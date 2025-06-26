@@ -109,6 +109,25 @@ class AuthAPI {
     isLoggedIn() {
         return !!this.getToken();
     }
+
+    // Helper method for authenticated fetch requests
+    async authenticatedFetch(url, options = {}) {
+        const token = this.getToken();
+        if (!token) {
+            throw new Error('No authentication token available');
+        }
+
+        const authHeaders = {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+
+        return fetch(url, {
+            ...options,
+            headers: authHeaders
+        });
+    }
 }
 
 // Global instance

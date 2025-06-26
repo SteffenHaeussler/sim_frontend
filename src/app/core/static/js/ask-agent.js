@@ -153,7 +153,7 @@ class AskAgent {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
 
-        const response = await fetch(url.toString());
+        const response = await window.authAPI.authenticatedFetch(url.toString());
         const data = await response.json();
 
         if (window.app) {

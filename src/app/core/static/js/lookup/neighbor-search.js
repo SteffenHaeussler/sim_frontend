@@ -44,7 +44,7 @@ class NeighborSearch {
 
         try {
             // Make API call to neighbor endpoint
-            const response = await fetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
+            const response = await window.authAPI.authenticatedFetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
             const data = await response.json();
 
             if (data.error) {
