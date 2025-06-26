@@ -41,6 +41,9 @@
                     </div>
                     <button type="button" id="login-submit" class="btn-primary">Login</button>
                     <div class="register-link">
+                        <a href="#" id="forgot-password-link">Forgot password?</a>
+                    </div>
+                    <div class="register-link">
                         Don't have an account? <a href="#" id="register-link">Register here</a>
                     </div>
                 </form>
@@ -89,6 +92,29 @@
         </div>
     </div>
 
+    <!-- Forgot Password Modal -->
+    <div id="forgot-password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Reset Password</h2>
+                <span class="close" id="close-forgot-password-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Enter your email address and we'll send you a link to reset your password.</p>
+                <form autocomplete="on">
+                    <div class="form-group">
+                        <label for="forgot-email">Email:</label>
+                        <input type="email" id="forgot-email" name="email" placeholder="Enter your email" required autocomplete="email">
+                    </div>
+                    <button type="button" id="forgot-submit" class="btn-primary">Send Reset Link</button>
+                    <div class="register-link">
+                        Remember your password? <a href="#" id="back-to-login-link">Back to login</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Add markdown parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
 
@@ -125,13 +151,19 @@
         document.addEventListener('DOMContentLoaded', () => {
             const loginModal = document.getElementById('login-modal');
             const registerModal = document.getElementById('register-modal');
+            const forgotPasswordModal = document.getElementById('forgot-password-modal');
             const loginBtn = document.getElementById('login-btn');
             const closeLoginModal = document.getElementById('close-login-modal');
             const closeRegisterModal = document.getElementById('close-register-modal');
+            const closeForgotPasswordModal = document.getElementById('close-forgot-password-modal');
             const registerLink = document.getElementById('register-link');
             const loginLink = document.getElementById('login-link');
+            const forgotPasswordLink = document.getElementById('forgot-password-link');
+            const backToLoginLink = document.getElementById('back-to-login-link');
             const generatePasswordBtn = document.getElementById('generate-password-btn');
             const registerPasswordInput = document.getElementById('register-password');
+            const loginEmailInput = document.getElementById('login-email');
+            const forgotEmailInput = document.getElementById('forgot-email');
             
             // Open login modal when login icon is clicked
             if (loginBtn) {
@@ -158,6 +190,28 @@
                 });
             }
             
+            // Open forgot password modal when forgot password link is clicked
+            if (forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Copy email from login field if it exists
+                    if (loginEmailInput.value && forgotEmailInput) {
+                        forgotEmailInput.value = loginEmailInput.value;
+                    }
+                    loginModal.style.display = 'none';
+                    forgotPasswordModal.style.display = 'block';
+                });
+            }
+            
+            // Open login modal when back to login link is clicked (from forgot password modal)
+            if (backToLoginLink) {
+                backToLoginLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    forgotPasswordModal.style.display = 'none';
+                    loginModal.style.display = 'block';
+                });
+            }
+            
             // Close login modal when X is clicked
             if (closeLoginModal) {
                 closeLoginModal.addEventListener('click', () => {
@@ -169,6 +223,13 @@
             if (closeRegisterModal) {
                 closeRegisterModal.addEventListener('click', () => {
                     registerModal.style.display = 'none';
+                });
+            }
+            
+            // Close forgot password modal when X is clicked
+            if (closeForgotPasswordModal) {
+                closeForgotPasswordModal.addEventListener('click', () => {
+                    forgotPasswordModal.style.display = 'none';
                 });
             }
             
@@ -185,6 +246,12 @@
                 }
             });
             
+            forgotPasswordModal.addEventListener('click', (e) => {
+                if (e.target === forgotPasswordModal) {
+                    forgotPasswordModal.style.display = 'none';
+                }
+            });
+            
             // Close modals with Escape key
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
@@ -193,6 +260,9 @@
                     }
                     if (registerModal.style.display === 'block') {
                         registerModal.style.display = 'none';
+                    }
+                    if (forgotPasswordModal.style.display === 'block') {
+                        forgotPasswordModal.style.display = 'none';
                     }
                 }
             });
