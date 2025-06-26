@@ -11,12 +11,10 @@ class AuthUI {
         this.loginModal = document.getElementById('login-modal');
         this.registerModal = document.getElementById('register-modal');
         this.forgotPasswordModal = document.getElementById('forgot-password-modal');
-        this.profileModal = document.getElementById('profile-modal');
         
         // Buttons and triggers
         this.loginBtn = document.getElementById('login-btn');
         this.logoutBtn = document.getElementById('logout-btn');
-        this.profileBtn = document.getElementById('profile-btn');
         
         // User greeting elements
         this.userGreeting = document.getElementById('user-greeting');
@@ -25,7 +23,6 @@ class AuthUI {
         this.closeLoginModal = document.getElementById('close-login-modal');
         this.closeRegisterModal = document.getElementById('close-register-modal');
         this.closeForgotPasswordModal = document.getElementById('close-forgot-password-modal');
-        this.closeProfileModal = document.getElementById('close-profile-modal');
         this.registerLink = document.getElementById('register-link');
         this.loginLink = document.getElementById('login-link');
         this.forgotPasswordLink = document.getElementById('forgot-password-link');
@@ -63,18 +60,9 @@ class AuthUI {
         this.toggleLoginPasswordBtn = document.getElementById('toggle-login-password');
         this.toggleRegisterPasswordBtn = document.getElementById('toggle-register-password');
         this.toggleRegisterPasswordConfirmBtn = document.getElementById('toggle-register-password-confirm');
-        this.toggleDeletePasswordBtn = document.getElementById('toggle-delete-password');
         
         // Password strength indicator
         this.passwordStrengthIndicator = document.getElementById('password-strength-indicator');
-        
-        // Profile modal elements
-        this.profileFirstNameInput = document.getElementById('profile-first-name');
-        this.profileLastNameInput = document.getElementById('profile-last-name');
-        this.deletePasswordInput = document.getElementById('delete-password');
-        this.updateProfileSubmitBtn = document.getElementById('update-profile-submit');
-        this.deleteAccountSubmitBtn = document.getElementById('delete-account-submit');
-        this.profileErrorDiv = document.getElementById('profile-error');
     }
 
     setupEventListeners() {
@@ -85,10 +73,6 @@ class AuthUI {
         
         if (this.logoutBtn) {
             this.logoutBtn.addEventListener('click', () => this.handleLogout());
-        }
-        
-        if (this.profileBtn) {
-            this.profileBtn.addEventListener('click', () => this.showProfileModal());
         }
         
         if (this.registerLink) {
@@ -145,10 +129,6 @@ class AuthUI {
             this.closeForgotPasswordModal.addEventListener('click', () => this.hideForgotPasswordModal());
         }
         
-        if (this.closeProfileModal) {
-            this.closeProfileModal.addEventListener('click', () => this.hideProfileModal());
-        }
-        
         // Escape key to close modals
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -178,9 +158,6 @@ class AuthUI {
         
         // Form submissions
         this.setupFormSubmissions();
-        
-        // Profile form submissions
-        this.setupProfileFormSubmissions();
     }
 
     // Modal show/hide methods
@@ -212,26 +189,6 @@ class AuthUI {
         this.hideLoginModal();
         this.hideRegisterModal();
         this.hideForgotPasswordModal();
-        this.hideProfileModal();
-    }
-    
-    showProfileModal() {
-        // Pre-populate with current user info
-        const userInfo = window.authAPI.getUserInfo();
-        if (userInfo) {
-            if (this.profileFirstNameInput) {
-                this.profileFirstNameInput.value = userInfo.firstName || '';
-            }
-            if (this.profileLastNameInput) {
-                this.profileLastNameInput.value = userInfo.lastName || '';
-            }
-        }
-        this.profileModal.style.display = 'block';
-    }
-
-    hideProfileModal() {
-        this.profileModal.style.display = 'none';
-        this.clearError(this.profileErrorDiv);
     }
 
     // Password generation
@@ -471,13 +428,6 @@ class AuthUI {
         if (this.toggleRegisterPasswordConfirmBtn && this.registerPasswordConfirmInput) {
             this.toggleRegisterPasswordConfirmBtn.addEventListener('click', () => {
                 this.togglePasswordVisibility(this.registerPasswordConfirmInput, this.toggleRegisterPasswordConfirmBtn);
-            });
-        }
-        
-        // Delete password toggle
-        if (this.toggleDeletePasswordBtn && this.deletePasswordInput) {
-            this.toggleDeletePasswordBtn.addEventListener('click', () => {
-                this.togglePasswordVisibility(this.deletePasswordInput, this.toggleDeletePasswordBtn);
             });
         }
     }
@@ -724,15 +674,17 @@ class AuthUI {
 
     updateAuthState(isLoggedIn) {
         if (isLoggedIn) {
-            // Hide login icon, show logout and profile icons
+            // Hide login icon, show logout icon
             if (this.loginBtn) {
                 this.loginBtn.style.display = 'none';
             }
             if (this.logoutBtn) {
                 this.logoutBtn.style.display = 'flex';
             }
-            if (this.profileBtn) {
-                this.profileBtn.style.display = 'flex';
+            
+            // Update profile manager visibility
+            if (window.profileManager) {
+                window.profileManager.updateVisibility(true);
             }
             
             // Show user greeting
@@ -752,15 +704,17 @@ class AuthUI {
                 }
             }
         } else {
-            // Show login icon, hide logout and profile icons
+            // Show login icon, hide logout icon
             if (this.loginBtn) {
                 this.loginBtn.style.display = 'flex';
             }
             if (this.logoutBtn) {
                 this.logoutBtn.style.display = 'none';
             }
-            if (this.profileBtn) {
-                this.profileBtn.style.display = 'none';
+            
+            // Update profile manager visibility
+            if (window.profileManager) {
+                window.profileManager.updateVisibility(false);
             }
             
             // Hide user greeting
@@ -774,139 +728,33 @@ class AuthUI {
         try {
             await window.authAPI.logout();
             console.log('Logout successful');
-            this.updateAuthState(false);
-            
-            // Start a new session to clear previous chat history
-            if (window.app && window.app.handleNewSession) {
-                window.app.handleNewSession();
-                console.log('New session started after logout');
-            }
-            
-            // Also explicitly clear lookup service data
-            if (window.lookupService && window.lookupService.handleNewSession) {
-                window.lookupService.handleNewSession();
-                console.log('Lookup service cleared after logout');
-            }
         } catch (error) {
             console.error('Logout failed:', error);
-            // Still update UI state even if logout request fails
+        } finally {
+            // Always update UI and clear session data
             this.updateAuthState(false);
-            
-            // Still start new session even if logout request failed
-            if (window.app && window.app.handleNewSession) {
-                window.app.handleNewSession();
-                console.log('New session started after logout (despite logout error)');
-            }
-            
-            // Also explicitly clear lookup service data even if logout failed
-            if (window.lookupService && window.lookupService.handleNewSession) {
-                window.lookupService.handleNewSession();
-                console.log('Lookup service cleared after logout (despite logout error)');
-            }
+            this.clearAllSessionData();
         }
+    }
+    
+    clearAllSessionData() {
+        // Clear app session (chat history)
+        if (window.app?.handleNewSession) {
+            window.app.handleNewSession();
+        }
+        
+        // Clear lookup service data
+        if (window.lookupService?.handleNewSession) {
+            window.lookupService.handleNewSession();
+        }
+        
+        console.log('All session data cleared after logout');
     }
 
 
     checkAuthState() {
         const isLoggedIn = window.authAPI.isLoggedIn();
         this.updateAuthState(isLoggedIn);
-    }
-    
-    // Profile form submissions
-    setupProfileFormSubmissions() {
-        // Update profile form submission
-        if (this.updateProfileSubmitBtn) {
-            this.updateProfileSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await this.handleUpdateProfile();
-            });
-        }
-
-        // Delete account form submission
-        if (this.deleteAccountSubmitBtn) {
-            this.deleteAccountSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await this.handleDeleteAccount();
-            });
-        }
-    }
-    
-    async handleUpdateProfile() {
-        const firstName = this.profileFirstNameInput.value.trim();
-        const lastName = this.profileLastNameInput.value.trim();
-
-        if (!firstName || !lastName) {
-            this.showError(this.profileErrorDiv, 'Please fill in both first and last name');
-            return;
-        }
-
-        this.showLoading(this.updateProfileSubmitBtn, 'Updating...');
-        this.clearError(this.profileErrorDiv);
-
-        try {
-            const result = await window.authAPI.updateProfile(firstName, lastName);
-            console.log('Profile updated successfully:', result.message);
-            
-            // Show success message
-            this.showSuccess(this.profileErrorDiv, 'Profile updated successfully!');
-            
-            // Update the UI display name
-            this.updateAuthState(true);
-            
-            // Hide modal after short delay to show success message
-            setTimeout(() => {
-                this.hideProfileModal();
-            }, 1500);
-            
-        } catch (error) {
-            this.showError(this.profileErrorDiv, error.message);
-        } finally {
-            this.hideLoading(this.updateProfileSubmitBtn, 'Update Profile');
-        }
-    }
-    
-    async handleDeleteAccount() {
-        const password = this.deletePasswordInput.value.trim();
-
-        if (!password) {
-            this.showError(this.profileErrorDiv, 'Please enter your password to confirm account deletion');
-            return;
-        }
-
-        // Show confirmation dialog
-        const confirmDelete = confirm(
-            '⚠️ Are you absolutely sure you want to delete your account?\n\n' +
-            'This action cannot be undone and all your data will be permanently deleted.\n\n' +
-            'Click OK to proceed with account deletion, or Cancel to keep your account.'
-        );
-
-        if (!confirmDelete) {
-            return;
-        }
-
-        this.showLoading(this.deleteAccountSubmitBtn, 'Deleting Account...');
-        this.clearError(this.profileErrorDiv);
-
-        try {
-            const result = await window.authAPI.deleteAccount(password);
-            console.log('Account deleted successfully:', result.message);
-            
-            // Show success message briefly
-            this.showSuccess(this.profileErrorDiv, 'Account deleted successfully. You will be logged out.');
-            
-            // Hide modal and update auth state after short delay
-            setTimeout(() => {
-                this.hideProfileModal();
-                this.updateAuthState(false);
-                // Clear the form
-                this.deletePasswordInput.value = '';
-            }, 2000);
-            
-        } catch (error) {
-            this.showError(this.profileErrorDiv, error.message);
-        } finally {
-            this.hideLoading(this.deleteAccountSubmitBtn, 'Delete Account');
-        }
     }
 }
 

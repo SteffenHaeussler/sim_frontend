@@ -253,36 +253,31 @@ async def reset_password(
     )
 
 
+async def _get_user_by_token(token_data, db: AsyncSession) -> User:
+    """Helper function to get user from token data"""
+    import uuid
+    stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
+
+
 @router.put("/profile", response_model=UpdateProfileResponse)
 async def update_profile(
     profile_data: UpdateProfileRequest,
     token_data=Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Update user profile (first name and last name)
-    """
-    import uuid
+    """Update user profile (first name and last name)"""
+    user = await _get_user_by_token(token_data, db)
     
-    # Get user from database
-    stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Update user profile
     user.first_name = profile_data.first_name.strip()
     user.last_name = profile_data.last_name.strip()
     
-    # Commit changes
     await db.commit()
     await db.refresh(user)
-    
     logger.info(f"Profile updated for user {user.email}")
     
     return UpdateProfileResponse(
@@ -299,35 +294,14 @@ async def delete_account(
     token_data=Depends(require_active_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Delete user account (requires password confirmation)
-    """
-    import uuid
+    """Delete user account (requires password confirmation)"""
+    user = await _get_user_by_token(token_data, db)
     
-    # Get user from database
-    stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Verify password
     if not verify_password(delete_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid password"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
     
-    # Delete user account
     await db.delete(user)
     await db.commit()
-    
     logger.info(f"Account deleted for user {user.email}")
     
-    return DeleteAccountResponse(
-        message="Account deleted successfully"
-    )
+    return DeleteAccountResponse(message="Account deleted successfully")
