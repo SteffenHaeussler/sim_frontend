@@ -78,6 +78,16 @@ async def frontend(request: Request):
     return templates.TemplateResponse(request, "base.html", context)
 
 
+@core.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page(request: Request):
+    """Serve the password reset page"""
+    context = {
+        "request": request,
+        "organisation_name": os.getenv("organisation_name", "Company").title(),
+    }
+    return templates.TemplateResponse(request, "reset-password.html", context)
+
+
 @core.get("/agent")
 async def answer_question(question: str, token_data=Depends(verify_token_only)):
     """Handle question from frontend and trigger external agent API"""

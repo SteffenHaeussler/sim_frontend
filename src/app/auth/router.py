@@ -1,15 +1,27 @@
+import secrets
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.auth.dependencies import require_auth
+from src.app.auth.email_service import EmailService
 from src.app.auth.jwt_utils import create_access_token
 from src.app.auth.password import hash_password, verify_password
-from src.app.auth.schemas import AuthResponse, LoginRequest, RegisterRequest
+from src.app.auth.schemas import (
+    AuthResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+)
 from src.app.config import get_config
 from src.app.models.database import get_db
+from src.app.models.password_reset import PasswordReset
 from src.app.models.user import Organisation, User
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -123,3 +135,103 @@ async def login(
 async def logout(_=require_auth()):
     """Logout user (client-side token removal)"""
     return {"message": "Successfully logged out"}
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    request: Request,
+    forgot_request: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Request password reset
+    
+    Sends a password reset email if the user exists.
+    Always returns success to prevent email enumeration attacks.
+    """
+    # Get user by email
+    stmt = select(User).where(User.email == forgot_request.email)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    
+    if user:
+        # Generate secure random token
+        reset_token = secrets.token_urlsafe(32)
+        
+        # Create password reset record
+        password_reset = PasswordReset.create_reset_token(
+            user_id=user.id,
+            token=reset_token,
+            expiration_hours=24
+        )
+        
+        db.add(password_reset)
+        await db.commit()
+        
+        # Get base URL for reset link
+        base_url = str(request.base_url).rstrip('/')
+        
+        # Send password reset email - create service instance here to get current env vars
+        email_service = EmailService()
+        logger.info(f"Email service configured: {email_service.is_configured}")
+        logger.info(f"SMTP server: {email_service.smtp_server}")
+        logger.info(f"SMTP username: {email_service.smtp_username}")
+        
+        await email_service.send_password_reset_email(
+            to_email=user.email,
+            reset_token=reset_token,
+            base_url=base_url,
+            user_name=user.first_name or user.email.split("@")[0]
+        )
+    
+    # Always return success to prevent email enumeration
+    return ForgotPasswordResponse(
+        message="If an account with that email exists, a password reset link has been sent.",
+        email=forgot_request.email
+    )
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    reset_request: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Reset password using valid token
+    """
+    # Find the password reset request
+    stmt = select(PasswordReset).where(
+        PasswordReset.token == reset_request.token
+    )
+    result = await db.execute(stmt)
+    password_reset = result.scalar_one_or_none()
+    
+    if not password_reset or not password_reset.is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    # Get the user
+    user_stmt = select(User).where(User.id == password_reset.user_id)
+    user_result = await db.execute(user_stmt)
+    user = user_result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found"
+        )
+    
+    # Update user's password
+    user.password_hash = hash_password(reset_request.new_password)
+    
+    # Mark the reset token as used
+    password_reset.mark_as_used()
+    
+    # Commit changes
+    await db.commit()
+    
+    return ResetPasswordResponse(
+        message="Password has been reset successfully"
+    )

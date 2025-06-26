@@ -14,6 +14,15 @@ class RegisterRequest(BaseModel):
     last_name: str = ""
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
 # Response schema for both login and register
 class AuthResponse(BaseModel):
     access_token: str
@@ -22,3 +31,13 @@ class AuthResponse(BaseModel):
     user_email: str
     first_name: str
     is_active: bool
+
+
+# Response schemas for password reset
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    email: str
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str

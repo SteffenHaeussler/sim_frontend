@@ -53,6 +53,7 @@ class AuthUI {
         // Error display elements
         this.loginErrorDiv = document.getElementById('login-error');
         this.registerErrorDiv = document.getElementById('register-error');
+        this.forgotPasswordErrorDiv = document.getElementById('forgot-password-error');
         
         // Password toggle buttons
         this.toggleLoginPasswordBtn = document.getElementById('toggle-login-password');
@@ -529,6 +530,14 @@ class AuthUI {
                 await this.handleRegister();
             });
         }
+
+        // Forgot password form submission
+        if (this.forgotSubmitBtn) {
+            this.forgotSubmitBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.handleForgotPassword();
+            });
+        }
     }
 
     async handleLogin() {
@@ -588,9 +597,57 @@ class AuthUI {
         }
     }
 
+    async handleForgotPassword() {
+        const email = this.forgotEmailInput.value.trim();
+
+        if (!email) {
+            this.showError(this.forgotPasswordErrorDiv, 'Please enter your email address');
+            return;
+        }
+
+        if (!this.isValidEmail(email)) {
+            this.showError(this.forgotPasswordErrorDiv, 'Please enter a valid email address');
+            return;
+        }
+
+        this.showLoading(this.forgotSubmitBtn, 'Sending...');
+        this.clearError(this.forgotPasswordErrorDiv);
+
+        try {
+            const result = await window.authAPI.forgotPassword(email);
+            console.log('Password reset request successful:', result.message);
+            
+            // Show success message and hide the modal
+            this.showSuccess(this.forgotPasswordErrorDiv, 'Password reset instructions have been sent to your email.');
+            
+            // Clear the form
+            this.forgotEmailInput.value = '';
+            
+            // Hide modal after short delay to show success message
+            setTimeout(() => {
+                this.hideForgotPasswordModal();
+                this.clearError(this.forgotPasswordErrorDiv);
+            }, 2000);
+            
+        } catch (error) {
+            this.showError(this.forgotPasswordErrorDiv, error.message);
+        } finally {
+            this.hideLoading(this.forgotSubmitBtn, 'Send Reset Link');
+        }
+    }
+
     showError(errorDiv, message) {
         if (errorDiv) {
             errorDiv.textContent = message;
+            errorDiv.className = 'auth-error';
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    showSuccess(errorDiv, message) {
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.className = 'auth-success';
             errorDiv.style.display = 'block';
         }
     }
@@ -598,6 +655,7 @@ class AuthUI {
     clearError(errorDiv) {
         if (errorDiv) {
             errorDiv.textContent = '';
+            errorDiv.className = '';
             errorDiv.style.display = 'none';
         }
     }
