@@ -27,6 +27,15 @@ class NeighborSearch {
     }
 
     async handleGetNeighbors() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
         const assetId = this.neighborAssetId ? this.neighborAssetId.value.trim() : '';
         if (!assetId) {
             this.showNeighborResults(null, 'Please enter an asset ID');

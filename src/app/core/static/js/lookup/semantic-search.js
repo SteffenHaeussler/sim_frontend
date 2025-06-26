@@ -27,6 +27,15 @@ class SemanticSearch {
     }
 
     async handleSemanticSearch() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
         const query = this.semanticQuery ? this.semanticQuery.value.trim() : '';
         if (!query) {
             this.showSemanticResults(null, 'Please enter a search query');

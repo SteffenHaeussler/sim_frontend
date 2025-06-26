@@ -71,6 +71,16 @@ class AssetSearch {
     }
 
     async searchAssets() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
+
         const name = this.assetNameSearch ? this.assetNameSearch.value.trim() : '';
         const assetType = this.assetTypeFilter ? this.assetTypeFilter.value : '';
         const type = this.typeFilter ? this.typeFilter.value : '';

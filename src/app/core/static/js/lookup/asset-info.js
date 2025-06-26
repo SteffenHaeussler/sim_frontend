@@ -35,6 +35,15 @@ class AssetInfo {
     }
 
     async handleGetAssetInfo() {
+        // Check authentication first
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && window.authUI.showLoginModal) {
+                window.authUI.showLoginModal();
+            } else {
+                alert('Please log in to use the Lookup service.');
+            }
+            return;
+        }
         const assetInput = this.assetInfoName ? this.assetInfoName.value.trim() : '';
         if (!assetInput) {
             this.showAssetDetails(null, 'Please enter an asset name or ID');
