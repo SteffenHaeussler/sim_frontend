@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
@@ -58,14 +58,14 @@ class PasswordReset(Base):
         return cls(
             user_id=user_id,
             token=token,
-            expires_at=datetime.utcnow() + timedelta(hours=expiration_hours),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=expiration_hours),
             is_used=False
         )
 
     @property
     def is_expired(self) -> bool:
         """Check if the reset token has expired"""
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     @property
     def is_valid(self) -> bool:
@@ -75,4 +75,4 @@ class PasswordReset(Base):
     def mark_as_used(self) -> None:
         """Mark the token as used"""
         self.is_used = True
-        self.used_at = datetime.utcnow()
+        self.used_at = datetime.now(timezone.utc)

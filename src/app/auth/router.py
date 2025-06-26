@@ -2,11 +2,12 @@ import secrets
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.auth.dependencies import require_auth
-from src.app.auth.email_service import email_service
+from src.app.auth.email_service import EmailService
 from src.app.auth.jwt_utils import create_access_token
 from src.app.auth.password import hash_password, verify_password
 from src.app.auth.schemas import (
@@ -170,7 +171,12 @@ async def forgot_password(
         # Get base URL for reset link
         base_url = str(request.base_url).rstrip('/')
         
-        # Send password reset email
+        # Send password reset email - create service instance here to get current env vars
+        email_service = EmailService()
+        logger.info(f"Email service configured: {email_service.is_configured}")
+        logger.info(f"SMTP server: {email_service.smtp_server}")
+        logger.info(f"SMTP username: {email_service.smtp_username}")
+        
         await email_service.send_password_reset_email(
             to_email=user.email,
             reset_token=reset_token,

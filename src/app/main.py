@@ -21,6 +21,12 @@ ROOTDIR = BASEDIR.parents[1]
 
 load_dotenv(".env")
 
+# Debug: Check if email environment variables are loaded
+import os
+logger.info(f"Email config loaded - smtp_host: {os.getenv('smtp_host')}")
+logger.info(f"Email config loaded - sender_email: {os.getenv('sender_email')}")
+logger.info(f"Email config loaded - app_password: {'***' if os.getenv('app_password') else 'None'}")
+
 
 def load_lookup_assets() -> list:
     """Load lookup asset data from JSON file"""
