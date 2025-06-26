@@ -114,17 +114,27 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create access token (even for inactive users - they get token but is_active=False)
+    # Create access token with different expiration based on remember_me
     config = get_config()
+    
+    if login_data.remember_me:
+        # Remember me: 30 days
+        expiration_hours = 30 * 24  # 720 hours = 30 days
+        logger.info(f"Remember me login for {user.email} - token valid for 30 days")
+    else:
+        # Regular login: use config setting (default 8 hours)
+        expiration_hours = config.api_mode.JWT_EXPIRATION_HOURS
+        logger.info(f"Regular login for {user.email} - token valid for {expiration_hours} hours")
+    
     access_token = create_access_token(
         user_id=user.id,
         email=user.email,
-        expires_delta=timedelta(hours=config.api_mode.JWT_EXPIRATION_HOURS),
+        expires_delta=timedelta(hours=expiration_hours),
     )
 
     return AuthResponse(
         access_token=access_token,
-        expires_in=config.api_mode.JWT_EXPIRATION_HOURS * 3600,
+        expires_in=expiration_hours * 3600,  # Convert to seconds
         user_email=user.email,
         first_name=user.first_name or "",
         is_active=user.is_active,

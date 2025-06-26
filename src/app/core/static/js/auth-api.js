@@ -4,14 +4,18 @@ class AuthAPI {
         this.baseUrl = '/auth';
     }
 
-    async login(email, password) {
+    async login(email, password, rememberMe = false) {
         try {
             const response = await fetch(`${this.baseUrl}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ 
+                    email, 
+                    password, 
+                    remember_me: rememberMe 
+                })
             });
 
             if (!response.ok) {
@@ -20,7 +24,7 @@ class AuthAPI {
             }
 
             const data = await response.json();
-            this.storeToken(data.access_token);
+            this.storeToken(data.access_token, data.expires_in);
             this.storeUserInfo(data.user_email, data.first_name);
             return data;
         } catch (error) {
@@ -49,7 +53,7 @@ class AuthAPI {
             }
 
             const data = await response.json();
-            this.storeToken(data.access_token);
+            this.storeToken(data.access_token, data.expires_in);
             this.storeUserInfo(data.user_email, data.first_name);
             return data;
         } catch (error) {
@@ -124,16 +128,33 @@ class AuthAPI {
         }
     }
 
-    storeToken(token) {
+    storeToken(token, expiresIn) {
         localStorage.setItem('auth_token', token);
+        if (expiresIn) {
+            // Store expiration timestamp (current time + expires_in seconds)
+            const expirationTime = Date.now() + (expiresIn * 1000);
+            localStorage.setItem('auth_token_expiry', expirationTime.toString());
+        }
     }
 
     getToken() {
-        return localStorage.getItem('auth_token');
+        const token = localStorage.getItem('auth_token');
+        const expiry = localStorage.getItem('auth_token_expiry');
+        
+        // Check if token has expired
+        if (token && expiry && Date.now() > parseInt(expiry)) {
+            console.log('Token expired, clearing...');
+            this.clearToken();
+            this.clearUserInfo();
+            return null;
+        }
+        
+        return token;
     }
 
     clearToken() {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_token_expiry');
     }
 
     storeUserInfo(email, firstName) {

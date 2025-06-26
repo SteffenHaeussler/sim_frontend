@@ -35,6 +35,7 @@ class AuthUI {
         this.passwordMatchFeedback = document.getElementById('password-match-feedback');
         this.loginEmailInput = document.getElementById('login-email');
         this.loginPasswordInput = document.getElementById('login-password');
+        this.rememberMeCheckbox = document.getElementById('remember-me');
         this.forgotEmailInput = document.getElementById('forgot-email');
         this.registerFirstNameInput = document.getElementById('register-first-name');
         this.registerLastNameInput = document.getElementById('register-last-name');
@@ -543,6 +544,7 @@ class AuthUI {
     async handleLogin() {
         const email = this.loginEmailInput.value.trim();
         const password = this.loginPasswordInput.value.trim();
+        const rememberMe = this.rememberMeCheckbox ? this.rememberMeCheckbox.checked : false;
 
         if (!email || !password) {
             this.showError(this.loginErrorDiv, 'Please fill in all fields');
@@ -553,8 +555,8 @@ class AuthUI {
         this.clearError(this.loginErrorDiv);
 
         try {
-            const result = await window.authAPI.login(email, password);
-            console.log('Login successful:', result.user_email);
+            const result = await window.authAPI.login(email, password, rememberMe);
+            console.log('Login successful:', result.user_email, rememberMe ? '(30 days)' : '(regular session)');
             this.hideLoginModal();
             this.updateAuthState(true);
         } catch (error) {
