@@ -21,7 +21,7 @@ class AuthAPI {
 
             const data = await response.json();
             this.storeToken(data.access_token);
-            this.storeUserInfo(data.user_email);
+            this.storeUserInfo(data.user_email, data.first_name);
             return data;
         } catch (error) {
             throw error;
@@ -50,7 +50,7 @@ class AuthAPI {
 
             const data = await response.json();
             this.storeToken(data.access_token);
-            this.storeUserInfo(data.user_email);
+            this.storeUserInfo(data.user_email, data.first_name);
             return data;
         } catch (error) {
             throw error;
@@ -89,18 +89,21 @@ class AuthAPI {
         localStorage.removeItem('auth_token');
     }
 
-    storeUserInfo(email) {
+    storeUserInfo(email, firstName) {
         localStorage.setItem('user_email', email);
+        localStorage.setItem('user_first_name', firstName || '');
     }
 
     getUserInfo() {
         return {
-            email: localStorage.getItem('user_email')
+            email: localStorage.getItem('user_email'),
+            firstName: localStorage.getItem('user_first_name')
         };
     }
 
     clearUserInfo() {
         localStorage.removeItem('user_email');
+        localStorage.removeItem('user_first_name');
     }
 
     isLoggedIn() {

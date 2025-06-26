@@ -626,7 +626,13 @@ class AuthUI {
             if (this.userGreeting && this.userName) {
                 const userInfo = window.authAPI.getUserInfo();
                 if (userInfo && userInfo.email) {
-                    const displayName = userInfo.email.split('@')[0];
+                    // Use first name if available, otherwise fall back to email username
+                    let displayName;
+                    if (userInfo.firstName && userInfo.firstName.trim()) {
+                        displayName = userInfo.firstName.trim();
+                    } else {
+                        displayName = userInfo.email.split('@')[0];
+                    }
                     const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1).toLowerCase();
                     this.userName.textContent = capitalizedName;
                     this.userGreeting.style.display = 'block';
