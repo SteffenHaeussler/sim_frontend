@@ -1,0 +1,46 @@
+<!-- Profile Settings Modal -->
+<div id="profile-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Profile Settings</h2>
+            <span class="close" id="close-profile-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div id="profile-error" class="error-message"></div>
+            
+            <!-- Update Profile Section -->
+            <div class="profile-section">
+                <h3>Update Profile</h3>
+                <form autocomplete="on">
+                    <div class="form-group">
+                        <label for="profile-first-name">First Name:</label>
+                        <input type="text" id="profile-first-name" name="first-name" placeholder="Enter your first name" required autocomplete="given-name" maxlength="255">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-last-name">Last Name:</label>
+                        <input type="text" id="profile-last-name" name="last-name" placeholder="Enter your last name" required autocomplete="family-name" maxlength="255">
+                    </div>
+                    <button type="button" id="update-profile-submit" class="btn-primary">Update Profile</button>
+                </form>
+            </div>
+            
+            <!-- Delete Account Section -->
+            <div class="profile-section danger-section">
+                <h3>Delete Account</h3>
+                <p class="warning-text">⚠️ This action cannot be undone. All your data will be permanently deleted.</p>
+                <form autocomplete="on">
+                    <div class="form-group">
+                        <label for="delete-password">Confirm your password to delete account:</label>
+                        <div class="password-field-wrapper">
+                            <input type="password" id="delete-password" name="password" placeholder="Enter your password" required autocomplete="current-password" maxlength="255">
+                            <button type="button" id="toggle-delete-password" class="btn-toggle-password">
+                                <img src="/static/icons/eye.svg" alt="Show password" class="eye-icon">
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="delete-account-submit" class="btn-danger">Delete Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
