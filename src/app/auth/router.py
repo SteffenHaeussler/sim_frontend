@@ -10,7 +10,7 @@ from src.app.auth.password import hash_password, verify_password
 from src.app.auth.schemas import AuthResponse, LoginRequest, RegisterRequest
 from src.app.config import get_config
 from src.app.models.database import get_db
-from src.app.models.user import Organization, User
+from src.app.models.user import Organisation, User
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -31,26 +31,26 @@ async def register(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
 
-    # Get the organization to check max_users limit
-    org_stmt = select(Organization).where(Organization.is_active).limit(1)
+    # Get the organisation to check max_users limit
+    org_stmt = select(Organisation).where(Organisation.is_active).limit(1)
     org_result = await db.execute(org_stmt)
-    organization = org_result.scalar_one_or_none()
+    organisation = org_result.scalar_one_or_none()
 
-    if not organization:
+    if not organisation:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No active organization available for registration",
+            detail="No active organisation available for registration",
         )
 
-    # Check current user count for this organization
+    # Check current user count for this organisation
     user_count_stmt = select(func.count(User.id)).where(
-        User.organization_id == organization.id
+        User.organisation_id == organisation.id
     )
     user_count_result = await db.execute(user_count_stmt)
     current_users = user_count_result.scalar()
 
-    # Determine if user should be active based on organization limit
-    is_active = current_users < organization.max_users
+    # Determine if user should be active based on organisation limit
+    is_active = current_users < organisation.max_users
 
     # Create new user
     hashed_password = hash_password(register_data.password)
@@ -59,7 +59,7 @@ async def register(
         password_hash=hashed_password,
         first_name=register_data.first_name,
         last_name=register_data.last_name,
-        organization_id=organization.id,
+        organisation_id=organisation.id,
         is_active=is_active,
         is_verified=True,  # Auto-verify for simplicity
     )
