@@ -6,18 +6,22 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.auth.dependencies import require_auth
+from src.app.auth.dependencies import require_active_user, require_auth
 from src.app.auth.email_service import EmailService
 from src.app.auth.jwt_utils import create_access_token
 from src.app.auth.password import hash_password, verify_password
 from src.app.auth.schemas import (
     AuthResponse,
+    DeleteAccountRequest,
+    DeleteAccountResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    UpdateProfileRequest,
+    UpdateProfileResponse,
 )
 from src.app.config import get_config
 from src.app.models.database import get_db
@@ -92,6 +96,7 @@ async def register(
         expires_in=config.api_mode.JWT_EXPIRATION_HOURS * 3600,
         user_email=new_user.email,
         first_name=new_user.first_name or "",
+        last_name=new_user.last_name or "",
         is_active=is_active,
     )
 
@@ -137,6 +142,7 @@ async def login(
         expires_in=expiration_hours * 3600,  # Convert to seconds
         user_email=user.email,
         first_name=user.first_name or "",
+        last_name=user.last_name or "",
         is_active=user.is_active,
     )
 
@@ -244,4 +250,84 @@ async def reset_password(
     
     return ResetPasswordResponse(
         message="Password has been reset successfully"
+    )
+
+
+@router.put("/profile", response_model=UpdateProfileResponse)
+async def update_profile(
+    profile_data: UpdateProfileRequest,
+    token_data=Depends(require_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update user profile (first name and last name)
+    """
+    import uuid
+    
+    # Get user from database
+    stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Update user profile
+    user.first_name = profile_data.first_name.strip()
+    user.last_name = profile_data.last_name.strip()
+    
+    # Commit changes
+    await db.commit()
+    await db.refresh(user)
+    
+    logger.info(f"Profile updated for user {user.email}")
+    
+    return UpdateProfileResponse(
+        message="Profile updated successfully",
+        user_email=user.email,
+        first_name=user.first_name,
+        last_name=user.last_name
+    )
+
+
+@router.delete("/account", response_model=DeleteAccountResponse)
+async def delete_account(
+    delete_data: DeleteAccountRequest,
+    token_data=Depends(require_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete user account (requires password confirmation)
+    """
+    import uuid
+    
+    # Get user from database
+    stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Verify password
+    if not verify_password(delete_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid password"
+        )
+    
+    # Delete user account
+    await db.delete(user)
+    await db.commit()
+    
+    logger.info(f"Account deleted for user {user.email}")
+    
+    return DeleteAccountResponse(
+        message="Account deleted successfully"
     )

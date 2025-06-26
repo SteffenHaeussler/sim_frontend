@@ -25,7 +25,7 @@ class AuthAPI {
 
             const data = await response.json();
             this.storeToken(data.access_token, data.expires_in);
-            this.storeUserInfo(data.user_email, data.first_name);
+            this.storeUserInfo(data.user_email, data.first_name, data.last_name);
             return data;
         } catch (error) {
             throw error;
@@ -54,7 +54,7 @@ class AuthAPI {
 
             const data = await response.json();
             this.storeToken(data.access_token, data.expires_in);
-            this.storeUserInfo(data.user_email, data.first_name);
+            this.storeUserInfo(data.user_email, data.first_name, data.last_name);
             return data;
         } catch (error) {
             throw error;
@@ -128,6 +128,52 @@ class AuthAPI {
         }
     }
 
+    async updateProfile(firstName, lastName) {
+        try {
+            const response = await this.authenticatedFetch(`${this.baseUrl}/profile`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    first_name: firstName,
+                    last_name: lastName
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Profile update failed');
+            }
+
+            const data = await response.json();
+            // Update stored user info
+            this.storeUserInfo(data.user_email, data.first_name, data.last_name);
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async deleteAccount(password) {
+        try {
+            const response = await this.authenticatedFetch(`${this.baseUrl}/account`, {
+                method: 'DELETE',
+                body: JSON.stringify({ password })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Account deletion failed');
+            }
+
+            const data = await response.json();
+            // Clear all stored data since account is deleted
+            this.clearToken();
+            this.clearUserInfo();
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     storeToken(token, expiresIn) {
         localStorage.setItem('auth_token', token);
         if (expiresIn) {
@@ -157,21 +203,24 @@ class AuthAPI {
         localStorage.removeItem('auth_token_expiry');
     }
 
-    storeUserInfo(email, firstName) {
+    storeUserInfo(email, firstName, lastName) {
         localStorage.setItem('user_email', email);
         localStorage.setItem('user_first_name', firstName || '');
+        localStorage.setItem('user_last_name', lastName || '');
     }
 
     getUserInfo() {
         return {
             email: localStorage.getItem('user_email'),
-            firstName: localStorage.getItem('user_first_name')
+            firstName: localStorage.getItem('user_first_name'),
+            lastName: localStorage.getItem('user_last_name')
         };
     }
 
     clearUserInfo() {
         localStorage.removeItem('user_email');
         localStorage.removeItem('user_first_name');
+        localStorage.removeItem('user_last_name');
     }
 
     isLoggedIn() {

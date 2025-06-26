@@ -31,6 +31,7 @@ class AuthResponse(BaseModel):
     expires_in: int  # seconds until token expires
     user_email: str
     first_name: str
+    last_name: str
     is_active: bool
 
 
@@ -41,4 +42,25 @@ class ForgotPasswordResponse(BaseModel):
 
 
 class ResetPasswordResponse(BaseModel):
+    message: str
+
+
+# Profile management schemas
+class UpdateProfileRequest(BaseModel):
+    first_name: str
+    last_name: str
+
+
+class UpdateProfileResponse(BaseModel):
+    message: str
+    user_email: str
+    first_name: str
+    last_name: str
+
+
+class DeleteAccountRequest(BaseModel):
+    password: str  # Require password confirmation for security
+
+
+class DeleteAccountResponse(BaseModel):
     message: str

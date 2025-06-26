@@ -22,6 +22,12 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* Profile modal - wider for better layout */
+#profile-modal .modal-content {
+    width: 500px;
+    max-width: 90vw;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -425,5 +431,85 @@
 #user-name {
     color: var(--accent-primary);
     font-weight: 600;
+}
+
+/* Profile Modal Styles */
+.profile-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.profile-section:last-child {
+    border-bottom: none;
+}
+
+.profile-section h3 {
+    margin: 0 0 16px 0;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.danger-section {
+    background-color: rgba(231, 76, 60, 0.05);
+    border-top: 2px solid #e74c3c;
+}
+
+.danger-section h3 {
+    color: #e74c3c;
+}
+
+.warning-text {
+    color: #e74c3c;
+    font-size: 14px;
+    margin: 0 0 16px 0;
+    padding: 12px;
+    background-color: rgba(231, 76, 60, 0.1);
+    border-radius: 6px;
+    border-left: 4px solid #e74c3c;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+    width: 100%;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.btn-danger:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Checkbox styles for remember me */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
 }
 
