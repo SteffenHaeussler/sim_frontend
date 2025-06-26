@@ -33,6 +33,11 @@ class AuthUI {
         this.registerLastNameInput = document.getElementById('register-last-name');
         this.registerEmailInput = document.getElementById('register-email');
         
+        // Email validation feedback elements
+        this.loginEmailFeedback = document.getElementById('login-email-feedback');
+        this.registerEmailFeedback = document.getElementById('register-email-feedback');
+        this.forgotEmailFeedback = document.getElementById('forgot-email-feedback');
+        
         // Submit buttons
         this.loginSubmitBtn = document.getElementById('login-submit');
         this.registerSubmitBtn = document.getElementById('register-submit');
@@ -116,6 +121,9 @@ class AuthUI {
         
         // Form completeness validation
         this.setupFormValidation();
+        
+        // Email format validation
+        this.setupEmailValidation();
         
         // Password toggle functionality
         this.setupPasswordToggle();
@@ -254,7 +262,8 @@ class AuthUI {
         const email = this.loginEmailInput.value.trim();
         const password = this.loginPasswordInput.value.trim();
         
-        const isValid = email && password;
+        const emailValid = email && this.isValidEmail(email);
+        const isValid = emailValid && password;
         
         this.loginSubmitBtn.disabled = !isValid;
         this.updateButtonState(this.loginSubmitBtn, isValid, 'Login');
@@ -270,9 +279,10 @@ class AuthUI {
         const confirmPassword = this.registerPasswordConfirmInput.value.trim();
         
         const fieldsComplete = firstName && lastName && email && password && confirmPassword;
+        const emailValid = email && this.isValidEmail(email);
         const passwordsMatch = password === confirmPassword;
         
-        const isValid = fieldsComplete && passwordsMatch;
+        const isValid = fieldsComplete && emailValid && passwordsMatch;
         
         this.registerSubmitBtn.disabled = !isValid;
         this.updateButtonState(this.registerSubmitBtn, isValid, 'Register');
@@ -289,6 +299,66 @@ class AuthUI {
         this.updateButtonState(this.forgotSubmitBtn, isValid, 'Send Reset Link');
         
         return isValid;
+    }
+
+    // Email format validation
+    setupEmailValidation() {
+        // Login email validation
+        if (this.loginEmailInput && this.loginEmailFeedback) {
+            this.loginEmailInput.addEventListener('input', () => {
+                this.validateEmailField(this.loginEmailInput, this.loginEmailFeedback);
+                this.validateLoginForm(); // Update form completeness
+            });
+            this.loginEmailInput.addEventListener('blur', () => {
+                this.validateEmailField(this.loginEmailInput, this.loginEmailFeedback);
+            });
+        }
+
+        // Register email validation
+        if (this.registerEmailInput && this.registerEmailFeedback) {
+            this.registerEmailInput.addEventListener('input', () => {
+                this.validateEmailField(this.registerEmailInput, this.registerEmailFeedback);
+                this.validateRegisterForm(); // Update form completeness
+            });
+            this.registerEmailInput.addEventListener('blur', () => {
+                this.validateEmailField(this.registerEmailInput, this.registerEmailFeedback);
+            });
+        }
+
+        // Forgot password email validation
+        if (this.forgotEmailInput && this.forgotEmailFeedback) {
+            this.forgotEmailInput.addEventListener('input', () => {
+                this.validateEmailField(this.forgotEmailInput, this.forgotEmailFeedback);
+                this.validateForgotPasswordForm(); // Update form completeness
+            });
+            this.forgotEmailInput.addEventListener('blur', () => {
+                this.validateEmailField(this.forgotEmailInput, this.forgotEmailFeedback);
+            });
+        }
+    }
+
+    validateEmailField(emailInput, feedbackElement) {
+        const email = emailInput.value.trim();
+        
+        // Clear feedback if field is empty
+        if (!email) {
+            feedbackElement.textContent = '';
+            feedbackElement.className = 'validation-message';
+            return false;
+        }
+        
+        // Check email format
+        if (this.isValidEmail(email)) {
+            // Valid email - clear any error message
+            feedbackElement.textContent = '';
+            feedbackElement.className = 'validation-message';
+            return true;
+        } else {
+            // Invalid email - show error message
+            feedbackElement.textContent = '✗ Invalid email format';
+            feedbackElement.className = 'validation-message error';
+            return false;
+        }
     }
 
     updateButtonState(button, isValid, text) {
