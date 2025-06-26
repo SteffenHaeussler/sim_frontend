@@ -77,6 +77,53 @@ class AuthAPI {
         }
     }
 
+    async forgotPassword(email) {
+        try {
+            const response = await fetch(`${this.baseUrl}/forgot-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Password reset request failed');
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async resetPassword(token, newPassword) {
+        try {
+            const response = await fetch(`${this.baseUrl}/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token,
+                    new_password: newPassword
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Password reset failed');
+            }
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            throw error;
+        }
+    }
+
     storeToken(token) {
         localStorage.setItem('auth_token', token);
     }
