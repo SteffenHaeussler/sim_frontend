@@ -47,6 +47,9 @@ class AuthUI {
         this.toggleLoginPasswordBtn = document.getElementById('toggle-login-password');
         this.toggleRegisterPasswordBtn = document.getElementById('toggle-register-password');
         this.toggleRegisterPasswordConfirmBtn = document.getElementById('toggle-register-password-confirm');
+        
+        // Password strength indicator
+        this.passwordStrengthIndicator = document.getElementById('password-strength-indicator');
     }
 
     setupEventListeners() {
@@ -127,6 +130,9 @@ class AuthUI {
         
         // Password toggle functionality
         this.setupPasswordToggle();
+        
+        // Password strength indicator
+        this.setupPasswordStrength();
     }
 
     // Modal show/hide methods
@@ -193,10 +199,11 @@ class AuthUI {
             this.registerPasswordInput.type = 'password';
         }, 2000);
         
-        // Validate password match and form completeness after generation
+        // Validate password match, form completeness, and strength after generation
         setTimeout(() => {
             this.validatePasswordMatch();
             this.validateRegisterForm();
+            this.updatePasswordStrength();
         }, 10);
     }
 
@@ -414,6 +421,72 @@ class AuthUI {
             eyeIcon.src = '/static/icons/eye.svg';
             eyeIcon.alt = 'Show password';
         }
+    }
+
+    // Password strength functionality
+    setupPasswordStrength() {
+        if (this.registerPasswordInput && this.passwordStrengthIndicator) {
+            this.registerPasswordInput.addEventListener('input', () => {
+                this.updatePasswordStrength();
+            });
+        }
+    }
+
+    updatePasswordStrength() {
+        const password = this.registerPasswordInput.value;
+        const strength = this.calculatePasswordStrength(password);
+        
+        const strengthFill = this.passwordStrengthIndicator.querySelector('.strength-fill');
+        const strengthText = this.passwordStrengthIndicator.querySelector('.strength-text');
+        
+        // Clear previous classes
+        strengthFill.className = 'strength-fill';
+        strengthText.className = 'strength-text';
+        
+        if (!password) {
+            // Empty password - hide indicator
+            strengthText.textContent = '';
+            return;
+        }
+        
+        // Apply strength styling and text
+        switch (strength) {
+            case 'weak':
+                strengthFill.classList.add('weak');
+                strengthText.classList.add('weak');
+                strengthText.textContent = 'Weak password';
+                break;
+            case 'medium':
+                strengthFill.classList.add('medium');
+                strengthText.classList.add('medium');
+                strengthText.textContent = 'Medium strength';
+                break;
+            case 'strong':
+                strengthFill.classList.add('strong');
+                strengthText.classList.add('strong');
+                strengthText.textContent = 'Strong password';
+                break;
+        }
+    }
+
+    calculatePasswordStrength(password) {
+        if (!password) return 'weak';
+        
+        const length = password.length;
+        const uniqueChars = new Set(password).size;
+        
+        // Your specified criteria: 12+ chars and 9+ different characters = strong
+        if (length >= 12 && uniqueChars >= 9) {
+            return 'strong';
+        }
+        
+        // Medium criteria: reasonable length and variety
+        if (length >= 8 && uniqueChars >= 6) {
+            return 'medium';
+        }
+        
+        // Everything else is weak
+        return 'weak';
     }
 }
 
