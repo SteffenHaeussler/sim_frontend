@@ -3,6 +3,7 @@ class AuthUI {
     constructor() {
         this.initializeElements();
         this.setupEventListeners();
+        this.checkAuthState();
     }
 
     initializeElements() {
@@ -13,6 +14,7 @@ class AuthUI {
         
         // Buttons and triggers
         this.loginBtn = document.getElementById('login-btn');
+        this.logoutBtn = document.getElementById('logout-btn');
         this.closeLoginModal = document.getElementById('close-login-modal');
         this.closeRegisterModal = document.getElementById('close-register-modal');
         this.closeForgotPasswordModal = document.getElementById('close-forgot-password-modal');
@@ -43,6 +45,10 @@ class AuthUI {
         this.registerSubmitBtn = document.getElementById('register-submit');
         this.forgotSubmitBtn = document.getElementById('forgot-submit');
         
+        // Error display elements
+        this.loginErrorDiv = document.getElementById('login-error');
+        this.registerErrorDiv = document.getElementById('register-error');
+        
         // Password toggle buttons
         this.toggleLoginPasswordBtn = document.getElementById('toggle-login-password');
         this.toggleRegisterPasswordBtn = document.getElementById('toggle-register-password');
@@ -56,6 +62,10 @@ class AuthUI {
         // Modal navigation
         if (this.loginBtn) {
             this.loginBtn.addEventListener('click', () => this.showLoginModal());
+        }
+        
+        if (this.logoutBtn) {
+            this.logoutBtn.addEventListener('click', () => this.handleLogout());
         }
         
         if (this.registerLink) {
@@ -138,6 +148,9 @@ class AuthUI {
         
         // Password strength indicator
         this.setupPasswordStrength();
+        
+        // Form submissions
+        this.setupFormSubmissions();
     }
 
     // Modal show/hide methods
@@ -492,6 +505,142 @@ class AuthUI {
         
         // Everything else is weak
         return 'weak';
+    }
+
+    // Form submissions
+    setupFormSubmissions() {
+        // Login form submission
+        if (this.loginSubmitBtn) {
+            this.loginSubmitBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.handleLogin();
+            });
+        }
+
+        // Register form submission
+        if (this.registerSubmitBtn) {
+            this.registerSubmitBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.handleRegister();
+            });
+        }
+    }
+
+    async handleLogin() {
+        const email = this.loginEmailInput.value.trim();
+        const password = this.loginPasswordInput.value.trim();
+
+        if (!email || !password) {
+            this.showError(this.loginErrorDiv, 'Please fill in all fields');
+            return;
+        }
+
+        this.showLoading(this.loginSubmitBtn, 'Logging in...');
+        this.clearError(this.loginErrorDiv);
+
+        try {
+            const result = await window.authAPI.login(email, password);
+            console.log('Login successful:', result.user_email);
+            this.hideLoginModal();
+            this.updateAuthState(true);
+        } catch (error) {
+            this.showError(this.loginErrorDiv, error.message);
+        } finally {
+            this.hideLoading(this.loginSubmitBtn, 'Login');
+        }
+    }
+
+    async handleRegister() {
+        const firstName = this.registerFirstNameInput.value.trim();
+        const lastName = this.registerLastNameInput.value.trim();
+        const email = this.registerEmailInput.value.trim();
+        const password = this.registerPasswordInput.value.trim();
+        const confirmPassword = this.registerPasswordConfirmInput.value.trim();
+
+        if (!firstName || !lastName || !email || !password || !confirmPassword) {
+            this.showError(this.registerErrorDiv, 'Please fill in all fields');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            this.showError(this.registerErrorDiv, 'Passwords do not match');
+            return;
+        }
+
+        this.showLoading(this.registerSubmitBtn, 'Registering...');
+        this.clearError(this.registerErrorDiv);
+
+        try {
+            const result = await window.authAPI.register(firstName, lastName, email, password);
+            console.log('Registration successful:', result.user_email);
+            this.hideRegisterModal();
+            this.updateAuthState(true);
+        } catch (error) {
+            this.showError(this.registerErrorDiv, error.message);
+        } finally {
+            this.hideLoading(this.registerSubmitBtn, 'Register');
+        }
+    }
+
+    showError(errorDiv, message) {
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    clearError(errorDiv) {
+        if (errorDiv) {
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    showLoading(button, text) {
+        button.disabled = true;
+        button.textContent = text;
+    }
+
+    hideLoading(button, text) {
+        button.disabled = false;
+        button.textContent = text;
+    }
+
+    updateAuthState(isLoggedIn) {
+        if (isLoggedIn) {
+            // Hide login icon, show logout icon
+            if (this.loginBtn) {
+                this.loginBtn.style.display = 'none';
+            }
+            if (this.logoutBtn) {
+                this.logoutBtn.style.display = 'flex';
+            }
+        } else {
+            // Show login icon, hide logout icon
+            if (this.loginBtn) {
+                this.loginBtn.style.display = 'flex';
+            }
+            if (this.logoutBtn) {
+                this.logoutBtn.style.display = 'none';
+            }
+        }
+    }
+
+    async handleLogout() {
+        try {
+            await window.authAPI.logout();
+            console.log('Logout successful');
+            this.updateAuthState(false);
+        } catch (error) {
+            console.error('Logout failed:', error);
+            // Still update UI state even if logout request fails
+            this.updateAuthState(false);
+        }
+    }
+
+    checkAuthState() {
+        const isLoggedIn = window.authAPI.isLoggedIn();
+        this.updateAuthState(isLoggedIn);
     }
 }
 

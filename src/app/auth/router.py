@@ -61,7 +61,6 @@ async def register(
         last_name=register_data.last_name,
         organisation_id=organisation.id,
         is_active=is_active,
-        is_verified=True,  # Auto-verify for simplicity
     )
 
     db.add(new_user)
