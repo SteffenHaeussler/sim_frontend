@@ -171,8 +171,24 @@ class AssetSearch {
         if (this.typeFilter) this.typeFilter.value = '';
         this.currentPage = 1;
 
-        // Reload assets
-        this.loadAllAssets();
+        // Clear displayed assets instead of reloading them
+        if (this.assetList) {
+            this.assetList.innerHTML = `
+                <div class="no-assets">
+                    Search for assets using the filters above
+                </div>
+            `;
+        }
+        
+        // Clear results count
+        if (this.resultsCount) {
+            this.resultsCount.textContent = '';
+        }
+        
+        // Clear pagination
+        if (this.pageInfo) {
+            this.pageInfo.textContent = '';
+        }
     }
 }
 
