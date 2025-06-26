@@ -233,24 +233,7 @@
                 });
             }
             
-            // Close modals when clicking outside
-            loginModal.addEventListener('click', (e) => {
-                if (e.target === loginModal) {
-                    loginModal.style.display = 'none';
-                }
-            });
-            
-            registerModal.addEventListener('click', (e) => {
-                if (e.target === registerModal) {
-                    registerModal.style.display = 'none';
-                }
-            });
-            
-            forgotPasswordModal.addEventListener('click', (e) => {
-                if (e.target === forgotPasswordModal) {
-                    forgotPasswordModal.style.display = 'none';
-                }
-            });
+            // Note: Removed click outside to close functionality to keep modals stable
             
             // Close modals with Escape key
             document.addEventListener('keydown', (e) => {
