@@ -82,6 +82,7 @@
                     <div class="form-group">
                         <label for="register-password-confirm">Confirm Password:</label>
                         <input type="password" id="register-password-confirm" name="password-confirm" placeholder="Confirm your password" required autocomplete="new-password">
+                        <div id="password-match-feedback" class="validation-message"></div>
                     </div>
                     <button type="button" id="register-submit" class="btn-primary">Register</button>
                     <div class="register-link">
@@ -162,6 +163,8 @@
             const backToLoginLink = document.getElementById('back-to-login-link');
             const generatePasswordBtn = document.getElementById('generate-password-btn');
             const registerPasswordInput = document.getElementById('register-password');
+            const registerPasswordConfirmInput = document.getElementById('register-password-confirm');
+            const passwordMatchFeedback = document.getElementById('password-match-feedback');
             const loginEmailInput = document.getElementById('login-email');
             const forgotEmailInput = document.getElementById('forgot-email');
             
@@ -288,6 +291,44 @@
                         registerPasswordInput.type = 'password';
                     }, 2000);
                 });
+            }
+            
+            // Password confirmation validation
+            function validatePasswordMatch() {
+                if (!registerPasswordInput || !registerPasswordConfirmInput || !passwordMatchFeedback) return;
+                
+                const password = registerPasswordInput.value;
+                const confirmPassword = registerPasswordConfirmInput.value;
+                
+                // Clear feedback if confirm field is empty
+                if (!confirmPassword) {
+                    passwordMatchFeedback.textContent = '';
+                    passwordMatchFeedback.className = 'validation-message';
+                    return;
+                }
+                
+                // Check if passwords match
+                if (password === confirmPassword) {
+                    passwordMatchFeedback.textContent = '✓ Passwords match';
+                    passwordMatchFeedback.className = 'validation-message success';
+                } else {
+                    passwordMatchFeedback.textContent = '✗ Passwords do not match';
+                    passwordMatchFeedback.className = 'validation-message error';
+                }
+            }
+            
+            // Add event listeners for password validation
+            if (registerPasswordInput && registerPasswordConfirmInput) {
+                registerPasswordInput.addEventListener('input', validatePasswordMatch);
+                registerPasswordConfirmInput.addEventListener('input', validatePasswordMatch);
+                
+                // Also validate when password is generated
+                if (generatePasswordBtn) {
+                    generatePasswordBtn.addEventListener('click', () => {
+                        // Small delay to ensure password is set first
+                        setTimeout(validatePasswordMatch, 10);
+                    });
+                }
             }
         });
     </script>

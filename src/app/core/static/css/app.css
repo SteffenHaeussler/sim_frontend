@@ -512,3 +512,22 @@ body {
 .btn-generate:hover {
     background-color: var(--hover-light);
 }
+
+.validation-message {
+    font-size: 12px;
+    margin-top: 12px;
+    min-height: 16px;
+    transition: color 0.2s ease;
+}
+
+.validation-message.error {
+    color: #e74c3c;
+}
+
+.validation-message.success {
+    color: var(--accent-primary);
+}
+
+.validation-message.warning {
+    color: #f39c12;
+}
