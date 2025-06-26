@@ -314,3 +314,22 @@
 .strength-text.strong {
     color: var(--accent-primary);
 }
+
+/* User Greeting Styles */
+.user-greeting.icon-item {
+    margin-bottom: 8px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.user-greeting .greeting-text {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.user-greeting #user-name {
+    color: var(--accent-primary);
+    font-weight: 600;
+}

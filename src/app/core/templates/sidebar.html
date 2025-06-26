@@ -1,7 +1,11 @@
 <div class="icon-bar">
     <div class="icon-item logo">
         <img src="/static/icons/logo.svg" alt="Logo" class="icon-svg">
-        <span class="icon-label">Company name</span>
+        <span class="icon-label">{{ organisation_name }}</span>
+    </div>
+    <div class="icon-item user-greeting" id="user-greeting" style="display: none;">
+        <img src="/static/icons/user.svg" alt="User" class="icon-svg">
+        <span class="icon-label greeting-text">Hello, <span id="user-name"></span>!</span>
     </div>
     <div class="icon-item" id="new-session-btn">
         <img src="/static/icons/new-session.svg" alt="New Session" class="icon-svg">
@@ -42,7 +46,7 @@
             <span class="icon-label">Login</span>
         </div>
         <div class="icon-item" id="logout-btn" style="display: none;">
-            <img src="/static/icons/login.svg" alt="Logout" class="icon-svg">
+            <img src="/static/icons/logout.svg" alt="Logout" class="icon-svg">
             <span class="icon-label">Logout</span>
         </div>
         <div class="icon-item" id="theme-toggle-btn">

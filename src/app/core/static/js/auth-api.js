@@ -21,6 +21,7 @@ class AuthAPI {
 
             const data = await response.json();
             this.storeToken(data.access_token);
+            this.storeUserInfo(data.user_email);
             return data;
         } catch (error) {
             throw error;
@@ -49,6 +50,7 @@ class AuthAPI {
 
             const data = await response.json();
             this.storeToken(data.access_token);
+            this.storeUserInfo(data.user_email);
             return data;
         } catch (error) {
             throw error;
@@ -71,6 +73,7 @@ class AuthAPI {
             console.warn('Logout request failed:', error);
         } finally {
             this.clearToken();
+            this.clearUserInfo();
         }
     }
 
@@ -84,6 +87,20 @@ class AuthAPI {
 
     clearToken() {
         localStorage.removeItem('auth_token');
+    }
+
+    storeUserInfo(email) {
+        localStorage.setItem('user_email', email);
+    }
+
+    getUserInfo() {
+        return {
+            email: localStorage.getItem('user_email')
+        };
+    }
+
+    clearUserInfo() {
+        localStorage.removeItem('user_email');
     }
 
     isLoggedIn() {

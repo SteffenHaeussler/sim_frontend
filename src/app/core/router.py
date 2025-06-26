@@ -72,6 +72,7 @@ async def frontend(request: Request):
         "semantic_emb_url": os.getenv("semantic_emb_url", ""),
         "semantic_rank_url": os.getenv("semantic_rank_url", ""),
         "semantic_search_url": os.getenv("semantic_search_url", ""),
+        "organisation_name": os.getenv("organisation_name", "Company").title(),
     }
     return templates.TemplateResponse(request, "base.html", context)
 
