@@ -80,6 +80,11 @@ class AuthUI {
                 // Copy email from login field if it exists
                 if (this.loginEmailInput.value && this.forgotEmailInput) {
                     this.forgotEmailInput.value = this.loginEmailInput.value;
+                    // Trigger validation after pre-filling email
+                    setTimeout(() => {
+                        this.validateEmailField(this.forgotEmailInput, this.forgotEmailFeedback);
+                        this.validateForgotPasswordForm();
+                    }, 10);
                 }
                 this.hideLoginModal();
                 this.showForgotPasswordModal();
