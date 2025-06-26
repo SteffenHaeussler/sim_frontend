@@ -19,6 +19,7 @@ class AuthUI {
         // User greeting elements
         this.userGreeting = document.getElementById('user-greeting');
         this.userName = document.getElementById('user-name');
+        
         this.closeLoginModal = document.getElementById('close-login-modal');
         this.closeRegisterModal = document.getElementById('close-register-modal');
         this.closeForgotPasswordModal = document.getElementById('close-forgot-password-modal');
@@ -622,7 +623,15 @@ class AuthUI {
             }
             
             // Show user greeting
-            this.showUserGreeting();
+            if (this.userGreeting && this.userName) {
+                const userInfo = window.authAPI.getUserInfo();
+                if (userInfo && userInfo.email) {
+                    const displayName = userInfo.email.split('@')[0];
+                    const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1).toLowerCase();
+                    this.userName.textContent = capitalizedName;
+                    this.userGreeting.style.display = 'block';
+                }
+            }
         } else {
             // Show login icon, hide logout icon
             if (this.loginBtn) {
@@ -633,7 +642,9 @@ class AuthUI {
             }
             
             // Hide user greeting
-            this.hideUserGreeting();
+            if (this.userGreeting) {
+                this.userGreeting.style.display = 'none';
+            }
         }
     }
 
@@ -649,30 +660,6 @@ class AuthUI {
         }
     }
 
-    showUserGreeting() {
-        if (this.userGreeting && this.userName) {
-            // Only show if user is actually logged in
-            if (window.authAPI.isLoggedIn()) {
-                const userInfo = window.authAPI.getUserInfo();
-                if (userInfo.email) {
-                    // Extract first name from email (before @) and capitalize
-                    const displayName = userInfo.email.split('@')[0];
-                    const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1).toLowerCase();
-                    this.userName.textContent = capitalizedName;
-                    this.userGreeting.style.display = 'flex';
-                }
-            } else {
-                // Hide if not logged in
-                this.userGreeting.style.display = 'none';
-            }
-        }
-    }
-
-    hideUserGreeting() {
-        if (this.userGreeting) {
-            this.userGreeting.style.display = 'none';
-        }
-    }
 
     checkAuthState() {
         const isLoggedIn = window.authAPI.isLoggedIn();
