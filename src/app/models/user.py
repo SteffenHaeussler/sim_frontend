@@ -95,7 +95,7 @@ class ApiUsageLog(Base):
     
     # Session and user context
     session_id = Column(String(255), index=True)  # Track user sessions
-    request_id = Column(String(255), index=True)  # Track individual requests
+    event_id = Column(String(255), index=True)  # Links to specific WebSocket events
     user_agent = Column(String(500))  # Browser/client information
     ip_address = Column(String(45))  # IPv4/IPv6 address
     
@@ -128,7 +128,7 @@ class ApiUsageLog(Base):
         user_id: uuid.UUID = None,
         organisation_id: uuid.UUID = None,
         session_id: str = None,
-        request_id: str = None,
+        event_id: str = None,
         user_agent: str = None,
         ip_address: str = None,
         query_params: str = None,
@@ -170,7 +170,7 @@ class ApiUsageLog(Base):
             user_id=user_id,
             organisation_id=organisation_id,
             session_id=session_id,
-            request_id=request_id,
+            event_id=event_id,
             user_agent=user_agent,
             ip_address=ip_address,
             query_params=query_params,
@@ -261,9 +261,9 @@ class UserResponseRating(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Link to the response metadata (nullable for WebSocket responses)
-    response_metadata_id = Column(
-        UUID(as_uuid=True), ForeignKey("api_response_metadata.id"), nullable=True, index=True
+    # Link to the original API usage log that triggered this rating
+    usage_log_id = Column(
+        UUID(as_uuid=True), ForeignKey("api_usage_logs.id"), nullable=True, index=True
     )
     
     # User who rated the response
@@ -280,6 +280,7 @@ class UserResponseRating(Base):
     
     # Context information
     session_id = Column(String(255), index=True)  # Link to user session
+    event_id = Column(String(255), index=True)  # Unique ID linking to specific ask-agent event
     message_context = Column(String(500))  # The question/query that led to this response
     
     # Timestamps
@@ -288,7 +289,7 @@ class UserResponseRating(Base):
     )
     
     # Relationships
-    response_metadata = relationship("ApiResponseMetadata", backref="ratings")
+    usage_log = relationship("ApiUsageLog", backref="ratings")
     user = relationship("User", backref="response_ratings")
 
     def __repr__(self) -> str:

@@ -1,6 +1,7 @@
 class AskAgent {
     constructor() {
         this.websocket = null;
+        this.messageEventIds = new Map();  // Store event IDs for each message
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -26,6 +27,14 @@ class AskAgent {
         }
     }
 
+    generateEventId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     updateStatus(message) {
         if (!this.questionInput) return;
 
@@ -49,6 +58,14 @@ class AskAgent {
 
         const messageDiv = document.createElement('div');
         messageDiv.className = isQuestion ? 'message question' : 'message';
+        
+        // Generate unique event ID for AI responses (not for user questions)
+        let eventId = null;
+        if (!isQuestion) {
+            eventId = this.generateEventId();
+            messageDiv.setAttribute('data-event-id', eventId);
+            this.messageEventIds.set(messageDiv, eventId);
+        }
 
         if (isImage) {
             const img = document.createElement('img');
@@ -141,6 +158,10 @@ class AskAgent {
         // Hide the opposite button
         otherButton.style.display = 'none';
 
+        // Get the event ID for this specific message
+        const messageDiv = actionsDiv.closest('.message');
+        const eventId = messageDiv ? messageDiv.getAttribute('data-event-id') : null;
+
         // Send rating to API
         try {
             const sessionId = window.app ? window.app.sessionId : '';
@@ -152,7 +173,15 @@ class AskAgent {
                 message_context: content.substring(0, 100) + '...'
             });
             
-            const response = await window.authAPI.authenticatedFetch('/ratings/submit', {
+            const ratingsUrl = new URL('/ratings/submit', window.location.origin);
+            if (sessionId) {
+                ratingsUrl.searchParams.append('session_id', sessionId);
+            }
+            if (eventId) {
+                ratingsUrl.searchParams.append('event_id', eventId);
+            }
+            
+            const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -160,6 +189,7 @@ class AskAgent {
                 body: JSON.stringify({
                     rating_type: ratingType,
                     session_id: sessionId,
+                    event_id: eventId,  // Include event ID for this specific message
                     message_context: content.substring(0, 500), // First 500 chars of the response
                     feedback_text: null
                 })
@@ -197,7 +227,6 @@ class AskAgent {
         const response = await window.authAPI.authenticatedFetch(url.toString());
         const data = await response.json();
 
-        // Don't overwrite the frontend session ID - keep using it
         return data;
     }
 

@@ -6,7 +6,6 @@ from fastapi import Request
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.context import ctx_request_id
 from src.app.models.database import get_db
 from src.app.models.user import ApiUsageLog, User, ApiResponseMetadata
 from src.app.auth.jwt_utils import verify_token
@@ -27,12 +26,6 @@ class RequestTimer:
         return response
 
 
-async def add_request_id(request: Request, call_next):
-    ctx_request_id.set(uuid.uuid4().hex)
-    response = await call_next(request)
-
-    response.headers["x-request-id"] = ctx_request_id.get()
-    return response
 
 
 class ApiUsageTracker:
@@ -50,7 +43,6 @@ class ApiUsageTracker:
     
     async def __call__(self, request: Request, call_next):
         start_time = time.time()
-        request_id = ctx_request_id.get()
         
         # Skip tracking for excluded paths
         if any(request.url.path.startswith(path) for path in self.excluded_paths):
@@ -119,6 +111,16 @@ class ApiUsageTracker:
         if request.query_params:
             query_params_data.update(dict(request.query_params))
         
+        # Extract session_id from query parameters (now passed from frontend)
+        if "session_id" in query_params_data:
+            session_id = query_params_data["session_id"]
+            logger.debug(f"Extracted session_id from query params: {session_id}")
+        else:
+            logger.debug(f"No session_id in query params. Available params: {list(query_params_data.keys())}")
+        
+        # Extract event_id from query parameters (for WebSocket event tracking)
+        event_id = query_params_data.get("event_id")
+        
         # Add POST body data for specific endpoints
         if request.method == "POST" and request_body:
             try:
@@ -160,7 +162,7 @@ class ApiUsageTracker:
                     user_id=user_id,
                     organisation_id=organisation_id,
                     session_id=session_id,
-                    request_id=request_id,
+                    event_id=event_id,
                     user_agent=user_agent,
                     ip_address=ip_address,
                     query_params=query_params,
