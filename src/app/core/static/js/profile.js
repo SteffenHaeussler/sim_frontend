@@ -32,6 +32,15 @@ class ProfileManager {
             this.closeProfileModal.addEventListener('click', () => this.hideProfileModal());
         }
         
+        // Click outside modal to close
+        if (this.profileModal) {
+            this.profileModal.addEventListener('click', (e) => {
+                if (e.target === this.profileModal) {
+                    this.hideProfileModal();
+                }
+            });
+        }
+        
         // Password toggle functionality
         if (this.toggleDeletePasswordBtn && this.deletePasswordInput) {
             this.toggleDeletePasswordBtn.addEventListener('click', () => {

@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,11 +12,12 @@ from src.app.models.database import Base
 class PasswordReset(Base):
     """
     Password reset request model
-    
+
     Stores temporary tokens for password reset functionality.
     Tokens expire after a configurable time period.
     """
-    __tablename__ = "password_resets"
+
+    __tablename__ = "password_reset"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(
@@ -39,19 +39,16 @@ class PasswordReset(Base):
 
     @classmethod
     def create_reset_token(
-        cls,
-        user_id: uuid.UUID,
-        token: str,
-        expiration_hours: int = 24
+        cls, user_id: uuid.UUID, token: str, expiration_hours: int = 24
     ) -> "PasswordReset":
         """
         Create a new password reset token
-        
+
         Args:
             user_id: User requesting password reset
             token: Secure random token
             expiration_hours: Hours until token expires (default 24)
-            
+
         Returns:
             PasswordReset: New password reset request
         """
@@ -59,7 +56,7 @@ class PasswordReset(Base):
             user_id=user_id,
             token=token,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=expiration_hours),
-            is_used=False
+            is_used=False,
         )
 
     @property
