@@ -1,6 +1,7 @@
 class AskAgent {
     constructor() {
         this.websocket = null;
+        this.messageEventIds = new Map();  // Store event IDs for each message
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -26,6 +27,14 @@ class AskAgent {
         }
     }
 
+    generateEventId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     updateStatus(message) {
         if (!this.questionInput) return;
 
@@ -49,6 +58,14 @@ class AskAgent {
 
         const messageDiv = document.createElement('div');
         messageDiv.className = isQuestion ? 'message question' : 'message';
+        
+        // Generate unique event ID for AI responses (not for user questions)
+        let eventId = null;
+        if (!isQuestion) {
+            eventId = this.generateEventId();
+            messageDiv.setAttribute('data-event-id', eventId);
+            this.messageEventIds.set(messageDiv, eventId);
+        }
 
         if (isImage) {
             const img = document.createElement('img');
@@ -125,7 +142,7 @@ class AskAgent {
         }
     }
 
-    rateMessage(content, rating, button, otherButton, actionsDiv) {
+    async rateMessage(content, rating, button, otherButton, actionsDiv) {
         console.log(`Message rated as: ${rating}`);
         console.log('Content:', content);
 
@@ -141,6 +158,55 @@ class AskAgent {
         // Hide the opposite button
         otherButton.style.display = 'none';
 
+        // Get the event ID for this specific message
+        const messageDiv = actionsDiv.closest('.message');
+        const eventId = messageDiv ? messageDiv.getAttribute('data-event-id') : null;
+
+        // Send rating to API
+        try {
+            const sessionId = window.app ? window.app.sessionId : '';
+            const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
+            
+            console.log('About to submit rating:', {
+                rating_type: ratingType,
+                session_id: sessionId,
+                message_context: content.substring(0, 100) + '...'
+            });
+            
+            const ratingsUrl = new URL('/ratings/submit', window.location.origin);
+            if (sessionId) {
+                ratingsUrl.searchParams.append('session_id', sessionId);
+            }
+            if (eventId) {
+                ratingsUrl.searchParams.append('event_id', eventId);
+            }
+            
+            const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rating_type: ratingType,
+                    session_id: sessionId,
+                    event_id: eventId,  // Include event ID for this specific message
+                    message_context: content.substring(0, 500), // First 500 chars of the response
+                    feedback_text: null
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Rating submitted successfully:', result);
+            } else {
+                console.error('Failed to submit rating:', response.status, response.statusText);
+                const errorBody = await response.text();
+                console.error('Error response body:', errorBody);
+            }
+        } catch (error) {
+            console.error('Error submitting rating:', error);
+        }
+
         // Add thank you message below the button row
         const thankYouMsg = document.createElement('div');
         thankYouMsg.className = 'thank-you-message';
@@ -152,14 +218,14 @@ class AskAgent {
         const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
+        
+        // Send the frontend session ID to the backend
+        if (window.app && window.app.sessionId) {
+            url.searchParams.append('session_id', window.app.sessionId);
+        }
 
         const response = await window.authAPI.authenticatedFetch(url.toString());
         const data = await response.json();
-
-        if (window.app) {
-            window.app.sessionId = data.session_id;
-            window.app.updateSessionId();
-        }
 
         return data;
     }
@@ -213,6 +279,7 @@ class AskAgent {
             }
         };
     }
+
 
     async handleSendMessage() {
         if (!this.questionInput || !this.sendButton) return;

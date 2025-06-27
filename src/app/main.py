@@ -8,31 +8,26 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
+from src.app.auth import auth_router
 from src.app.config import Config
 from src.app.core import router as core_router
 from src.app.logging import setup_logger
 from src.app.meta import tags_metadata
-from src.app.middleware import RequestTimer, add_request_id
-from src.app.models.database import init_database_engine, close_db
-from src.app.auth import auth_router
+from src.app.middleware import ApiUsageTracker, RequestTimer
+from src.app.models.database import close_db, init_database_engine
+from src.app.ratings import ratings_router
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
 
 load_dotenv(".env")
 
-# Debug: Check if email environment variables are loaded
-import os
-logger.info(f"Email config loaded - smtp_host: {os.getenv('smtp_host')}")
-logger.info(f"Email config loaded - sender_email: {os.getenv('sender_email')}")
-logger.info(f"Email config loaded - app_password: {'***' if os.getenv('app_password') else 'None'}")
-
 
 def load_lookup_assets() -> list:
     """Load lookup asset data from JSON file"""
     try:
         lookup_file = BASEDIR / "data" / "lookup_asset.json"
-        with open(lookup_file, 'r') as f:
+        with open(lookup_file, "r") as f:
             assets = json.load(f)
         logger.info(f"Loaded {len(assets)} lookup assets from {lookup_file}")
         return assets
@@ -57,12 +52,13 @@ def get_application(config: Dict) -> FastAPI:
     -------
     """
     request_timer = RequestTimer()
+    usage_tracker = ApiUsageTracker()
     application = FastAPI(openapi_tags=tags_metadata)
 
     application.state = config
     # Ensure VERSION is available at state level for backward compatibility
     application.state.VERSION = config.current_version
-    
+
     # Load lookup assets into application state
     application.state.lookup_assets = load_lookup_assets()
 
@@ -80,10 +76,11 @@ def get_application(config: Dict) -> FastAPI:
         logger.info("Application shutdown - database connection closed")
 
     application.middleware("http")(request_timer)
-    application.middleware("http")(add_request_id)
+    application.middleware("http")(usage_tracker)
 
     application.include_router(core_router.core, tags=["core"])
     application.include_router(auth_router, tags=["authentication"])
+    application.include_router(ratings_router, tags=["ratings"])
 
     # application.include_router(v1_router.v1, prefix="/v1", tags=["v1"])
 

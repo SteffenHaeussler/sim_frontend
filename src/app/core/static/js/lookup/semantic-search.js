@@ -1,6 +1,15 @@
 class SemanticSearch {
     constructor() {
         this.initialized = false;
+        this.currentEventId = null;  // Store current event ID for ratings
+    }
+
+    generateEventId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
 
     initialize() {
@@ -46,8 +55,21 @@ class SemanticSearch {
             // Show loading state
             this.showSemanticResults(null, 'Searching...', true);
 
+            // Generate event ID for this semantic search
+            this.currentEventId = this.generateEventId();
+
+            // Add event_id and session_id to URL parameters
+            const semanticUrl = new URL('/lookout/semantic', window.location.origin);
+            const sessionId = window.app ? window.app.sessionId : '';
+            if (sessionId) {
+                semanticUrl.searchParams.append('session_id', sessionId);
+            }
+            if (this.currentEventId) {
+                semanticUrl.searchParams.append('event_id', this.currentEventId);
+            }
+
             // Make semantic search API call
-            const response = await window.authAPI.authenticatedFetch('/lookout/semantic', {
+            const response = await window.authAPI.authenticatedFetch(semanticUrl.toString(), {
                 method: 'POST',
                 body: JSON.stringify({
                     query: query
@@ -199,7 +221,7 @@ class SemanticSearch {
         }
     }
 
-    rateSemanticResult(rating, button) {
+    async rateSemanticResult(rating, button) {
         console.log(`Semantic result rated as: ${rating}`);
 
         // Find the other button (thumbs up/down counterpart)
@@ -220,6 +242,59 @@ class SemanticSearch {
         // Hide the opposite button
         if (otherButton) {
             otherButton.style.display = 'none';
+        }
+
+        // Send rating to API
+        try {
+            const sessionId = window.app ? window.app.sessionId : '';
+            const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
+            
+            // Get the original search query from the input field
+            const searchQuery = this.semanticQuery ? this.semanticQuery.value.trim() : '';
+            
+            // Get the semantic result content for context and include both query and response
+            const resultContent = this.semanticResults.textContent.substring(0, 500);
+            const fullContext = `Query: "${searchQuery}" | Response: ${resultContent}`;
+            
+            console.log('About to submit semantic rating:', {
+                rating_type: ratingType,
+                session_id: sessionId,
+                message_context: fullContext.substring(0, 100) + '...'
+            });
+            
+            // Add event_id and session_id to URL parameters
+            const ratingsUrl = new URL('/ratings/submit', window.location.origin);
+            if (sessionId) {
+                ratingsUrl.searchParams.append('session_id', sessionId);
+            }
+            if (this.currentEventId) {
+                ratingsUrl.searchParams.append('event_id', this.currentEventId);
+            }
+
+            const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rating_type: ratingType,
+                    session_id: sessionId,
+                    event_id: this.currentEventId,  // Include event ID for linking
+                    message_context: fullContext,  // Include both query and API response
+                    feedback_text: null
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Semantic rating submitted successfully:', result);
+            } else {
+                console.error('Failed to submit semantic rating:', response.status, response.statusText);
+                const errorBody = await response.text();
+                console.error('Error response body:', errorBody);
+            }
+        } catch (error) {
+            console.error('Error submitting semantic rating:', error);
         }
 
         // Add thank you message below the rating buttons

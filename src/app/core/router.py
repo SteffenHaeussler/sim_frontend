@@ -89,10 +89,13 @@ async def reset_password_page(request: Request):
 
 
 @core.get("/agent")
-async def answer_question(question: str, token_data=Depends(verify_token_only)):
+async def answer_question(
+    question: str, session_id: str = None, token_data=Depends(verify_token_only)
+):
     """Handle question from frontend and trigger external agent API"""
-    # Generate session ID for this request
-    session_id = str(uuid.uuid4())
+    # Use frontend session ID if provided, otherwise generate one
+    if not session_id:
+        session_id = str(uuid.uuid4())
 
     # Get external API URL from environment
     api_url = os.getenv("agent_base", "") + os.getenv("agent_url", "")
@@ -123,7 +126,9 @@ async def answer_question(question: str, token_data=Depends(verify_token_only)):
 
 
 @core.get("/api/asset/{asset_id}")
-async def get_asset_info(asset_id: str, token_data=Depends(verify_token_only)):
+async def get_asset_info(
+    asset_id: str, session_id: str = None, token_data=Depends(verify_token_only)
+):
     """Get asset information by asset ID"""
     api_base = os.getenv("api_base", "")
     api_url = os.getenv("api_asset_url", "")
@@ -143,7 +148,9 @@ async def get_asset_info(asset_id: str, token_data=Depends(verify_token_only)):
 
 
 @core.get("/api/neighbor/{asset_id}")
-async def get_neighbor_assets(asset_id: str, token_data=Depends(verify_token_only)):
+async def get_neighbor_assets(
+    asset_id: str, session_id: str = None, token_data=Depends(verify_token_only)
+):
     """Get neighboring assets by asset ID"""
     api_base = os.getenv("api_base", "")
     api_url = os.getenv("api_neighbor_url", "")
@@ -163,7 +170,9 @@ async def get_neighbor_assets(asset_id: str, token_data=Depends(verify_token_onl
 
 
 @core.get("/api/name/{asset_id}")
-async def get_name_from_id(asset_id: str, token_data=Depends(verify_token_only)):
+async def get_name_from_id(
+    asset_id: str, session_id: str = None, token_data=Depends(verify_token_only)
+):
     """Get asset name from asset ID"""
     api_base = os.getenv("api_base", "")
     api_url = os.getenv("api_name_url", "")
@@ -182,7 +191,9 @@ async def get_name_from_id(asset_id: str, token_data=Depends(verify_token_only))
 
 
 @core.get("/api/id/{name}")
-async def get_id_from_name(name: str, token_data=Depends(verify_token_only)):
+async def get_id_from_name(
+    name: str, session_id: str = None, token_data=Depends(verify_token_only)
+):
     """Get asset ID from asset name"""
     api_base = os.getenv("api_base", "")
     api_url = os.getenv("api_id_url", "")
@@ -202,7 +213,9 @@ async def get_id_from_name(name: str, token_data=Depends(verify_token_only)):
 
 
 @core.get("/lookup/assets")
-async def get_lookup_assets(request: Request, token_data=Depends(verify_token_only)):
+async def get_lookup_assets(
+    request: Request, session_id: str = None, token_data=Depends(verify_token_only)
+):
     """Get all lookup assets from application state"""
     try:
         assets = request.app.state.lookup_assets
@@ -220,6 +233,7 @@ async def search_assets(
     type: str = None,
     page: int = 1,
     limit: int = 50,
+    session_id: str = None,
     token_data=Depends(verify_token_only),
 ):
     """Search and filter lookup assets with pagination"""
@@ -282,7 +296,11 @@ async def search_assets(
 
 
 @core.post("/lookout/semantic")
-async def semantic_search(request: SemanticRequest, token_data=Depends(verify_token_only)):
+async def semantic_search(
+    request: SemanticRequest,
+    session_id: str = None,
+    token_data=Depends(verify_token_only),
+):
     """
     Perform semantic search with embedding → search → ranking pipeline
     """
