@@ -39,7 +39,7 @@ class TestFrontendEndpoint:
 class TestAgentEndpoint:
     """Test agent question endpoint"""
     
-    def test_agent_question_success(self, client, mock_httpx_client):
+    def test_agent_question_success(self, client, mock_httpx_client, auth_headers):
         """Test successful agent question trigger"""
         mock_client, mock_sync_client = mock_httpx_client
         
@@ -48,16 +48,16 @@ class TestAgentEndpoint:
         mock_response.status_code = 200
         mock_sync_client.return_value.__enter__.return_value.get.return_value = mock_response
         
-        response = client.get("/agent?question=test question")
+        response = client.get("/agent?question=test question", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["status"] == "triggered"
         assert data["question"] == "test question"
         assert "session_id" in data
     
-    def test_agent_question_missing_param(self, client):
+    def test_agent_question_missing_param(self, client, auth_headers):
         """Test agent endpoint without question parameter"""
-        response = client.get("/agent")
+        response = client.get("/agent", headers=auth_headers)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
@@ -65,7 +65,7 @@ class TestAssetEndpoints:
     """Test asset-related API endpoints"""
     
     @pytest.mark.asyncio
-    async def test_get_asset_info_success(self, client, mock_httpx_client):
+    async def test_get_asset_info_success(self, client, mock_httpx_client, auth_headers):
         """Test successful asset info retrieval"""
         mock_client, _ = mock_httpx_client
         
@@ -76,13 +76,13 @@ class TestAssetEndpoints:
         
         mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
         
-        response = client.get("/api/asset/asset_001")
+        response = client.get("/api/asset/asset_001", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["id"] == "asset_001"
     
     @pytest.mark.asyncio
-    async def test_get_neighbor_assets(self, client, mock_httpx_client):
+    async def test_get_neighbor_assets(self, client, mock_httpx_client, auth_headers):
         """Test neighboring assets retrieval"""
         mock_client, _ = mock_httpx_client
         
@@ -92,13 +92,13 @@ class TestAssetEndpoints:
         
         mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
         
-        response = client.get("/api/neighbor/asset_001")
+        response = client.get("/api/neighbor/asset_001", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "neighbors" in data
     
     @pytest.mark.asyncio
-    async def test_get_name_from_id(self, client, mock_httpx_client):
+    async def test_get_name_from_id(self, client, mock_httpx_client, auth_headers):
         """Test asset name retrieval by ID"""
         mock_client, _ = mock_httpx_client
         
@@ -108,13 +108,13 @@ class TestAssetEndpoints:
         
         mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
         
-        response = client.get("/api/name/asset_001")
+        response = client.get("/api/name/asset_001", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["name"] == "Temperature Sensor 1"
     
     @pytest.mark.asyncio
-    async def test_get_id_from_name(self, client, mock_httpx_client):
+    async def test_get_id_from_name(self, client, mock_httpx_client, auth_headers):
         """Test asset ID retrieval by name"""
         mock_client, _ = mock_httpx_client
         
@@ -124,7 +124,7 @@ class TestAssetEndpoints:
         
         mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
         
-        response = client.get("/api/id/Temperature%20Sensor%201")
+        response = client.get("/api/id/Temperature%20Sensor%201", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["id"] == "asset_001"
@@ -133,9 +133,9 @@ class TestAssetEndpoints:
 class TestLookupEndpoints:
     """Test lookup endpoints using local asset data"""
     
-    def test_get_lookup_assets(self, client):
+    def test_get_lookup_assets(self, client, auth_headers):
         """Test retrieving all lookup assets"""
-        response = client.get("/lookup/assets")
+        response = client.get("/lookup/assets", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "assets" in data
@@ -143,25 +143,25 @@ class TestLookupEndpoints:
         assert data["count"] == 3
         assert len(data["assets"]) == 3
     
-    def test_search_assets_by_name(self, client):
+    def test_search_assets_by_name(self, client, auth_headers):
         """Test searching assets by name"""
-        response = client.get("/lookup/search?name=Temperature")
+        response = client.get("/lookup/search?name=Temperature", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total_count"] == 1
         assert data["assets"][0]["name"] == "Temperature Sensor 1"
     
-    def test_search_assets_by_type(self, client):
+    def test_search_assets_by_type(self, client, auth_headers):
         """Test searching assets by asset_type"""
-        response = client.get("/lookup/search?asset_type=sensor")
+        response = client.get("/lookup/search?asset_type=sensor", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total_count"] == 1
         assert data["assets"][0]["asset_type"] == "sensor"
     
-    def test_search_assets_pagination(self, client):
+    def test_search_assets_pagination(self, client, auth_headers):
         """Test asset search with pagination"""
-        response = client.get("/lookup/search?limit=2&page=1")
+        response = client.get("/lookup/search?limit=2&page=1", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["limit"] == 2
@@ -169,9 +169,9 @@ class TestLookupEndpoints:
         assert len(data["assets"]) == 2
         assert data["total_pages"] == 2
     
-    def test_search_assets_no_results(self, client):
+    def test_search_assets_no_results(self, client, auth_headers):
         """Test asset search with no matching results"""
-        response = client.get("/lookup/search?name=NonExistent")
+        response = client.get("/lookup/search?name=NonExistent", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total_count"] == 0
@@ -182,14 +182,14 @@ class TestErrorHandling:
     """Test error handling scenarios"""
     
     @pytest.mark.asyncio
-    async def test_external_api_failure(self, client, mock_httpx_client):
+    async def test_external_api_failure(self, client, mock_httpx_client, auth_headers):
         """Test handling of external API failures"""
         mock_client, _ = mock_httpx_client
         
         # Mock client to raise an exception
         mock_client.return_value.__aenter__.return_value.get.side_effect = Exception("API Error")
         
-        response = client.get("/api/asset/asset_001")
+        response = client.get("/api/asset/asset_001", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "error" in data
