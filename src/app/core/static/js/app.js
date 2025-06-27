@@ -8,6 +8,7 @@ class App {
         this.updateSessionId();
         this.setEnvVariables();
         this.initializeTheme();
+        this.initializeSidebar();
         this.checkInitialAuthState();
     }
 
@@ -74,6 +75,11 @@ class App {
         const savedTheme = localStorage.getItem('theme') || 'light';
         this.currentTheme = savedTheme;
         this.applyTheme(savedTheme);
+    }
+
+    initializeSidebar() {
+        // Set sidebar to expanded by default
+        this.iconBar.classList.add('expanded');
     }
 
     applyTheme(theme) {
@@ -164,7 +170,18 @@ class App {
         // Initialize the appropriate service module
         if (service === 'lookup-service') {
             if (window.lookupService) {
-                window.lookupService.handleNewSession();
+                // Initialize modules first
+                window.lookupService.assetSearch.initialize();
+                window.lookupService.assetInfo.initialize();
+                window.lookupService.neighborSearch.initialize();
+                window.lookupService.semanticSearch.initialize();
+                
+                // Reset to fresh state with data
+                window.lookupService.assetSearch.reset();
+                window.lookupService.assetInfo.reset();
+                window.lookupService.neighborSearch.reset();
+                window.lookupService.semanticSearch.reset();
+                
                 window.lookupService.updateSessionId();
             }
         } else {

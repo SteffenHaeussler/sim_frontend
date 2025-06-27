@@ -753,8 +753,11 @@ class AuthUI {
 
 
     checkAuthState() {
-        const isLoggedIn = window.authAPI.isLoggedIn();
-        this.updateAuthState(isLoggedIn);
+        // Add a small delay to ensure authAPI is fully initialized
+        setTimeout(() => {
+            const isLoggedIn = window.authAPI && window.authAPI.isLoggedIn();
+            this.updateAuthState(isLoggedIn);
+        }, 50);
     }
 }
 
