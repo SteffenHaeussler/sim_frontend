@@ -199,7 +199,7 @@ class SemanticSearch {
         }
     }
 
-    rateSemanticResult(rating, button) {
+    async rateSemanticResult(rating, button) {
         console.log(`Semantic result rated as: ${rating}`);
 
         // Find the other button (thumbs up/down counterpart)
@@ -220,6 +220,45 @@ class SemanticSearch {
         // Hide the opposite button
         if (otherButton) {
             otherButton.style.display = 'none';
+        }
+
+        // Send rating to API
+        try {
+            const sessionId = window.app ? window.app.sessionId : '';
+            const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
+            
+            // Get the semantic result content for context
+            const resultContent = this.semanticResults.textContent.substring(0, 500);
+            
+            console.log('About to submit semantic rating:', {
+                rating_type: ratingType,
+                session_id: sessionId,
+                message_context: resultContent.substring(0, 100) + '...'
+            });
+            
+            const response = await window.authAPI.authenticatedFetch('/ratings/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rating_type: ratingType,
+                    session_id: sessionId,
+                    message_context: resultContent,
+                    feedback_text: null
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Semantic rating submitted successfully:', result);
+            } else {
+                console.error('Failed to submit semantic rating:', response.status, response.statusText);
+                const errorBody = await response.text();
+                console.error('Error response body:', errorBody);
+            }
+        } catch (error) {
+            console.error('Error submitting semantic rating:', error);
         }
 
         // Add thank you message below the rating buttons

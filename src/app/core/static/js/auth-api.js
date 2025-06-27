@@ -240,6 +240,11 @@ class AuthAPI {
             ...options.headers
         };
 
+        // Add session ID header if available
+        if (window.app && window.app.sessionId) {
+            authHeaders['X-Session-ID'] = window.app.sessionId;
+        }
+
         return fetch(url, {
             ...options,
             headers: authHeaders

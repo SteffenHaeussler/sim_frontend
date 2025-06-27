@@ -59,7 +59,7 @@ class AuthManager {
                 body: JSON.stringify({
                     email: email,
                     password: password,
-                    remember_me: false
+                    remember_me: document.getElementById('remember-me')?.checked || false
                 })
             });
 
@@ -69,14 +69,20 @@ class AuthManager {
                 throw new Error(data.detail || 'Login failed');
             }
 
-            // Store tokens and user data
-            this.accessToken = data.tokens.access_token;
-            this.refreshToken = data.tokens.refresh_token;
-            this.user = data.user;
+            // Store tokens and user data (adapt to backend response structure)
+            this.accessToken = data.access_token;
+            this.refreshToken = null; // Backend doesn't use refresh tokens yet
+            this.user = {
+                email: data.user_email,
+                first_name: data.first_name,
+                last_name: data.last_name,
+                full_name: `${data.first_name} ${data.last_name}`.trim() || data.user_email,
+                is_active: data.is_active
+            };
             this.isAuthenticated = true;
 
             // Calculate token expiry
-            this.tokenExpiry = Date.now() + (data.tokens.expires_in * 1000);
+            this.tokenExpiry = Date.now() + (data.expires_in * 1000);
 
             // Store in localStorage
             this.storeTokens();
@@ -131,9 +137,8 @@ class AuthManager {
     }
 
     storeTokens() {
-        if (this.accessToken && this.refreshToken) {
+        if (this.accessToken) {
             localStorage.setItem('auth_access_token', this.accessToken);
-            localStorage.setItem('auth_refresh_token', this.refreshToken);
             localStorage.setItem('auth_token_expiry', this.tokenExpiry.toString());
             localStorage.setItem('auth_user', JSON.stringify(this.user));
         }
@@ -141,13 +146,11 @@ class AuthManager {
 
     loadStoredTokens() {
         const accessToken = localStorage.getItem('auth_access_token');
-        const refreshToken = localStorage.getItem('auth_refresh_token');
         const tokenExpiry = localStorage.getItem('auth_token_expiry');
         const userData = localStorage.getItem('auth_user');
 
-        if (accessToken && refreshToken && tokenExpiry && userData) {
+        if (accessToken && tokenExpiry && userData) {
             this.accessToken = accessToken;
-            this.refreshToken = refreshToken;
             this.tokenExpiry = parseInt(tokenExpiry);
             this.user = JSON.parse(userData);
 
@@ -170,7 +173,6 @@ class AuthManager {
         this.isAuthenticated = false;
 
         localStorage.removeItem('auth_access_token');
-        localStorage.removeItem('auth_refresh_token');
         localStorage.removeItem('auth_token_expiry');
         localStorage.removeItem('auth_user');
     }
@@ -178,18 +180,18 @@ class AuthManager {
     updateUI() {
         if (this.isAuthenticated && this.user) {
             // Show user info, hide login form
-            this.loginForm.style.display = 'none';
-            this.userInfo.style.display = 'block';
+            if (this.loginForm) this.loginForm.style.display = 'none';
+            if (this.userInfo) this.userInfo.style.display = 'block';
 
             // Update user details
-            this.userName.textContent = this.user.full_name || this.user.email;
-            this.userRole.textContent = this.user.role.display_name;
-            this.userOrg.textContent = this.user.organisation.display_name;
+            if (this.userName) this.userName.textContent = this.user.full_name || this.user.email;
+            if (this.userRole) this.userRole.textContent = this.user.is_active ? 'Active User' : 'Inactive User';
+            if (this.userOrg) this.userOrg.textContent = 'Organisation Member';
 
         } else {
             // Show login form, hide user info
-            this.loginForm.style.display = 'block';
-            this.userInfo.style.display = 'none';
+            if (this.loginForm) this.loginForm.style.display = 'block';
+            if (this.userInfo) this.userInfo.style.display = 'none';
         }
     }
 
@@ -235,46 +237,14 @@ class AuthManager {
         return Date.now() > (this.tokenExpiry - 5 * 60 * 1000); // 5 minutes before expiry
     }
 
-    // Refresh access token
+    // Check if token needs refresh - for future implementation
     async refreshAccessToken() {
-        if (!this.refreshToken) {
-            throw new Error('No refresh token available');
-        }
-
-        try {
-            const response = await fetch('/auth/refresh', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    refresh_token: this.refreshToken
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.detail || 'Token refresh failed');
-            }
-
-            // Update tokens
-            this.accessToken = data.access_token;
-            this.refreshToken = data.refresh_token;
-            this.tokenExpiry = Date.now() + (data.expires_in * 1000);
-
-            // Store updated tokens
-            this.storeTokens();
-
-            console.log('Token refreshed successfully');
-            return true;
-
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-            this.clearTokens();
-            this.updateUI();
-            return false;
-        }
+        // Backend doesn't support refresh tokens yet
+        // For now, just clear tokens and require re-login
+        console.log('Token expired, please log in again');
+        this.clearTokens();
+        this.updateUI();
+        return false;
     }
 
     // Make authenticated API request with automatic token refresh

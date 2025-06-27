@@ -89,10 +89,10 @@ async def reset_password_page(request: Request):
 
 
 @core.get("/agent")
-async def answer_question(question: str, token_data=Depends(verify_token_only)):
+async def answer_question(question: str, request: Request, token_data=Depends(verify_token_only)):
     """Handle question from frontend and trigger external agent API"""
-    # Generate session ID for this request
-    session_id = str(uuid.uuid4())
+    # Use session ID from frontend, or generate fallback
+    session_id = request.headers.get("x-session-id") or str(uuid.uuid4())
 
     # Get external API URL from environment
     api_url = os.getenv("agent_base", "") + os.getenv("agent_url", "")
@@ -120,6 +120,15 @@ async def answer_question(question: str, token_data=Depends(verify_token_only)):
     threading.Thread(target=send_request, daemon=True).start()
 
     return {"status": "triggered", "session_id": session_id, "question": question}
+
+
+@core.post("/agent/complete")
+async def complete_agent_session(request: Request, token_data=Depends(verify_token_only)):
+    """Record ask-agent completion"""
+    body = await request.json()
+    session_id = body.get("session_id", "")
+    logger.info(f"Ask-agent completed for session: {session_id}")
+    return {"status": "completed"}
 
 
 @core.get("/api/asset/{asset_id}")

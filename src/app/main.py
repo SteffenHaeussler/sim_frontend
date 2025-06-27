@@ -12,9 +12,10 @@ from src.app.config import Config
 from src.app.core import router as core_router
 from src.app.logging import setup_logger
 from src.app.meta import tags_metadata
-from src.app.middleware import RequestTimer, add_request_id
+from src.app.middleware import RequestTimer, add_request_id, ApiUsageTracker
 from src.app.models.database import init_database_engine, close_db
 from src.app.auth import auth_router
+from src.app.ratings import ratings_router
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
@@ -57,6 +58,7 @@ def get_application(config: Dict) -> FastAPI:
     -------
     """
     request_timer = RequestTimer()
+    usage_tracker = ApiUsageTracker()
     application = FastAPI(openapi_tags=tags_metadata)
 
     application.state = config
@@ -81,9 +83,11 @@ def get_application(config: Dict) -> FastAPI:
 
     application.middleware("http")(request_timer)
     application.middleware("http")(add_request_id)
+    application.middleware("http")(usage_tracker)
 
     application.include_router(core_router.core, tags=["core"])
     application.include_router(auth_router, tags=["authentication"])
+    application.include_router(ratings_router, tags=["ratings"])
 
     # application.include_router(v1_router.v1, prefix="/v1", tags=["v1"])
 

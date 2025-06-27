@@ -125,7 +125,7 @@ class AskAgent {
         }
     }
 
-    rateMessage(content, rating, button, otherButton, actionsDiv) {
+    async rateMessage(content, rating, button, otherButton, actionsDiv) {
         console.log(`Message rated as: ${rating}`);
         console.log('Content:', content);
 
@@ -140,6 +140,42 @@ class AskAgent {
 
         // Hide the opposite button
         otherButton.style.display = 'none';
+
+        // Send rating to API
+        try {
+            const sessionId = window.app ? window.app.sessionId : '';
+            const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
+            
+            console.log('About to submit rating:', {
+                rating_type: ratingType,
+                session_id: sessionId,
+                message_context: content.substring(0, 100) + '...'
+            });
+            
+            const response = await window.authAPI.authenticatedFetch('/ratings/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    rating_type: ratingType,
+                    session_id: sessionId,
+                    message_context: content.substring(0, 500), // First 500 chars of the response
+                    feedback_text: null
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Rating submitted successfully:', result);
+            } else {
+                console.error('Failed to submit rating:', response.status, response.statusText);
+                const errorBody = await response.text();
+                console.error('Error response body:', errorBody);
+            }
+        } catch (error) {
+            console.error('Error submitting rating:', error);
+        }
 
         // Add thank you message below the button row
         const thankYouMsg = document.createElement('div');
@@ -156,11 +192,7 @@ class AskAgent {
         const response = await window.authAPI.authenticatedFetch(url.toString());
         const data = await response.json();
 
-        if (window.app) {
-            window.app.sessionId = data.session_id;
-            window.app.updateSessionId();
-        }
-
+        // Keep using the frontend session ID - don't overwrite it
         return data;
     }
 
@@ -211,7 +243,26 @@ class AskAgent {
             if (this.sendButton) {
                 this.sendButton.disabled = false;
             }
+            
+            // Record completion
+            const sessionId = window.app ? window.app.sessionId : '';
+            if (sessionId) {
+                this.recordCompletion(sessionId);
+            }
         };
+    }
+
+    async recordCompletion(sessionId) {
+        try {
+            await window.authAPI.authenticatedFetch('/agent/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sessionId })
+            });
+            console.log('Ask-agent completion recorded');
+        } catch (error) {
+            console.error('Failed to record completion:', error);
+        }
     }
 
     async handleSendMessage() {
