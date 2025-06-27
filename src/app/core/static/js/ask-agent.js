@@ -188,11 +188,16 @@ class AskAgent {
         const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
+        
+        // Send the frontend session ID to the backend
+        if (window.app && window.app.sessionId) {
+            url.searchParams.append('session_id', window.app.sessionId);
+        }
 
         const response = await window.authAPI.authenticatedFetch(url.toString());
         const data = await response.json();
 
-        // Keep using the frontend session ID - don't overwrite it
+        // Don't overwrite the frontend session ID - keep using it
         return data;
     }
 
@@ -243,27 +248,9 @@ class AskAgent {
             if (this.sendButton) {
                 this.sendButton.disabled = false;
             }
-            
-            // Record completion
-            const sessionId = window.app ? window.app.sessionId : '';
-            if (sessionId) {
-                this.recordCompletion(sessionId);
-            }
         };
     }
 
-    async recordCompletion(sessionId) {
-        try {
-            await window.authAPI.authenticatedFetch('/agent/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ session_id: sessionId })
-            });
-            console.log('Ask-agent completion recorded');
-        } catch (error) {
-            console.error('Failed to record completion:', error);
-        }
-    }
 
     async handleSendMessage() {
         if (!this.questionInput || !this.sendButton) return;

@@ -59,8 +59,7 @@ class ApiUsageTracker:
         # Extract request metadata
         user_agent = request.headers.get("user-agent", "")
         ip_address = self._get_client_ip(request)
-        # Extract session_id from frontend (passed via header)
-        session_id = request.headers.get("x-session-id")
+        session_id = None
         
         # Extract authentication info
         user_id = None
