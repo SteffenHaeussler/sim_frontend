@@ -111,3 +111,24 @@ def mock_httpx_client():
     with patch('httpx.AsyncClient') as mock_client, \
          patch('httpx.Client') as mock_sync_client:
         yield mock_client, mock_sync_client
+
+
+@pytest.fixture
+def mock_auth_token():
+    """Mock authentication token for testing"""
+    from src.app.auth.jwt_utils import TokenData
+    
+    # Mock the verify_token function to return valid token data
+    mock_token_data = TokenData(
+        user_id="test-user-123",
+        email="test@example.com"
+    )
+    
+    with patch('src.app.auth.dependencies.verify_token', return_value=mock_token_data):
+        yield "mock-jwt-token"
+
+
+@pytest.fixture
+def auth_headers(mock_auth_token):
+    """Create authorization headers for testing"""
+    return {"Authorization": f"Bearer {mock_auth_token}"}
