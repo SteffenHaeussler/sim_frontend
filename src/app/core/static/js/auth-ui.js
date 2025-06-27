@@ -734,6 +734,9 @@ class AuthUI {
             // Always update UI and clear session data
             this.updateAuthState(false);
             this.clearAllSessionData();
+            
+            // Redirect to landing page
+            window.location.href = '/';
         }
     }
     
