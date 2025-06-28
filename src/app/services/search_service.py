@@ -1,18 +1,18 @@
-from typing import Dict, Any
+from typing import Any, Dict
 
 import httpx
 from loguru import logger
 
+from src.app.config import config_service
 from src.app.core.schema import SemanticRequest
-from src.app.services.config_service import config_service
 
 
 class SearchService:
     """Service for handling semantic search operations"""
-    
+
     def __init__(self):
         self.config = config_service
-    
+
     async def perform_semantic_search(self, request: SemanticRequest) -> Dict[str, Any]:
         """
         Perform semantic search with embedding → search → ranking pipeline
@@ -22,18 +22,20 @@ class SearchService:
             return {"error": "Semantic service not configured", "step": "config"}
 
         logger.info(f"Starting semantic search for query: {request.query}")
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 # Step 1: Get embedding for the query
                 embedding_data = await self._get_embedding(client, request.query)
-                
+
                 # Step 2: Perform search using embedding
                 search_data = await self._perform_search(client, embedding_data)
-                
+
                 # Step 3: Rank the search results
-                ranked_result = await self._rank_results(client, request.query, search_data)
-                
+                ranked_result = await self._rank_results(
+                    client, request.query, search_data
+                )
+
                 return ranked_result
 
         except httpx.HTTPStatusError as e:
@@ -51,10 +53,13 @@ class SearchService:
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
             return {"error": str(e), "step": "unknown"}
-    
-    async def _get_embedding(self, client: httpx.AsyncClient, query: str) -> Dict[str, Any]:
+
+    async def _get_embedding(
+        self, client: httpx.AsyncClient, query: str
+    ) -> Dict[str, Any]:
         """Get embedding for the query"""
-        embedding_endpoint = self.config.get_semantic_api_url('embedding')
+        embedding_endpoint = self.config.get_semantic_api_url("embedding")
+
         logger.info(f"Step 1: Getting embedding from {embedding_endpoint}")
 
         emb_response = await client.get(
@@ -65,10 +70,12 @@ class SearchService:
 
         logger.info("Step 1: Embedding completed successfully")
         return embedding_data
-    
-    async def _perform_search(self, client: httpx.AsyncClient, embedding_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _perform_search(
+        self, client: httpx.AsyncClient, embedding_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Perform search using embedding"""
-        search_endpoint = self.config.get_semantic_api_url('search')
+        search_endpoint = self.config.get_semantic_api_url("search")
         logger.info(f"Step 2: Performing search at {search_endpoint}")
 
         search_payload = {
@@ -87,10 +94,12 @@ class SearchService:
             f"Step 2: Search completed, found {len(search_data.get('results', []))} results"
         )
         return search_data
-    
-    async def _rank_results(self, client: httpx.AsyncClient, query: str, search_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    async def _rank_results(
+        self, client: httpx.AsyncClient, query: str, search_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Rank the search results"""
-        rank_endpoint = self.config.get_semantic_api_url('ranking')
+        rank_endpoint = self.config.get_semantic_api_url("ranking")
         logger.info(f"Step 3: Ranking results at {rank_endpoint}")
 
         candidates = []

@@ -1,13 +1,12 @@
 import json
 import os
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.config import Config
+from src.app.config import ConfigService, get_config_service
 from src.app.main import get_application
 
 
@@ -30,40 +29,46 @@ def mock_env():
 
 @pytest.fixture
 def test_config():
-    """Create test configuration"""
-    config_data = {
+    """Create test configuration with mocked environment variables"""
+    test_env_vars = {
         "FASTAPI_ENV": "TEST",
         "VERSION": "0.1.0-test",
-        "TEST": {
-            "CONFIG_NAME": "TEST",
-            "DEBUG": True
-        },
-        "DEV": {
-            "CONFIG_NAME": "DEV", 
-            "DEBUG": True
-        },
-        "PROD": {
-            "CONFIG_NAME": "PROD",
-            "DEBUG": False
-        },
-        "STAGE": {
-            "CONFIG_NAME": "STAGE",
-            "DEBUG": False
-        }
+        "DEBUG": "true",
+        "CONFIG_NAME": "TEST",
+        "JWT_SECRET_KEY": "test-secret-key",
+        "JWT_ALGORITHM": "HS256",
+        "JWT_EXPIRATION_HOURS": "24",
+        "DB_USER": "test_user",
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_NAME": "test_db",
+        "PGPASSWORD": "test_password",
+        "agent_ws_base": "ws://test.example.com",
+        "agent_url": "/test/agent",
+        "agent_base": "http://test.example.com",
+        "api_base": "http://api.test.com",
+        "api_asset_url": "/assets",
+        "api_neighbor_url": "/neighbors",
+        "api_name_url": "/names",
+        "api_id_url": "/ids",
+        "semantic_base": "http://semantic.test.com",
+        "semantic_emb_url": "/embedding",
+        "semantic_search_url": "/search",
+        "semantic_rank_url": "/ranking",
+        "semantic_table": "test_table",
+        "smtp_host": "smtp.test.com",
+        "smtp_port": "587",
+        "sender_email": "test@example.com",
+        "app_password": "test-password",
+        "organisation_name": "Test Organization"
     }
     
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
-        import toml
-        toml.dump(config_data, f)
-        config_file = f.name
-    
-    # Mock the config file path
-    with patch.object(Config, '_toml_file', config_file):
-        config = Config()
+    with patch.dict(os.environ, test_env_vars):
+        # Reset the global config service
+        import src.app.config
+        src.app.config._config_service = None
+        config = ConfigService()
         yield config
-    
-    # Cleanup
-    os.unlink(config_file)
 
 
 @pytest.fixture
@@ -92,10 +97,13 @@ def mock_lookup_assets():
 
 
 @pytest.fixture
-def app(test_config, mock_lookup_assets, mock_env):
+def app(test_config, mock_lookup_assets):
     """Create FastAPI test application"""
     with patch('src.app.main.load_lookup_assets', return_value=mock_lookup_assets):
-        application = get_application(test_config)
+        # Set the global config for the application to use
+        import src.app.config
+        src.app.config._config_service = test_config
+        application = get_application()
         yield application
 
 

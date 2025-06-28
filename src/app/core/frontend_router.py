@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from src.app.services.config_service import config_service
+from src.app.config import config_service
 
 BASEDIR = Path(__file__).resolve().parent
 

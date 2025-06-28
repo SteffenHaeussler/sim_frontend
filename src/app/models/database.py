@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 
-from src.app.config import get_config
+from src.app.config import config_service
 
 # Create declarative base
 Base = declarative_base()
@@ -17,8 +17,8 @@ AsyncSessionLocal = None
 @lru_cache()
 def get_database_url() -> str:
     """Get database URL from config"""
-    config = get_config()
-    return config.api_mode.database_url
+    config = config_service.get_database()
+    return config.get("database_url")
 
 
 def init_database_engine():

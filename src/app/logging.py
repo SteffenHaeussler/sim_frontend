@@ -4,12 +4,12 @@ import sys
 
 from loguru import logger
 
-from src.app.context import ctx_request_id
+from src.app.context import ctx_session_id
 
 
-def request_id_filter(record):
-    record["request_id"] = ctx_request_id.get()
-    return record["request_id"]
+def session_id_filter(record):
+    record["session_id"] = ctx_session_id.get()
+    return record["session_id"]
 
 
 class InterceptHandler(logging.Handler):
@@ -42,7 +42,7 @@ def sink_serializer(message):
         "level": record["level"].name,
         "message": record["message"],
         "timestamp": record["time"].timestamp(),
-        "request_id": record["request_id"],
+        "session_id": record["session_id"],
     }
     serialized = json.dumps(simplified)
     print(serialized, file=sys.stdout)
@@ -72,13 +72,13 @@ def setup_logger(config_name, json_serialize=True):
                 {
                     "sink": sink_serializer,
                     "level": service_log_level,
-                    "filter": request_id_filter,
+                    "filter": session_id_filter,
                 }
             ]
         )
 
     else:
-        fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <red> {request_id} </red> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+        fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <red> {session_id} </red> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 
         logger.configure(
             handlers=[
@@ -86,7 +86,7 @@ def setup_logger(config_name, json_serialize=True):
                     "sink": sys.stdout,
                     "level": service_log_level,
                     "format": fmt,
-                    "filter": request_id_filter,
+                    "filter": session_id_filter,
                 }
             ]
         )

@@ -5,7 +5,7 @@ from typing import Optional
 
 from loguru import logger
 
-from src.app.services.config_service import config_service
+from src.app.config import config_service
 
 
 class EmailService:
