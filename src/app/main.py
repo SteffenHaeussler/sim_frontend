@@ -4,6 +4,10 @@ from pathlib import Path
 from typing import Dict
 
 from dotenv import load_dotenv
+
+# Load environment variables FIRST, before any imports that use them
+load_dotenv(".env")
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
@@ -19,8 +23,6 @@ from src.app.ratings import ratings_router
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
-
-load_dotenv(".env")
 
 
 def load_lookup_assets() -> list:

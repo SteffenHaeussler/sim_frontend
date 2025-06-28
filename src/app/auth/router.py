@@ -7,9 +7,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.auth.dependencies import require_active_user, require_auth
-from src.app.auth.email_service import EmailService
 from src.app.auth.jwt_utils import create_access_token
 from src.app.auth.password import hash_password, verify_password
+from src.app.services.email_service import EmailService
 from src.app.auth.schemas import (
     AuthResponse,
     DeleteAccountRequest,
@@ -26,9 +26,12 @@ from src.app.auth.schemas import (
 from src.app.config import get_config
 from src.app.models.database import get_db
 from src.app.models.password_reset import PasswordReset
-from src.app.models.user import Organisation, User
+from src.app.models.user import User
+from src.app.models.organisation import Organisation
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+
+
 
 
 @router.post("/register", response_model=AuthResponse)
@@ -300,6 +303,18 @@ async def delete_account(
     if not verify_password(delete_data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
     
+    # Delete related records first to avoid foreign key constraint violations
+    from src.app.models.tracking import UserResponseRating
+    
+    # Delete user's response ratings first
+    stmt = select(UserResponseRating).where(UserResponseRating.user_id == user.id)
+    result = await db.execute(stmt)
+    user_ratings = result.scalars().all()
+    
+    for rating in user_ratings:
+        await db.delete(rating)
+    
+    # Now delete the user
     await db.delete(user)
     await db.commit()
     logger.info(f"Account deleted for user {user.email}")

@@ -84,9 +84,7 @@ class TestFrontendTemplateContext:
         
     def test_frontend_includes_organisation_name(self, client):
         """Test that frontend template includes organisation name"""
-        with patch('os.getenv') as mock_getenv:
-            mock_getenv.return_value = "Test Organization"
-            
+        with patch('src.app.services.config_service.config_service.organisation_name', "Test Organization"):
             response = client.get("/")
             assert response.status_code == status.HTTP_200_OK
             
@@ -105,9 +103,7 @@ class TestResetPasswordPage:
         
     def test_reset_password_page_includes_organisation_name(self, client):
         """Test that reset password page includes organisation name"""
-        with patch('os.getenv') as mock_getenv:
-            mock_getenv.return_value = "Test Company"
-            
+        with patch('src.app.services.config_service.config_service.organisation_name', "Test Company"):
             response = client.get("/reset-password")
             assert response.status_code == status.HTTP_200_OK
             
