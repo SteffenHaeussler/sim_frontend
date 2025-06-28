@@ -32,10 +32,10 @@ class ConfigService:
         self.jwt_secret_key = self._get_required("JWT_SECRET_KEY")
         self.jwt_algorithm = self._get_required("JWT_ALGORITHM")
         self.jwt_expiration_hours = int(self._get_required("JWT_EXPIRATION_HOURS"))
-        self.JWT_ACCESS_EXPIRATION_MINUTES = int(
+        self.jwt_access_expiration_minutes = int(
             self._get_required("JWT_ACCESS_EXPIRATION_MINUTES")
         )
-        self.JWT_REFRESH_EXPIRATION_DAYS = int(
+        self.jwt_access_expiration_minutes = int(
             self._get_required("JWT_REFRESH_EXPIRATION_DAYS")
         )
 
