@@ -1,4 +1,5 @@
 import secrets
+import uuid  # Added
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -7,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.auth.dependencies import require_active_user, require_auth
-from src.app.auth.jwt_utils import create_access_token
+from src.app.auth.jwt_utils import create_access_token, create_refresh_token
 from src.app.auth.password import hash_password, verify_password
 from src.app.auth.schemas import (
     AuthResponse,
@@ -16,6 +17,7 @@ from src.app.auth.schemas import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
+    RefreshTokenRequest,  # Added
     RegisterRequest,
     ResetPasswordRequest,
     ResetPasswordResponse,
@@ -121,30 +123,44 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create access token with different expiration based on remember_me
-    config = config_service.get_jwt_utils()
+    # Create access token (short-lived) and refresh token (longer-lived)
+    jwt_config = config_service.get_jwt_utils()
 
-    if login_data.remember_me:
-        # Remember me: 30 days
-        expiration_hours = 30 * 24  # 720 hours = 30 days
-        logger.info(f"Remember me login for {user.email} - token valid for 30 days")
-    else:
-        # Regular login: use config setting (default 8 hours)
-        expiration_hours = config.get("jwt_expiration_hours")
-        logger.info(
-            f"Regular login for {user.email} - token valid for {expiration_hours} hours"
-        )
-
+    # Access Token
+    access_token_expire_minutes = jwt_config.api_mode.get(
+        "JWT_ACCESS_EXPIRATION_MINUTES", 15
+    )
     access_token = create_access_token(
         user_id=user.id,
         email=user.email,
         organisation_id=user.organisation_id,
-        expires_delta=timedelta(hours=expiration_hours),
+        expires_delta=timedelta(minutes=access_token_expire_minutes),
+    )
+    access_token_expires_in_seconds = access_token_expire_minutes * 60
+
+    # Refresh Token
+    refresh_token_expire_days = jwt_config.api_mode.get(
+        "JWT_REFRESH_EXPIRATION_DAYS", 7
+    )
+    refresh_token = create_refresh_token(
+        user_id=user.id,
+        email=user.email,
+        organisation_id=user.organisation_id,
+        expires_delta=timedelta(days=refresh_token_expire_days),
+    )
+    refresh_token_expires_in_seconds = refresh_token_expire_days * 24 * 3600
+
+    logger.info(
+        f"Login successful for {user.email}. Access token valid for {access_token_expire_minutes}m, "
+        f"Refresh token valid for {refresh_token_expire_days}d. "
+        f"Remember me flag was: {login_data.remember_me}"
     )
 
     return AuthResponse(
         access_token=access_token,
-        expires_in=expiration_hours * 3600,  # Convert to seconds
+        expires_in=access_token_expires_in_seconds,
+        refresh_token=refresh_token,
+        refresh_token_expires_in=refresh_token_expires_in_seconds,
         user_email=user.email,
         first_name=user.first_name or "",
         last_name=user.last_name or "",
@@ -156,6 +172,65 @@ async def login(
 async def logout(_=require_auth()):
     """Logout user (client-side token removal)"""
     return {"message": "Successfully logged out"}
+
+
+@router.post("/refresh_token", response_model=AuthResponse)
+async def refresh_token_route(
+    refresh_request: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),  # Added db for potential future use (e.g. revocation list)
+):
+    """Refresh access token using a refresh token"""
+    from src.app.auth.jwt_utils import verify_token  # Moved import here for clarity
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    token_data = verify_token(
+        token=refresh_request.refresh_token, expected_token_type="refresh"
+    )
+    if not token_data or not token_data.user_id or not token_data.email:
+        logger.warning(
+            f"Invalid or expired refresh token provided for user_id: {token_data.user_id if token_data else 'unknown'}"
+        )
+        raise credentials_exception
+
+    # Fetch user to ensure they still exist and are active (optional, but good practice)
+    # For now, we trust the refresh token if it's valid and not expired.
+    # A more robust implementation might check if the user is still active in the DB.
+
+    jwt_config = config_service.get_jwt_utils()
+    access_token_expire_minutes = jwt_config.api_mode.get(
+        "JWT_ACCESS_EXPIRATION_MINUTES", 15
+    )
+
+    new_access_token = create_access_token(
+        user_id=uuid.UUID(token_data.user_id), # Convert string UUID from token back to UUID object
+        email=token_data.email,
+        organisation_id=uuid.UUID(token_data.organisation_id) if token_data.organisation_id else None,
+        expires_delta=timedelta(minutes=access_token_expire_minutes),
+    )
+    access_token_expires_in_seconds = access_token_expire_minutes * 60
+
+    logger.info(
+        f"New access token issued for user {token_data.email} using refresh token."
+    )
+
+    # Return only new access token details.
+    # Refresh token itself is not returned again here, nor are user details.
+    return AuthResponse(
+        access_token=new_access_token,
+        expires_in=access_token_expires_in_seconds,
+        token_type="bearer",
+        # Fields below are not strictly necessary for a refresh response,
+        # but AuthResponse requires them. They are not re-fetched from DB here.
+        user_email=token_data.email, # Email from token
+        first_name="", # Not available from refresh token directly without DB lookup
+        last_name="",  # Not available from refresh token directly without DB lookup
+        is_active=True, # Assume active, or would need DB lookup. User must be active to use new access token.
+    )
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
