@@ -1,6 +1,6 @@
+import os
 from pathlib import Path
 from typing import Tuple, Type
-import os
 
 from pydantic import BaseModel, Field
 from pydantic_settings import (
@@ -15,26 +15,26 @@ class Deployment(BaseModel):
     CONFIG_NAME: str
     DEBUG: bool
     VERSION: str = "0.1.0"
-    
+
     # Authentication settings
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_HOURS: int = 8
     JWT_REFRESH_EXPIRATION_DAYS: int = 7
     SESSION_TIMEOUT_MINUTES: int = 15
-    
+
     # Database settings
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_NAME: str = "organisation"
     DB_USER: str = "postgres"
-    
+
     @property
     def database_url(self) -> str:
         """Get database URL with password from environment"""
         db_password = os.getenv("PGPASSWORD", "")
         return f"postgresql+asyncpg://{self.DB_USER}:{db_password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-    
+
     @property
     def sync_database_url(self) -> str:
         """Get synchronous database URL for migrations"""
@@ -76,13 +76,17 @@ class Config(BaseSettings):
     @property
     def api_mode(self) -> Deployment:
         return dict(self).get(self.FASTAPI_ENV)
-    
-    @property 
+
+    @property
     def current_version(self) -> str:
-        return self.api_mode.VERSION if hasattr(self.api_mode, 'VERSION') else self.VERSION
+        return (
+            self.api_mode.VERSION if hasattr(self.api_mode, "VERSION") else self.VERSION
+        )
+
 
 # Global config instance
 _config = None
+
 
 def get_config() -> Config:
     """Get the global config instance"""

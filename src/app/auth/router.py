@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.app.auth.dependencies import require_active_user, require_auth
 from src.app.auth.jwt_utils import create_access_token
 from src.app.auth.password import hash_password, verify_password
-from src.app.services.email_service import EmailService
 from src.app.auth.schemas import (
     AuthResponse,
     DeleteAccountRequest,
@@ -25,13 +24,12 @@ from src.app.auth.schemas import (
 )
 from src.app.config import get_config
 from src.app.models.database import get_db
+from src.app.models.organisation import Organisation
 from src.app.models.password_reset import PasswordReset
 from src.app.models.user import User
-from src.app.models.organisation import Organisation
+from src.app.services.email_service import EmailService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
-
-
 
 
 @router.post("/register", response_model=AuthResponse)
@@ -91,6 +89,7 @@ async def register(
     access_token = create_access_token(
         user_id=new_user.id,
         email=new_user.email,
+        organisation_id=new_user.organisation_id,
         expires_delta=timedelta(hours=config.api_mode.JWT_EXPIRATION_HOURS),
     )
 
@@ -124,7 +123,7 @@ async def login(
 
     # Create access token with different expiration based on remember_me
     config = get_config()
-    
+
     if login_data.remember_me:
         # Remember me: 30 days
         expiration_hours = 30 * 24  # 720 hours = 30 days
@@ -132,11 +131,14 @@ async def login(
     else:
         # Regular login: use config setting (default 8 hours)
         expiration_hours = config.api_mode.JWT_EXPIRATION_HOURS
-        logger.info(f"Regular login for {user.email} - token valid for {expiration_hours} hours")
-    
+        logger.info(
+            f"Regular login for {user.email} - token valid for {expiration_hours} hours"
+        )
+
     access_token = create_access_token(
         user_id=user.id,
         email=user.email,
+        organisation_id=user.organisation_id,
         expires_delta=timedelta(hours=expiration_hours),
     )
 
@@ -164,7 +166,7 @@ async def forgot_password(
 ):
     """
     Request password reset
-    
+
     Sends a password reset email if the user exists.
     Always returns success to prevent email enumeration attacks.
     """
@@ -172,41 +174,39 @@ async def forgot_password(
     stmt = select(User).where(User.email == forgot_request.email)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
-    
+
     if user:
         # Generate secure random token
         reset_token = secrets.token_urlsafe(32)
-        
+
         # Create password reset record
         password_reset = PasswordReset.create_reset_token(
-            user_id=user.id,
-            token=reset_token,
-            expiration_hours=24
+            user_id=user.id, token=reset_token, expiration_hours=24
         )
-        
+
         db.add(password_reset)
         await db.commit()
-        
+
         # Get base URL for reset link
-        base_url = str(request.base_url).rstrip('/')
-        
+        base_url = str(request.base_url).rstrip("/")
+
         # Send password reset email - create service instance here to get current env vars
         email_service = EmailService()
         logger.info(f"Email service configured: {email_service.is_configured}")
         logger.info(f"SMTP server: {email_service.smtp_server}")
         logger.info(f"SMTP username: {email_service.smtp_username}")
-        
+
         await email_service.send_password_reset_email(
             to_email=user.email,
             reset_token=reset_token,
             base_url=base_url,
-            user_name=user.first_name or user.email.split("@")[0]
+            user_name=user.first_name or user.email.split("@")[0],
         )
-    
+
     # Always return success to prevent email enumeration
     return ForgotPasswordResponse(
         message="If an account with that email exists, a password reset link has been sent.",
-        email=forgot_request.email
+        email=forgot_request.email,
     )
 
 
@@ -219,51 +219,49 @@ async def reset_password(
     Reset password using valid token
     """
     # Find the password reset request
-    stmt = select(PasswordReset).where(
-        PasswordReset.token == reset_request.token
-    )
+    stmt = select(PasswordReset).where(PasswordReset.token == reset_request.token)
     result = await db.execute(stmt)
     password_reset = result.scalar_one_or_none()
-    
+
     if not password_reset or not password_reset.is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token"
+            detail="Invalid or expired reset token",
         )
-    
+
     # Get the user
     user_stmt = select(User).where(User.id == password_reset.user_id)
     user_result = await db.execute(user_stmt)
     user = user_result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User not found"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
         )
-    
+
     # Update user's password
     user.password_hash = hash_password(reset_request.new_password)
-    
+
     # Mark the reset token as used
     password_reset.mark_as_used()
-    
+
     # Commit changes
     await db.commit()
-    
-    return ResetPasswordResponse(
-        message="Password has been reset successfully"
-    )
+
+    return ResetPasswordResponse(message="Password has been reset successfully")
 
 
 async def _get_user_by_token(token_data, db: AsyncSession) -> User:
     """Helper function to get user from token data"""
     import uuid
+
     stmt = select(User).where(User.id == uuid.UUID(token_data.user_id))
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     return user
 
 
@@ -275,19 +273,19 @@ async def update_profile(
 ):
     """Update user profile (first name and last name)"""
     user = await _get_user_by_token(token_data, db)
-    
+
     user.first_name = profile_data.first_name.strip()
     user.last_name = profile_data.last_name.strip()
-    
+
     await db.commit()
     await db.refresh(user)
     logger.info(f"Profile updated for user {user.email}")
-    
+
     return UpdateProfileResponse(
         message="Profile updated successfully",
         user_email=user.email,
         first_name=user.first_name,
-        last_name=user.last_name
+        last_name=user.last_name,
     )
 
 
@@ -299,24 +297,26 @@ async def delete_account(
 ):
     """Delete user account (requires password confirmation)"""
     user = await _get_user_by_token(token_data, db)
-    
+
     if not verify_password(delete_data.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
-    
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password"
+        )
+
     # Delete related records first to avoid foreign key constraint violations
     from src.app.models.tracking import UserResponseRating
-    
+
     # Delete user's response ratings first
     stmt = select(UserResponseRating).where(UserResponseRating.user_id == user.id)
     result = await db.execute(stmt)
     user_ratings = result.scalars().all()
-    
+
     for rating in user_ratings:
         await db.delete(rating)
-    
+
     # Now delete the user
     await db.delete(user)
     await db.commit()
     logger.info(f"Account deleted for user {user.email}")
-    
+
     return DeleteAccountResponse(message="Account deleted successfully")

@@ -26,7 +26,14 @@ class AssetService:
 
         logger.info(f"Received question: {question}")
         logger.info(f"Session ID: {session_id}")
+        logger.info(f"Config agent_base: {self.config.agent_base}")
+        logger.info(f"Config agent_url: {self.config.agent_url}")
         logger.info(f"Forwarding to: {api_url}")
+        
+        # Don't make the request if URL is empty/invalid
+        if not api_url or api_url == "":
+            logger.error("Agent API URL is empty - check AGENT_BASE and AGENT_URL configuration")
+            return {"status": "error", "message": "Agent API not configured", "session_id": session_id}
 
         def send_request():
             try:

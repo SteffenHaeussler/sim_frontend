@@ -11,12 +11,14 @@ from src.app.config import get_config
 class TokenData(BaseModel):
     user_id: Optional[str] = None
     email: Optional[str] = None
+    organisation_id: Optional[str] = None
     token_type: Optional[str] = None  # "access"
 
 
 def create_access_token(
     user_id: uuid.UUID,
     email: str,
+    organisation_id: Optional[uuid.UUID] = None,
     expires_delta: Optional[timedelta] = None,
 ) -> str:
     """
@@ -25,6 +27,7 @@ def create_access_token(
     Args:
         user_id: User UUID
         email: User email
+        organisation_id: User's organisation UUID
         expires_delta: Custom expiration time
 
     Returns:
@@ -47,6 +50,10 @@ def create_access_token(
         "iat": datetime.now(timezone.utc),
         "jti": str(uuid.uuid4()),  # JWT ID for token tracking
     }
+
+    # Add organisation_id if provided
+    if organisation_id:
+        to_encode["org_id"] = str(organisation_id)
 
     encoded_jwt = jwt.encode(
         to_encode,
@@ -81,6 +88,7 @@ def verify_token(token: str) -> Optional[TokenData]:
         token_data = TokenData(
             user_id=user_id,
             email=payload.get("email"),
+            organisation_id=payload.get("org_id"),
             token_type=payload.get("token_type", "access"),
         )
         return token_data
