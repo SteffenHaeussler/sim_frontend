@@ -32,6 +32,12 @@ class ConfigService:
         self.jwt_secret_key = self._get_required("JWT_SECRET_KEY")
         self.jwt_algorithm = self._get_required("JWT_ALGORITHM")
         self.jwt_expiration_hours = int(self._get_required("JWT_EXPIRATION_HOURS"))
+        self.JWT_ACCESS_EXPIRATION_MINUTES = int(
+            self._get_required("JWT_ACCESS_EXPIRATION_MINUTES")
+        )
+        self.JWT_REFRESH_EXPIRATION_DAYS = int(
+            self._get_required("JWT_REFRESH_EXPIRATION_DAYS")
+        )
 
         # Postgres DB Configuration
         self.db_user = self._get_required("DB_USER")
@@ -131,6 +137,8 @@ class ConfigService:
             jwt_algorithm=self.jwt_algorithm,
             jwt_secret_key=self.jwt_secret_key,
             jwt_expiration_hours=self.jwt_expiration_hours,
+            JWT_ACCESS_EXPIRATION_MINUTES=self.JWT_ACCESS_EXPIRATION_MINUTES,
+            JWT_REFRESH_EXPIRATION_DAYS=self.JWT_REFRESH_EXPIRATION_DAYS,
         )
 
     def get_database(self):
@@ -159,6 +167,7 @@ def get_config_service() -> ConfigService:
 # For backward compatibility, create the instance on first access
 class ConfigServiceProxy:
     """Proxy to lazy-load the config service"""
+
     def __getattr__(self, name):
         return getattr(get_config_service(), name)
 

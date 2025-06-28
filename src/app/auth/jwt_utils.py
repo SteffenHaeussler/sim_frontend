@@ -39,7 +39,7 @@ def create_access_token(
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        access_token_expire_minutes = config.api_mode.get(
+        access_token_expire_minutes = config.get(
             "JWT_ACCESS_EXPIRATION_MINUTES", 15
         )
         expire = datetime.now(timezone.utc) + timedelta(
@@ -91,7 +91,7 @@ def create_refresh_token(
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        refresh_token_expire_days = config.api_mode.get(
+        refresh_token_expire_days = config.get(
             "JWT_REFRESH_EXPIRATION_DAYS", 7
         )
         expire = datetime.now(timezone.utc) + timedelta(days=refresh_token_expire_days)

@@ -127,9 +127,7 @@ async def login(
     jwt_config = config_service.get_jwt_utils()
 
     # Access Token
-    access_token_expire_minutes = jwt_config.api_mode.get(
-        "JWT_ACCESS_EXPIRATION_MINUTES", 15
-    )
+    access_token_expire_minutes = jwt_config.get("jwt_access_expiration_minutes", 15)
     access_token = create_access_token(
         user_id=user.id,
         email=user.email,
@@ -139,9 +137,7 @@ async def login(
     access_token_expires_in_seconds = access_token_expire_minutes * 60
 
     # Refresh Token
-    refresh_token_expire_days = jwt_config.api_mode.get(
-        "JWT_REFRESH_EXPIRATION_DAYS", 7
-    )
+    refresh_token_expire_days = jwt_config.get("JWT_REFRESH_EXPIRATION_DAYS", 7)
     refresh_token = create_refresh_token(
         user_id=user.id,
         email=user.email,
@@ -177,7 +173,9 @@ async def logout(_=require_auth()):
 @router.post("/refresh_token", response_model=AuthResponse)
 async def refresh_token_route(
     refresh_request: RefreshTokenRequest,
-    db: AsyncSession = Depends(get_db),  # Added db for potential future use (e.g. revocation list)
+    db: AsyncSession = Depends(
+        get_db
+    ),  # Added db for potential future use (e.g. revocation list)
 ):
     """Refresh access token using a refresh token"""
     from src.app.auth.jwt_utils import verify_token  # Moved import here for clarity
@@ -202,14 +200,16 @@ async def refresh_token_route(
     # A more robust implementation might check if the user is still active in the DB.
 
     jwt_config = config_service.get_jwt_utils()
-    access_token_expire_minutes = jwt_config.api_mode.get(
-        "JWT_ACCESS_EXPIRATION_MINUTES", 15
-    )
+    access_token_expire_minutes = jwt_config.get("JWT_ACCESS_EXPIRATION_MINUTES", 15)
 
     new_access_token = create_access_token(
-        user_id=uuid.UUID(token_data.user_id), # Convert string UUID from token back to UUID object
+        user_id=uuid.UUID(
+            token_data.user_id
+        ),  # Convert string UUID from token back to UUID object
         email=token_data.email,
-        organisation_id=uuid.UUID(token_data.organisation_id) if token_data.organisation_id else None,
+        organisation_id=uuid.UUID(token_data.organisation_id)
+        if token_data.organisation_id
+        else None,
         expires_delta=timedelta(minutes=access_token_expire_minutes),
     )
     access_token_expires_in_seconds = access_token_expire_minutes * 60
@@ -226,10 +226,10 @@ async def refresh_token_route(
         token_type="bearer",
         # Fields below are not strictly necessary for a refresh response,
         # but AuthResponse requires them. They are not re-fetched from DB here.
-        user_email=token_data.email, # Email from token
-        first_name="", # Not available from refresh token directly without DB lookup
+        user_email=token_data.email,  # Email from token
+        first_name="",  # Not available from refresh token directly without DB lookup
         last_name="",  # Not available from refresh token directly without DB lookup
-        is_active=True, # Assume active, or would need DB lookup. User must be active to use new access token.
+        is_active=True,  # Assume active, or would need DB lookup. User must be active to use new access token.
     )
 
 
