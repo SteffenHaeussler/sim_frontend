@@ -35,7 +35,7 @@ class ConfigService:
         self.jwt_access_expiration_minutes = int(
             self._get_required("JWT_ACCESS_EXPIRATION_MINUTES")
         )
-        self.jwt_access_expiration_minutes = int(
+        self.jwt_refresh_expiration_days = int(
             self._get_required("JWT_REFRESH_EXPIRATION_DAYS")
         )
 
@@ -137,8 +137,8 @@ class ConfigService:
             jwt_algorithm=self.jwt_algorithm,
             jwt_secret_key=self.jwt_secret_key,
             jwt_expiration_hours=self.jwt_expiration_hours,
-            JWT_ACCESS_EXPIRATION_MINUTES=self.JWT_ACCESS_EXPIRATION_MINUTES,
-            JWT_REFRESH_EXPIRATION_DAYS=self.JWT_REFRESH_EXPIRATION_DAYS,
+            jwt_access_expiration_minutes=self.jwt_access_expiration_minutes,
+            jwt_refresh_expiration_days=self.jwt_refresh_expiration_days,
         )
 
     def get_database(self):
