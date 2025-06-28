@@ -1,12 +1,10 @@
-import json
 import os
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.app.config import ConfigService, get_config_service
+from src.app.config import ConfigService
 from src.app.main import get_application
 
 
@@ -19,7 +17,7 @@ def mock_env():
         "agent_base": "http://test.example.com",
         "api_base": "http://api.test.com",
         "api_asset_url": "/assets",
-        "api_neighbor_url": "/neighbors", 
+        "api_neighbor_url": "/neighbors",
         "api_name_url": "/names",
         "api_id_url": "/ids",
     }
@@ -60,12 +58,13 @@ def test_config():
         "smtp_port": "587",
         "sender_email": "test@example.com",
         "app_password": "test-password",
-        "organisation_name": "Test Organization"
+        "organisation_name": "Test Organization",
     }
-    
+
     with patch.dict(os.environ, test_env_vars):
         # Reset the global config service
         import src.app.config
+
         src.app.config._config_service = None
         config = ConfigService()
         yield config
@@ -79,29 +78,30 @@ def mock_lookup_assets():
             "id": "asset_001",
             "name": "Temperature Sensor 1",
             "asset_type": "sensor",
-            "type": "temperature"
+            "type": "temperature",
         },
         {
-            "id": "asset_002", 
+            "id": "asset_002",
             "name": "Pressure Valve 2",
             "asset_type": "valve",
-            "type": "pressure"
+            "type": "pressure",
         },
         {
             "id": "asset_003",
-            "name": "Flow Meter 1", 
+            "name": "Flow Meter 1",
             "asset_type": "meter",
-            "type": "flow"
-        }
+            "type": "flow",
+        },
     ]
 
 
 @pytest.fixture
 def app(test_config, mock_lookup_assets):
     """Create FastAPI test application"""
-    with patch('src.app.main.load_lookup_assets', return_value=mock_lookup_assets):
+    with patch("src.app.main.load_lookup_assets", return_value=mock_lookup_assets):
         # Set the global config for the application to use
         import src.app.config
+
         src.app.config._config_service = test_config
         application = get_application()
         yield application
@@ -116,8 +116,10 @@ def client(app):
 @pytest.fixture
 def mock_httpx_client():
     """Mock httpx client for external API calls"""
-    with patch('httpx.AsyncClient') as mock_client, \
-         patch('httpx.Client') as mock_sync_client:
+    with (
+        patch("httpx.AsyncClient") as mock_client,
+        patch("httpx.Client") as mock_sync_client,
+    ):
         yield mock_client, mock_sync_client
 
 
@@ -125,14 +127,11 @@ def mock_httpx_client():
 def mock_auth_token():
     """Mock authentication token for testing"""
     from src.app.auth.jwt_utils import TokenData
-    
+
     # Mock the verify_token function to return valid token data
-    mock_token_data = TokenData(
-        user_id="test-user-123",
-        email="test@example.com"
-    )
-    
-    with patch('src.app.auth.dependencies.verify_token', return_value=mock_token_data):
+    mock_token_data = TokenData(user_id="test-user-123", email="test@example.com")
+
+    with patch("src.app.auth.dependencies.verify_token", return_value=mock_token_data):
         yield "mock-jwt-token"
 
 
