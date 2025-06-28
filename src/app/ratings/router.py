@@ -6,7 +6,7 @@ from loguru import logger
 
 from src.app.auth.dependencies import require_active_user
 from src.app.models.database import get_db
-from src.app.models.user import UserResponseRating
+from src.app.models.tracking import UserResponseRating
 from src.app.ratings.schemas import RatingRequest, RatingResponse
 
 router = APIRouter(prefix="/ratings", tags=["ratings"])
