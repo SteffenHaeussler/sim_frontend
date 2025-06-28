@@ -24,8 +24,8 @@ def verify_token_only(
     token = credentials.credentials
 
     # Verify and decode token
-    token_data: Optional[TokenData] = verify_token(token)
-    if not token_data or not token_data.user_id:
+    token_data: Optional[TokenData] = verify_token(token, expected_token_type="access")
+    if not token_data:  # verify_token now checks user_id and token_type
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token",
