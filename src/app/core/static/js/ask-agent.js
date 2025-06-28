@@ -286,8 +286,8 @@ class AskAgent {
 
         // Check authentication first
         if (!window.authAPI || !window.authAPI.isLoggedIn()) {
-            if (window.authUI && window.authUI.showLoginModal) {
-                window.authUI.showLoginModal();
+            if (window.authUI && typeof window.authUI.showLoginModal === 'function') {
+                window.authUI.showLoginModal('You need to be logged in to use the Ask Agent service.');
             } else {
                 alert('Please log in to use the Ask Agent service.');
             }

@@ -318,9 +318,9 @@ class App {
     }
 
     showLoginRequired() {
-        // Show login modal if available
-        if (window.authUI && window.authUI.loginModal) {
-            window.authUI.showLoginModal();
+        // Show login modal with message
+        if (window.authUI && typeof window.authUI.showLoginModal === 'function') {
+            window.authUI.showLoginModal('You need to be logged in to use this service.');
         } else {
             // Fallback alert
             alert('Please log in to access this feature.');

@@ -1,479 +1,306 @@
-// Authentication UI Management
+// A helper to convert kebab-case (like 'login-btn') to camelCase (like 'loginBtn')
+const toCamelCase = str => str.replace(/-(\w)/g, (_, c) => c.toUpperCase());
+
+// A utility to query elements, reducing verbosity
+const $ = (selector, parent = document) => parent.querySelector(selector);
+const $$ = (selector, parent = document) => parent.querySelectorAll(selector);
+
 class AuthUI {
     constructor() {
-        this.initializeElements();
-        this.setupEventListeners();
+        this.elements = {};
+        this._initializeElements();
+        this._setupEventListeners();
         this.checkAuthState();
     }
 
-    initializeElements() {
-        // Modals
-        this.loginModal = document.getElementById('login-modal');
-        this.registerModal = document.getElementById('register-modal');
-        this.forgotPasswordModal = document.getElementById('forgot-password-modal');
-        
-        // Buttons and triggers
-        this.loginBtn = document.getElementById('login-btn');
-        this.logoutBtn = document.getElementById('logout-btn');
-        
-        // User greeting elements
-        this.userGreeting = document.getElementById('user-greeting');
-        this.userName = document.getElementById('user-name');
-        
-        this.closeLoginModal = document.getElementById('close-login-modal');
-        this.closeRegisterModal = document.getElementById('close-register-modal');
-        this.closeForgotPasswordModal = document.getElementById('close-forgot-password-modal');
-        this.registerLink = document.getElementById('register-link');
-        this.loginLink = document.getElementById('login-link');
-        this.forgotPasswordLink = document.getElementById('forgot-password-link');
-        this.backToLoginLink = document.getElementById('back-to-login-link');
-        this.generatePasswordBtn = document.getElementById('generate-password-btn');
-        
-        // Form inputs
-        this.registerPasswordInput = document.getElementById('register-password');
-        this.registerPasswordConfirmInput = document.getElementById('register-password-confirm');
-        this.passwordMatchFeedback = document.getElementById('password-match-feedback');
-        this.loginEmailInput = document.getElementById('login-email');
-        this.loginPasswordInput = document.getElementById('login-password');
-        this.rememberMeCheckbox = document.getElementById('remember-me');
-        this.forgotEmailInput = document.getElementById('forgot-email');
-        this.registerFirstNameInput = document.getElementById('register-first-name');
-        this.registerLastNameInput = document.getElementById('register-last-name');
-        this.registerEmailInput = document.getElementById('register-email');
-        
-        // Email validation feedback elements
-        this.loginEmailFeedback = document.getElementById('login-email-feedback');
-        this.registerEmailFeedback = document.getElementById('register-email-feedback');
-        this.forgotEmailFeedback = document.getElementById('forgot-email-feedback');
-        
-        // Submit buttons
-        this.loginSubmitBtn = document.getElementById('login-submit');
-        this.registerSubmitBtn = document.getElementById('register-submit');
-        this.forgotSubmitBtn = document.getElementById('forgot-submit');
-        
-        // Error display elements
-        this.loginErrorDiv = document.getElementById('login-error');
-        this.registerErrorDiv = document.getElementById('register-error');
-        this.forgotPasswordErrorDiv = document.getElementById('forgot-password-error');
-        
-        // Password toggle buttons
-        this.toggleLoginPasswordBtn = document.getElementById('toggle-login-password');
-        this.toggleRegisterPasswordBtn = document.getElementById('toggle-register-password');
-        this.toggleRegisterPasswordConfirmBtn = document.getElementById('toggle-register-password-confirm');
-        
-        // Password strength indicator
-        this.passwordStrengthIndicator = document.getElementById('password-strength-indicator');
-    }
-
-    setupEventListeners() {
-        // Modal navigation
-        if (this.loginBtn) {
-            this.loginBtn.addEventListener('click', () => this.showLoginModal());
-        }
-        
-        if (this.logoutBtn) {
-            this.logoutBtn.addEventListener('click', () => this.handleLogout());
-        }
-        
-        if (this.registerLink) {
-            this.registerLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.hideLoginModal();
-                this.showRegisterModal();
-            });
-        }
-        
-        if (this.loginLink) {
-            this.loginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.hideRegisterModal();
-                this.showLoginModal();
-            });
-        }
-        
-        if (this.forgotPasswordLink) {
-            this.forgotPasswordLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                // Copy email from login field if it exists
-                if (this.loginEmailInput.value && this.forgotEmailInput) {
-                    this.forgotEmailInput.value = this.loginEmailInput.value;
-                    // Trigger validation after pre-filling email
-                    setTimeout(() => {
-                        this.validateEmailField(this.forgotEmailInput, this.forgotEmailFeedback);
-                        this.validateForgotPasswordForm();
-                    }, 10);
-                }
-                this.hideLoginModal();
-                this.showForgotPasswordModal();
-            });
-        }
-        
-        if (this.backToLoginLink) {
-            this.backToLoginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.hideForgotPasswordModal();
-                this.showLoginModal();
-            });
-        }
-        
-        // Close modal buttons
-        if (this.closeLoginModal) {
-            this.closeLoginModal.addEventListener('click', () => this.hideLoginModal());
-        }
-        
-        if (this.closeRegisterModal) {
-            this.closeRegisterModal.addEventListener('click', () => this.hideRegisterModal());
-        }
-        
-        if (this.closeForgotPasswordModal) {
-            this.closeForgotPasswordModal.addEventListener('click', () => this.hideForgotPasswordModal());
-        }
-        
-        // Escape key to close modals
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.hideAllModals();
-            }
+    /**
+     * Finds all elements with an ID and stores them in this.elements in camelCase.
+     */
+    _initializeElements() {
+        $$('[id]').forEach(el => {
+            this.elements[toCamelCase(el.id)] = el;
         });
         
-        // Password generation
-        if (this.generatePasswordBtn && this.registerPasswordInput) {
-            this.generatePasswordBtn.addEventListener('click', () => this.generatePassword());
+        // Group modals for easier management
+        this.modals = [this.elements.loginModal, this.elements.registerModal, this.elements.forgotPasswordModal];
+    }
+
+    /**
+     * Centralized event listener setup.
+     */
+    _setupEventListeners() {
+        const listeners = {
+            // Modal Triggers & Navigation
+            'loginBtn': () => this._toggleModal(this.elements.loginModal, true),
+            'logoutBtn': () => this.handleLogout(),
+            'registerLink': () => this._switchModal(this.elements.loginModal, this.elements.registerModal),
+            'loginLink': () => this._switchModal(this.elements.registerModal, this.elements.loginModal),
+            'backToLoginLink': () => this._switchModal(this.elements.forgotPasswordModal, this.elements.loginModal),
+            'forgotPasswordLink': () => this._handleForgotPasswordLink(),
+
+            // Modal Close Buttons
+            'closeLoginModal': () => this._toggleModal(this.elements.loginModal, false),
+            'closeRegisterModal': () => this._toggleModal(this.elements.registerModal, false),
+            'closeForgotPasswordModal': () => this._toggleModal(this.elements.forgotPasswordModal, false),
+
+            // Form Submissions
+            'loginSubmit': e => this.handleLogin(e),
+            'registerSubmit': e => this.handleRegister(e),
+            'forgotSubmit': e => this.handleForgotPassword(e),
+
+            // Other Functionality
+            'generatePasswordBtn': () => this.generatePassword(),
+            'toggleLoginPassword': () => this._togglePasswordVisibility(this.elements.loginPassword, this.elements.toggleLoginPassword),
+            'toggleRegisterPassword': () => this._togglePasswordVisibility(this.elements.registerPassword, this.elements.toggleRegisterPassword),
+            'toggleRegisterPasswordConfirm': () => this._togglePasswordVisibility(this.elements.registerPasswordConfirm, this.elements.toggleRegisterPasswordConfirm),
+        };
+
+        // Attach click listeners from the config object
+        for (const [elementKey, handler] of Object.entries(listeners)) {
+            if (this.elements[elementKey]) {
+                this.elements[elementKey].addEventListener('click', handler.bind(this));
+            }
         }
-        
-        // Password validation
-        this.setupPasswordValidation();
-        
-        // Form completeness validation
-        this.setupFormValidation();
-        
-        // Email format validation
-        this.setupEmailValidation();
-        
-        // Password toggle functionality
-        this.setupPasswordToggle();
-        
-        // Password strength indicator
-        this.setupPasswordStrength();
-        
-        // Form submissions
-        this.setupFormSubmissions();
+
+        // Setup input-based validation
+        this._setupFormValidationListeners();
+
+        // Listen for Escape key to close any open modal
+        document.addEventListener('keydown', e => e.key === 'Escape' && this.hideAllModals());
     }
 
-    // Modal show/hide methods
-    showLoginModal() {
-        this.loginModal.style.display = 'block';
+    // --- Modal Management ---
+    _toggleModal(modal, show) {
+        if (modal) modal.style.display = show ? 'block' : 'none';
     }
 
-    hideLoginModal() {
-        this.loginModal.style.display = 'none';
-    }
-
-    showRegisterModal() {
-        this.registerModal.style.display = 'block';
-    }
-
-    hideRegisterModal() {
-        this.registerModal.style.display = 'none';
-    }
-
-    showForgotPasswordModal() {
-        this.forgotPasswordModal.style.display = 'block';
-    }
-
-    hideForgotPasswordModal() {
-        this.forgotPasswordModal.style.display = 'none';
+    _switchModal(fromModal, toModal) {
+        this._toggleModal(fromModal, false);
+        this._toggleModal(toModal, true);
     }
 
     hideAllModals() {
-        this.hideLoginModal();
-        this.hideRegisterModal();
-        this.hideForgotPasswordModal();
+        this.modals.forEach(modal => this._toggleModal(modal, false));
     }
 
-    // Password generation
-    generatePassword() {
-        const length = 12;
-        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-        let password = "";
+    showLoginModal(message = null) {
+        // Show the login modal
+        this._toggleModal(this.elements.loginModal, true);
         
-        // Ensure at least one character from each type
-        const lowercase = "abcdefghijklmnopqrstuvwxyz";
-        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const numbers = "0123456789";
-        const symbols = "!@#$%^&*";
-        
-        password += lowercase[Math.floor(Math.random() * lowercase.length)];
-        password += uppercase[Math.floor(Math.random() * uppercase.length)];
-        password += numbers[Math.floor(Math.random() * numbers.length)];
-        password += symbols[Math.floor(Math.random() * symbols.length)];
-        
-        // Fill the rest randomly
-        for (let i = 4; i < length; i++) {
-            password += charset[Math.floor(Math.random() * charset.length)];
+        // If a custom message is provided, show it in the error div
+        if (message && this.elements.loginError) {
+            this._showError(this.elements.loginError, message, 'auth-info');
+        } else if (this.elements.loginError) {
+            // Clear any existing error
+            this._clearError(this.elements.loginError);
         }
         
-        // Shuffle the password
-        const shuffledPassword = password.split('').sort(() => Math.random() - 0.5).join('');
-        
-        this.registerPasswordInput.value = shuffledPassword;
-        this.registerPasswordInput.type = 'text'; // Show password briefly
-        
-        // Hide password after 2 seconds
-        setTimeout(() => {
-            this.registerPasswordInput.type = 'password';
-        }, 2000);
-        
-        // Validate password match, form completeness, and strength after generation
-        setTimeout(() => {
-            this.validatePasswordMatch();
-            this.validateRegisterForm();
-            this.updatePasswordStrength();
-        }, 10);
-    }
-
-    // Password validation
-    setupPasswordValidation() {
-        if (this.registerPasswordInput && this.registerPasswordConfirmInput) {
-            this.registerPasswordInput.addEventListener('input', () => this.validatePasswordMatch());
-            this.registerPasswordConfirmInput.addEventListener('input', () => this.validatePasswordMatch());
+        // Focus on the email input for better UX
+        if (this.elements.loginEmail) {
+            setTimeout(() => this.elements.loginEmail.focus(), 100);
         }
     }
 
-    validatePasswordMatch() {
-        if (!this.registerPasswordInput || !this.registerPasswordConfirmInput || !this.passwordMatchFeedback) return;
-        
-        const password = this.registerPasswordInput.value;
-        const confirmPassword = this.registerPasswordConfirmInput.value;
-        
-        // Clear feedback if confirm field is empty
-        if (!confirmPassword) {
-            this.passwordMatchFeedback.textContent = '';
-            this.passwordMatchFeedback.className = 'validation-message';
+    _handleForgotPasswordLink() {
+        const { loginEmail, forgotEmail } = this.elements;
+        if (loginEmail.value && forgotEmail) {
+            forgotEmail.value = loginEmail.value;
+            // A tiny delay ensures the field is visible before validation runs
+            setTimeout(() => this._validateForm(this.elements.forgotPasswordForm), 10);
+        }
+        this._switchModal(this.elements.loginModal, this.elements.forgotPasswordModal);
+    }
+
+    // --- Form Validation & State ---
+    _setupFormValidationListeners() {
+        // Use a map to associate forms with their validation logic
+        const formsToValidate = [
+            { form: this.elements.loginForm, validator: this._isLoginFormValid },
+            { form: this.elements.registerForm, validator: this._isRegisterFormValid },
+            { form: this.elements.forgotPasswordForm, validator: this._isForgotFormValid },
+        ];
+
+        formsToValidate.forEach(({ form, validator }) => {
+            if (form) {
+                form.addEventListener('input', () => this._validateForm(form, validator));
+                this._validateForm(form, validator); // Initial check
+            }
+        });
+
+        // Specific real-time feedback listeners
+        if (this.elements.registerPasswordConfirm) {
+            this.elements.registerPasswordConfirm.addEventListener('input', () => this._validatePasswordMatch());
+        }
+        if (this.elements.registerPassword) {
+            this.elements.registerPassword.addEventListener('input', () => this.updatePasswordStrength());
+        }
+    }
+
+    _validateForm(form, validator) {
+        if (!form) return;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const isValid = validator.call(this);
+        if (submitBtn) {
+            submitBtn.disabled = !isValid;
+            submitBtn.classList.toggle('disabled', !isValid);
+        }
+    }
+
+    _isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    _isLoginFormValid() {
+        const { loginEmail, loginPassword } = this.elements;
+        return this._isValidEmail(loginEmail.value) && loginPassword.value;
+    }
+
+    _isRegisterFormValid() {
+        const { registerFirstName, registerLastName, registerEmail, registerPassword, registerPasswordConfirm } = this.elements;
+        return (
+            registerFirstName.value && registerLastName.value &&
+            this._isValidEmail(registerEmail.value) &&
+            registerPassword.value &&
+            registerPassword.value === registerPasswordConfirm.value
+        );
+    }
+
+    _isForgotFormValid() {
+        return this._isValidEmail(this.elements.forgotEmail.value);
+    }
+
+    _validatePasswordMatch() {
+        const { registerPassword, registerPasswordConfirm, passwordMatchFeedback } = this.elements;
+        if (!passwordMatchFeedback || !registerPasswordConfirm.value) {
+            if (passwordMatchFeedback) passwordMatchFeedback.textContent = '';
             return;
         }
-        
-        // Check if passwords match
-        if (password === confirmPassword) {
-            this.passwordMatchFeedback.textContent = '✓ Passwords match';
-            this.passwordMatchFeedback.className = 'validation-message success';
-        } else {
-            this.passwordMatchFeedback.textContent = '✗ Passwords do not match';
-            this.passwordMatchFeedback.className = 'validation-message error';
+        const isMatch = registerPassword.value === registerPasswordConfirm.value;
+        passwordMatchFeedback.textContent = isMatch ? '✓ Passwords match' : '✗ Passwords do not match';
+        passwordMatchFeedback.className = `validation-message ${isMatch ? 'success' : 'error'}`;
+    }
+
+    // --- API & Form Submission ---
+    async _handleApiCall(options) {
+        const { button, errorDiv, apiCall, onSuccess, loadingText, buttonText } = options;
+
+        this._setLoadingState(button, true, loadingText);
+        this._clearError(errorDiv);
+
+        try {
+            const result = await apiCall();
+            if (onSuccess) onSuccess(result);
+        } catch (error) {
+            this._showError(errorDiv, error.message || 'An unexpected error occurred.');
+        } finally {
+            this._setLoadingState(button, false, buttonText);
         }
     }
 
-    // Form completeness validation
-    setupFormValidation() {
-        // Login form validation
-        if (this.loginEmailInput && this.loginPasswordInput && this.loginSubmitBtn) {
-            this.loginEmailInput.addEventListener('input', () => this.validateLoginForm());
-            this.loginPasswordInput.addEventListener('input', () => this.validateLoginForm());
-            this.validateLoginForm(); // Initial check
-        }
+    handleLogin(e) {
+        e.preventDefault();
+        const { loginEmail, loginPassword, rememberMe, loginSubmit, loginError } = this.elements;
+        this._handleApiCall({
+            button: loginSubmit,
+            errorDiv: loginError,
+            apiCall: () => window.authAPI.login(loginEmail.value, loginPassword.value, rememberMe.checked),
+            onSuccess: () => {
+                this.hideAllModals();
+                this.updateAuthState(true);
+            },
+            loadingText: 'Logging in...',
+            buttonText: 'Login',
+        });
+    }
 
-        // Register form validation
-        if (this.registerFirstNameInput && this.registerLastNameInput && this.registerEmailInput && 
-            this.registerPasswordInput && this.registerPasswordConfirmInput && this.registerSubmitBtn) {
-            this.registerFirstNameInput.addEventListener('input', () => this.validateRegisterForm());
-            this.registerLastNameInput.addEventListener('input', () => this.validateRegisterForm());
-            this.registerEmailInput.addEventListener('input', () => this.validateRegisterForm());
-            this.registerPasswordInput.addEventListener('input', () => this.validateRegisterForm());
-            this.registerPasswordConfirmInput.addEventListener('input', () => this.validateRegisterForm());
-            this.validateRegisterForm(); // Initial check
-        }
+    handleRegister(e) {
+        e.preventDefault();
+        const { registerFirstName, registerLastName, registerEmail, registerPassword, registerSubmit, registerError } = this.elements;
+        this._handleApiCall({
+            button: registerSubmit,
+            errorDiv: registerError,
+            apiCall: () => window.authAPI.register(registerFirstName.value, registerLastName.value, registerEmail.value, registerPassword.value),
+            onSuccess: () => {
+                this.hideAllModals();
+                this.updateAuthState(true);
+            },
+            loadingText: 'Registering...',
+            buttonText: 'Register',
+        });
+    }
 
-        // Forgot password form validation
-        if (this.forgotEmailInput && this.forgotSubmitBtn) {
-            this.forgotEmailInput.addEventListener('input', () => this.validateForgotPasswordForm());
-            this.validateForgotPasswordForm(); // Initial check
+    handleForgotPassword(e) {
+        e.preventDefault();
+        const { forgotEmail, forgotSubmit, forgotPasswordError } = this.elements;
+        this._handleApiCall({
+            button: forgotSubmit,
+            errorDiv: forgotPasswordError,
+            apiCall: () => window.authAPI.forgotPassword(forgotEmail.value),
+            onSuccess: (result) => {
+                this._showError(forgotPasswordError, result.message, 'auth-success');
+                forgotEmail.value = '';
+                setTimeout(() => this.hideAllModals(), 2000);
+            },
+            loadingText: 'Sending...',
+            buttonText: 'Send Reset Link',
+        });
+    }
+
+    async handleLogout() {
+        try {
+            await window.authAPI.logout();
+            console.log('Logout successful');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        } finally {
+            this.updateAuthState(false);
+            if (window.app?.handleNewSession) window.app.handleNewSession();
+            window.location.href = '/';
         }
     }
 
-    validateLoginForm() {
-        const email = this.loginEmailInput.value.trim();
-        const password = this.loginPasswordInput.value.trim();
-        
-        const emailValid = email && this.isValidEmail(email);
-        const isValid = emailValid && password;
-        
-        this.loginSubmitBtn.disabled = !isValid;
-        this.updateButtonState(this.loginSubmitBtn, isValid, 'Login');
-        
-        return isValid;
+    // --- UI State & Helpers ---
+    _setLoadingState(button, isLoading, text) {
+        if (!button) return;
+        button.disabled = isLoading;
+        button.textContent = text;
     }
 
-    validateRegisterForm() {
-        const firstName = this.registerFirstNameInput.value.trim();
-        const lastName = this.registerLastNameInput.value.trim();
-        const email = this.registerEmailInput.value.trim();
-        const password = this.registerPasswordInput.value.trim();
-        const confirmPassword = this.registerPasswordConfirmInput.value.trim();
-        
-        const fieldsComplete = firstName && lastName && email && password && confirmPassword;
-        const emailValid = email && this.isValidEmail(email);
-        const passwordsMatch = password === confirmPassword;
-        
-        const isValid = fieldsComplete && emailValid && passwordsMatch;
-        
-        this.registerSubmitBtn.disabled = !isValid;
-        this.updateButtonState(this.registerSubmitBtn, isValid, 'Register');
-        
-        return isValid;
+    _showError(errorDiv, message, className = 'auth-error') {
+        if (!errorDiv) return;
+        errorDiv.textContent = message;
+        errorDiv.className = className;
+        errorDiv.style.display = 'block';
     }
 
-    validateForgotPasswordForm() {
-        const email = this.forgotEmailInput.value.trim();
-        
-        const isValid = email && this.isValidEmail(email);
-        
-        this.forgotSubmitBtn.disabled = !isValid;
-        this.updateButtonState(this.forgotSubmitBtn, isValid, 'Send Reset Link');
-        
-        return isValid;
+    _clearError(errorDiv) {
+        if (errorDiv) errorDiv.style.display = 'none';
     }
 
-    // Email format validation
-    setupEmailValidation() {
-        // Login email validation
-        if (this.loginEmailInput && this.loginEmailFeedback) {
-            this.loginEmailInput.addEventListener('input', () => {
-                this.validateEmailField(this.loginEmailInput, this.loginEmailFeedback);
-                this.validateLoginForm(); // Update form completeness
-            });
-            this.loginEmailInput.addEventListener('blur', () => {
-                this.validateEmailField(this.loginEmailInput, this.loginEmailFeedback);
-            });
-        }
-
-        // Register email validation
-        if (this.registerEmailInput && this.registerEmailFeedback) {
-            this.registerEmailInput.addEventListener('input', () => {
-                this.validateEmailField(this.registerEmailInput, this.registerEmailFeedback);
-                this.validateRegisterForm(); // Update form completeness
-            });
-            this.registerEmailInput.addEventListener('blur', () => {
-                this.validateEmailField(this.registerEmailInput, this.registerEmailFeedback);
-            });
-        }
-
-        // Forgot password email validation
-        if (this.forgotEmailInput && this.forgotEmailFeedback) {
-            this.forgotEmailInput.addEventListener('input', () => {
-                this.validateEmailField(this.forgotEmailInput, this.forgotEmailFeedback);
-                this.validateForgotPasswordForm(); // Update form completeness
-            });
-            this.forgotEmailInput.addEventListener('blur', () => {
-                this.validateEmailField(this.forgotEmailInput, this.forgotEmailFeedback);
-            });
-        }
-    }
-
-    validateEmailField(emailInput, feedbackElement) {
-        const email = emailInput.value.trim();
-        
-        // Clear feedback if field is empty
-        if (!email) {
-            feedbackElement.textContent = '';
-            feedbackElement.className = 'validation-message';
-            return false;
-        }
-        
-        // Check email format
-        if (this.isValidEmail(email)) {
-            // Valid email - clear any error message
-            feedbackElement.textContent = '';
-            feedbackElement.className = 'validation-message';
-            return true;
-        } else {
-            // Invalid email - show error message
-            feedbackElement.textContent = '✗ Invalid email format';
-            feedbackElement.className = 'validation-message error';
-            return false;
-        }
-    }
-
-    updateButtonState(button, isValid, text) {
-        if (isValid) {
-            button.classList.remove('disabled');
-            button.textContent = text;
-        } else {
-            button.classList.add('disabled');
-            button.textContent = text;
-        }
-    }
-
-    isValidEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-
-    // Password toggle functionality
-    setupPasswordToggle() {
-        // Login password toggle
-        if (this.toggleLoginPasswordBtn && this.loginPasswordInput) {
-            this.toggleLoginPasswordBtn.addEventListener('click', () => {
-                this.togglePasswordVisibility(this.loginPasswordInput, this.toggleLoginPasswordBtn);
-            });
-        }
-
-        // Register password toggle
-        if (this.toggleRegisterPasswordBtn && this.registerPasswordInput) {
-            this.toggleRegisterPasswordBtn.addEventListener('click', () => {
-                this.togglePasswordVisibility(this.registerPasswordInput, this.toggleRegisterPasswordBtn);
-            });
-        }
-
-        // Register password confirm toggle
-        if (this.toggleRegisterPasswordConfirmBtn && this.registerPasswordConfirmInput) {
-            this.toggleRegisterPasswordConfirmBtn.addEventListener('click', () => {
-                this.togglePasswordVisibility(this.registerPasswordConfirmInput, this.toggleRegisterPasswordConfirmBtn);
-            });
-        }
-    }
-
-    togglePasswordVisibility(inputField, toggleButton) {
-        const eyeIcon = toggleButton.querySelector('.eye-icon');
-        
-        if (inputField.type === 'password') {
-            // Show password
-            inputField.type = 'text';
-            eyeIcon.src = '/static/icons/eye-off.svg';
-            eyeIcon.alt = 'Hide password';
-        } else {
-            // Hide password
-            inputField.type = 'password';
-            eyeIcon.src = '/static/icons/eye.svg';
-            eyeIcon.alt = 'Show password';
-        }
-    }
-
-    // Password strength functionality
-    setupPasswordStrength() {
-        if (this.registerPasswordInput && this.passwordStrengthIndicator) {
-            this.registerPasswordInput.addEventListener('input', () => {
-                this.updatePasswordStrength();
-            });
-        }
+    _togglePasswordVisibility(input, button) {
+        const eyeIcon = button.querySelector('.eye-icon');
+        const isHidden = input.type === 'password';
+        input.type = isHidden ? 'text' : 'password';
+        eyeIcon.src = `/static/icons/${isHidden ? 'eye-off' : 'eye'}.svg`;
+        eyeIcon.alt = `${isHidden ? 'Hide' : 'Show'} password`;
     }
 
     updatePasswordStrength() {
-        const password = this.registerPasswordInput.value;
+        const password = this.elements.registerPassword.value;
         const strength = this.calculatePasswordStrength(password);
-        
-        const strengthFill = this.passwordStrengthIndicator.querySelector('.strength-fill');
-        const strengthText = this.passwordStrengthIndicator.querySelector('.strength-text');
-        
+
+        if (!this.elements.passwordStrengthIndicator) return;
+        const strengthFill = this.elements.passwordStrengthIndicator.querySelector('.strength-fill');
+        const strengthText = this.elements.passwordStrengthIndicator.querySelector('.strength-text');
+
         // Clear previous classes
         strengthFill.className = 'strength-fill';
         strengthText.className = 'strength-text';
-        
+
         if (!password) {
             // Empty password - hide indicator
             strengthText.textContent = '';
             return;
         }
-        
+
         // Apply strength styling and text
         switch (strength) {
             case 'weak':
@@ -494,271 +321,90 @@ class AuthUI {
         }
     }
 
+    // Password generation
+    generatePassword() {
+        const length = 12;
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+        let password = "";
+
+        // Ensure at least one character from each type
+        const lowercase = "abcdefghijklmnopqrstuvwxyz";
+        const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const numbers = "0123456789";
+        const symbols = "!@#$%^&*";
+
+        password += lowercase[Math.floor(Math.random() * lowercase.length)];
+        password += uppercase[Math.floor(Math.random() * uppercase.length)];
+        password += numbers[Math.floor(Math.random() * numbers.length)];
+        password += symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Fill the rest randomly
+        for (let i = 4; i < length; i++) {
+            password += charset[Math.floor(Math.random() * charset.length)];
+        }
+
+        // Shuffle the password
+        const shuffledPassword = password.split('').sort(() => Math.random() - 0.5).join('');
+
+        this.elements.registerPassword.value = shuffledPassword;
+        this.elements.registerPassword.type = 'text'; // Show password briefly
+
+        // Hide password after 2 seconds
+        setTimeout(() => {
+            this.elements.registerPassword.type = 'password';
+        }, 2000);
+
+        // Validate password match, form completeness, and strength after generation
+        setTimeout(() => {
+            this._validatePasswordMatch();
+            this._validateForm(this.elements.registerForm, this._isRegisterFormValid);
+            this.updatePasswordStrength();
+        }, 10);
+    }
+
+
+    updateAuthState(isLoggedIn) {
+        const { loginBtn, logoutBtn, userGreeting, userName } = this.elements;
+        if (loginBtn) loginBtn.style.display = isLoggedIn ? 'none' : 'flex';
+        if (logoutBtn) logoutBtn.style.display = isLoggedIn ? 'flex' : 'none';
+        if (window.profileManager) window.profileManager.updateVisibility(isLoggedIn);
+
+        if (isLoggedIn && userGreeting) {
+            const userInfo = window.authAPI.getUserInfo();
+            if (userInfo?.email) {
+                const name = (userInfo.firstName || userInfo.email.split('@')[0]);
+                userName.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+                userGreeting.style.display = 'block';
+            }
+        } else if (userGreeting) {
+            userGreeting.style.display = 'none';
+        }
+    }
+
     calculatePasswordStrength(password) {
         if (!password) return 'weak';
         
-        const length = password.length;
-        const uniqueChars = new Set(password).size;
+        let score = 0;
         
-        // Your specified criteria: 12+ chars and 9+ different characters = strong
-        if (length >= 12 && uniqueChars >= 9) {
-            return 'strong';
-        }
+        // Length check
+        if (password.length >= 8) score++;
+        if (password.length >= 12) score++;
         
-        // Medium criteria: reasonable length and variety
-        if (length >= 8 && uniqueChars >= 6) {
-            return 'medium';
-        }
+        // Character variety checks
+        if (/[a-z]/.test(password)) score++; // lowercase
+        if (/[A-Z]/.test(password)) score++; // uppercase
+        if (/[0-9]/.test(password)) score++; // numbers
+        if (/[^a-zA-Z0-9]/.test(password)) score++; // special chars
         
-        // Everything else is weak
-        return 'weak';
+        // Return strength based on score
+        if (score <= 2) return 'weak';
+        if (score <= 4) return 'medium';
+        return 'strong';
     }
-
-    // Form submissions
-    setupFormSubmissions() {
-        // Login form submission
-        if (this.loginSubmitBtn) {
-            this.loginSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await this.handleLogin();
-            });
-        }
-
-        // Register form submission
-        if (this.registerSubmitBtn) {
-            this.registerSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await this.handleRegister();
-            });
-        }
-
-        // Forgot password form submission
-        if (this.forgotSubmitBtn) {
-            this.forgotSubmitBtn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await this.handleForgotPassword();
-            });
-        }
-    }
-
-    async handleLogin() {
-        const email = this.loginEmailInput.value.trim();
-        const password = this.loginPasswordInput.value.trim();
-        const rememberMe = this.rememberMeCheckbox ? this.rememberMeCheckbox.checked : false;
-
-        if (!email || !password) {
-            this.showError(this.loginErrorDiv, 'Please fill in all fields');
-            return;
-        }
-
-        this.showLoading(this.loginSubmitBtn, 'Logging in...');
-        this.clearError(this.loginErrorDiv);
-
-        try {
-            const result = await window.authAPI.login(email, password, rememberMe);
-            console.log('Login successful:', result.user_email, rememberMe ? '(30 days)' : '(regular session)');
-            this.hideLoginModal();
-            this.updateAuthState(true);
-        } catch (error) {
-            this.showError(this.loginErrorDiv, error.message);
-        } finally {
-            this.hideLoading(this.loginSubmitBtn, 'Login');
-        }
-    }
-
-    async handleRegister() {
-        const firstName = this.registerFirstNameInput.value.trim();
-        const lastName = this.registerLastNameInput.value.trim();
-        const email = this.registerEmailInput.value.trim();
-        const password = this.registerPasswordInput.value.trim();
-        const confirmPassword = this.registerPasswordConfirmInput.value.trim();
-
-        if (!firstName || !lastName || !email || !password || !confirmPassword) {
-            this.showError(this.registerErrorDiv, 'Please fill in all fields');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            this.showError(this.registerErrorDiv, 'Passwords do not match');
-            return;
-        }
-
-        this.showLoading(this.registerSubmitBtn, 'Registering...');
-        this.clearError(this.registerErrorDiv);
-
-        try {
-            const result = await window.authAPI.register(firstName, lastName, email, password);
-            console.log('Registration successful:', result.user_email);
-            this.hideRegisterModal();
-            this.updateAuthState(true);
-        } catch (error) {
-            // Show generic error message for registration failures
-            this.showError(this.registerErrorDiv, 'Registration failed. Please check your information and try again.');
-        } finally {
-            this.hideLoading(this.registerSubmitBtn, 'Register');
-        }
-    }
-
-    async handleForgotPassword() {
-        const email = this.forgotEmailInput.value.trim();
-
-        if (!email) {
-            this.showError(this.forgotPasswordErrorDiv, 'Please enter your email address');
-            return;
-        }
-
-        if (!this.isValidEmail(email)) {
-            this.showError(this.forgotPasswordErrorDiv, 'Please enter a valid email address');
-            return;
-        }
-
-        this.showLoading(this.forgotSubmitBtn, 'Sending...');
-        this.clearError(this.forgotPasswordErrorDiv);
-
-        try {
-            const result = await window.authAPI.forgotPassword(email);
-            console.log('Password reset request successful:', result.message);
-            
-            // Show success message and hide the modal
-            this.showSuccess(this.forgotPasswordErrorDiv, 'Password reset instructions have been sent to your email.');
-            
-            // Clear the form
-            this.forgotEmailInput.value = '';
-            
-            // Hide modal after short delay to show success message
-            setTimeout(() => {
-                this.hideForgotPasswordModal();
-                this.clearError(this.forgotPasswordErrorDiv);
-            }, 2000);
-            
-        } catch (error) {
-            this.showError(this.forgotPasswordErrorDiv, error.message);
-        } finally {
-            this.hideLoading(this.forgotSubmitBtn, 'Send Reset Link');
-        }
-    }
-
-    showError(errorDiv, message) {
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.className = 'auth-error';
-            errorDiv.style.display = 'block';
-        }
-    }
-
-    showSuccess(errorDiv, message) {
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.className = 'auth-success';
-            errorDiv.style.display = 'block';
-        }
-    }
-
-    clearError(errorDiv) {
-        if (errorDiv) {
-            errorDiv.textContent = '';
-            errorDiv.className = '';
-            errorDiv.style.display = 'none';
-        }
-    }
-
-    showLoading(button, text) {
-        button.disabled = true;
-        button.textContent = text;
-    }
-
-    hideLoading(button, text) {
-        button.disabled = false;
-        button.textContent = text;
-    }
-
-    updateAuthState(isLoggedIn) {
-        if (isLoggedIn) {
-            // Hide login icon, show logout icon
-            if (this.loginBtn) {
-                this.loginBtn.style.display = 'none';
-            }
-            if (this.logoutBtn) {
-                this.logoutBtn.style.display = 'flex';
-            }
-            
-            // Update profile manager visibility
-            if (window.profileManager) {
-                window.profileManager.updateVisibility(true);
-            }
-            
-            // Show user greeting
-            if (this.userGreeting && this.userName) {
-                const userInfo = window.authAPI.getUserInfo();
-                if (userInfo && userInfo.email) {
-                    // Use first name if available, otherwise fall back to email username
-                    let displayName;
-                    if (userInfo.firstName && userInfo.firstName.trim()) {
-                        displayName = userInfo.firstName.trim();
-                    } else {
-                        displayName = userInfo.email.split('@')[0];
-                    }
-                    const capitalizedName = displayName.charAt(0).toUpperCase() + displayName.slice(1).toLowerCase();
-                    this.userName.textContent = capitalizedName;
-                    this.userGreeting.style.display = 'block';
-                }
-            }
-        } else {
-            // Show login icon, hide logout icon
-            if (this.loginBtn) {
-                this.loginBtn.style.display = 'flex';
-            }
-            if (this.logoutBtn) {
-                this.logoutBtn.style.display = 'none';
-            }
-            
-            // Update profile manager visibility
-            if (window.profileManager) {
-                window.profileManager.updateVisibility(false);
-            }
-            
-            // Hide user greeting
-            if (this.userGreeting) {
-                this.userGreeting.style.display = 'none';
-            }
-        }
-    }
-
-    async handleLogout() {
-        try {
-            await window.authAPI.logout();
-            console.log('Logout successful');
-        } catch (error) {
-            console.error('Logout failed:', error);
-        } finally {
-            // Always update UI and clear session data
-            this.updateAuthState(false);
-            this.clearAllSessionData();
-            
-            // Redirect to landing page
-            window.location.href = '/';
-        }
-    }
-    
-    clearAllSessionData() {
-        // Clear app session (chat history)
-        if (window.app?.handleNewSession) {
-            window.app.handleNewSession();
-        }
-        
-        // Clear lookup service data
-        if (window.lookupService?.handleNewSession) {
-            window.lookupService.handleNewSession();
-        }
-        
-        console.log('All session data cleared after logout');
-    }
-
 
     checkAuthState() {
-        // Add a small delay to ensure authAPI is fully initialized
         setTimeout(() => {
-            const isLoggedIn = window.authAPI && window.authAPI.isLoggedIn();
+            const isLoggedIn = window.authAPI?.isLoggedIn();
             this.updateAuthState(isLoggedIn);
         }, 50);
     }

@@ -101,6 +101,16 @@
     margin-bottom: 16px;
 }
 
+.auth-info {
+    color: #2980b9;
+    background-color: #e8f4fd;
+    border: 1px solid #bee5eb;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
 .auth-success {
     color: #27ae60;
     background-color: #efe;
