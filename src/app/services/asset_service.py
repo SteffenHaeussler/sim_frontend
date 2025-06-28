@@ -1,21 +1,23 @@
 import threading
 import uuid
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import httpx
 from fastapi import Request
 from loguru import logger
 
-from src.app.services.config_service import config_service
+from src.app.config import config_service
 
 
 class AssetService:
     """Service for handling asset-related operations"""
-    
+
     def __init__(self):
         self.config = config_service
-    
-    async def trigger_agent_question(self, question: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+
+    async def trigger_agent_question(
+        self, question: str, session_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
         # Use frontend session ID if provided, otherwise generate one
         if not session_id:
@@ -29,11 +31,17 @@ class AssetService:
         logger.info(f"Config agent_base: {self.config.agent_base}")
         logger.info(f"Config agent_url: {self.config.agent_url}")
         logger.info(f"Forwarding to: {api_url}")
-        
+
         # Don't make the request if URL is empty/invalid
         if not api_url or api_url == "":
-            logger.error("Agent API URL is empty - check AGENT_BASE and AGENT_URL configuration")
-            return {"status": "error", "message": "Agent API not configured", "session_id": session_id}
+            logger.error(
+                "Agent API URL is empty - check AGENT_BASE and AGENT_URL configuration"
+            )
+            return {
+                "status": "error",
+                "message": "Agent API not configured",
+                "session_id": session_id,
+            }
 
         def send_request():
             try:
@@ -54,7 +62,7 @@ class AssetService:
         threading.Thread(target=send_request, daemon=True).start()
 
         return {"status": "triggered", "session_id": session_id, "question": question}
-    
+
     async def get_asset_info(self, asset_id: str) -> Dict[str, Any]:
         """Get asset information by asset ID"""
         full_url = f"{self.config.get_asset_api_url('asset')}/{asset_id}"
@@ -70,7 +78,7 @@ class AssetService:
         except Exception as e:
             logger.error(f"Asset API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
-    
+
     async def get_neighbor_assets(self, asset_id: str) -> Dict[str, Any]:
         """Get neighboring assets by asset ID"""
         full_url = f"{self.config.get_asset_api_url('neighbor')}/{asset_id}"
@@ -86,14 +94,14 @@ class AssetService:
         except Exception as e:
             logger.error(f"Neighbor API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
-    
+
     async def get_name_from_id(self, asset_id: str) -> Dict[str, Any]:
         """Get asset name from asset ID"""
         full_url = f"{self.config.get_asset_api_url('name')}/{asset_id}"
 
         logger.info(f"Getting name for asset: {asset_id}")
         logger.info(f"Forwarding to: {full_url}")
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(full_url, timeout=10)
@@ -102,7 +110,7 @@ class AssetService:
         except Exception as e:
             logger.error(f"Name API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
-    
+
     async def get_id_from_name(self, name: str) -> Dict[str, Any]:
         """Get asset ID from asset name"""
         full_url = f"{self.config.get_asset_api_url('id')}/{name}"
@@ -118,7 +126,7 @@ class AssetService:
         except Exception as e:
             logger.error(f"ID API request failed: {e}")
             return {"error": str(e), "name": name}
-    
+
     def get_lookup_assets(self, request: Request) -> Dict[str, Any]:
         """Get all lookup assets from application state"""
         try:
@@ -127,7 +135,7 @@ class AssetService:
         except Exception as e:
             logger.error(f"Failed to get lookup assets: {e}")
             return {"error": str(e), "assets": [], "count": 0}
-    
+
     def search_assets(
         self,
         request: Request,

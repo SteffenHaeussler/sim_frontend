@@ -22,7 +22,7 @@ from src.app.auth.schemas import (
     UpdateProfileRequest,
     UpdateProfileResponse,
 )
-from src.app.config import get_config
+from src.app.config import config_service
 from src.app.models.database import get_db
 from src.app.models.organisation import Organisation
 from src.app.models.password_reset import PasswordReset
@@ -85,17 +85,17 @@ async def register(
     await db.refresh(new_user)
 
     # Create access token (even for inactive users, they just can't use protected endpoints)
-    config = get_config()
+    config = config_service.get_jwt_utils()
     access_token = create_access_token(
         user_id=new_user.id,
         email=new_user.email,
         organisation_id=new_user.organisation_id,
-        expires_delta=timedelta(hours=config.api_mode.JWT_EXPIRATION_HOURS),
+        expires_delta=timedelta(hours=config.get("jwt_expiration_hours")),
     )
 
     return AuthResponse(
         access_token=access_token,
-        expires_in=config.api_mode.JWT_EXPIRATION_HOURS * 3600,
+        expires_in=config.get("jwt_expiration_hours") * 3600,
         user_email=new_user.email,
         first_name=new_user.first_name or "",
         last_name=new_user.last_name or "",
@@ -122,7 +122,7 @@ async def login(
         )
 
     # Create access token with different expiration based on remember_me
-    config = get_config()
+    config = config_service.get_jwt_utils()
 
     if login_data.remember_me:
         # Remember me: 30 days
@@ -130,7 +130,7 @@ async def login(
         logger.info(f"Remember me login for {user.email} - token valid for 30 days")
     else:
         # Regular login: use config setting (default 8 hours)
-        expiration_hours = config.api_mode.JWT_EXPIRATION_HOURS
+        expiration_hours = config.get("jwt_expiration_hours")
         logger.info(
             f"Regular login for {user.email} - token valid for {expiration_hours} hours"
         )

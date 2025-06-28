@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
-from src.app.config import get_config
+from src.app.config import config_service
 
 
 class TokenData(BaseModel):
@@ -33,7 +33,7 @@ def create_access_token(
     Returns:
         str: JWT token
     """
-    config = get_config()
+    config = config_service.get_jwt_utils()
 
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -57,8 +57,8 @@ def create_access_token(
 
     encoded_jwt = jwt.encode(
         to_encode,
-        config.api_mode.JWT_SECRET_KEY,
-        algorithm=config.api_mode.JWT_ALGORITHM,
+        config.get("jwt_secret_key"),
+        algorithm=config.get("jwt_algorithm"),
     )
     return encoded_jwt
 
@@ -74,11 +74,11 @@ def verify_token(token: str) -> Optional[TokenData]:
         TokenData: Decoded token data or None if invalid
     """
     try:
-        config = get_config()
+        config = config_service.get_jwt_utils()
         payload = jwt.decode(
             token,
-            config.api_mode.JWT_SECRET_KEY,
-            algorithms=[config.api_mode.JWT_ALGORITHM],
+            config.get("jwt_secret_key"),
+            algorithms=[config.get("jwt_algorithm")],
         )
 
         user_id = payload.get("sub")
@@ -108,11 +108,11 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
         Dict: Decoded payload or None if invalid
     """
     try:
-        config = get_config()
+        config = config_service.get_jwt_utils()
         payload = jwt.decode(
             token,
-            config.api_mode.JWT_SECRET_KEY,
-            algorithms=[config.api_mode.JWT_ALGORITHM],
+            config.get("jwt_secret_key"),
+            algorithms=[config.get("jwt_algorithm")],
         )
         return payload
     except JWTError:

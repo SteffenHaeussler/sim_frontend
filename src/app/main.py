@@ -2,19 +2,19 @@
 import json
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Dict
 
 from dotenv import load_dotenv
 
 # Load environment variables FIRST, before any imports that use them
 load_dotenv(".env")
 
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from src.app.auth import auth_router
-from src.app.config import Config
+from src.app.config import config_service
 from src.app.core import router as core_router
 from src.app.logging import setup_logger
 from src.app.middleware import ApiUsageTracker, RequestTimer
@@ -49,7 +49,7 @@ async def lifespan(application: FastAPI):
     logger.info("Application shutdown - database connection closed")
 
 
-def get_application(config: Dict) -> FastAPI:
+def get_application() -> FastAPI:
     """
     Create the FastAPI app.
 
@@ -68,9 +68,8 @@ def get_application(config: Dict) -> FastAPI:
     usage_tracker = ApiUsageTracker()
     application = FastAPI(lifespan=lifespan)
 
-    application.state = config
+    application.state = config_service.get_api_model()
     # Ensure VERSION is available at state level for backward compatibility
-    application.state.VERSION = config.current_version
 
     # Load lookup assets into application state
     application.state.lookup_assets = load_lookup_assets()
@@ -90,13 +89,9 @@ def get_application(config: Dict) -> FastAPI:
         "/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static"
     )
 
-    logger.info(f"API running in {config.api_mode.CONFIG_NAME} mode")
+    logger.info(f"API running in {application.state.config_name} mode")
     return application
 
 
-# ugly work around to set the toml file path
-Config._toml_file = f"{ROOTDIR}/config.toml"
-config = Config()
-
-setup_logger(config.api_mode)
-app = get_application(config)
+setup_logger(config_service.get_api_model())
+app = get_application()
