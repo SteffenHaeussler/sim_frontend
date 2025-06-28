@@ -5,53 +5,59 @@ from unittest.mock import patch
 
 import pytest
 
-from src.app.config import Config
+from src.app.config import ConfigService, ConfigurationError
 from src.app.main import get_application, load_lookup_assets
 
 
 class TestConfiguration:
     """Test application configuration"""
     
-    def test_config_loads_environments(self, test_config):
-        """Test configuration loads all environments"""
-        assert test_config.FASTAPI_ENV == "TEST"
-        assert test_config.current_version == "0.1.0-test"
-        assert hasattr(test_config, 'TEST')
-        assert hasattr(test_config, 'DEV')
-        assert hasattr(test_config, 'PROD')
-        assert hasattr(test_config, 'STAGE')
+    def test_config_loads_basic_settings(self, test_config):
+        """Test configuration loads basic settings"""
+        assert test_config.fastapi_env == "TEST"
+        assert test_config.version == "0.1.0-test"
+        assert test_config.debug is True
+        assert test_config.config_name == "TEST"
     
-    def test_config_api_mode_property(self, test_config):
-        """Test api_mode property returns correct environment"""
-        api_mode = test_config.api_mode
-        assert api_mode.CONFIG_NAME == "TEST"
-        assert api_mode.DEBUG is True
+    def test_config_jwt_settings(self, test_config):
+        """Test JWT configuration settings"""
+        assert test_config.jwt_secret_key == "test-secret-key"
+        assert test_config.jwt_algorithm == "HS256"
+        assert test_config.jwt_expiration_hours == 24
     
-    def test_config_different_environments(self):
-        """Test configuration with different FASTAPI_ENV values"""
-        config_data = {
-            "FASTAPI_ENV": "PROD",
-            "VERSION": "1.0.0",
-            "PROD": {"CONFIG_NAME": "PROD", "DEBUG": False},
-            "DEV": {"CONFIG_NAME": "DEV", "DEBUG": True},
-            "TEST": {"CONFIG_NAME": "TEST", "DEBUG": True},
-            "STAGE": {"CONFIG_NAME": "STAGE", "DEBUG": False}
-        }
+    def test_config_database_settings(self, test_config):
+        """Test database configuration settings"""
+        assert test_config.db_user == "test_user"
+        assert test_config.db_host == "localhost"
+        assert test_config.db_port == 5432
+        assert test_config.db_name == "test_db"
+        assert test_config.db_password == "test_password"
+    
+    def test_config_agent_settings(self, test_config):
+        """Test agent API configuration settings"""
+        assert test_config.agent_ws_base == "ws://test.example.com"
+        assert test_config.agent_url == "/test/agent"
+        assert test_config.agent_base == "http://test.example.com"
+    
+    def test_config_missing_required_env_var(self):
+        """Test configuration fails with missing required environment variable"""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ConfigurationError, match="Missing required configuration"):
+                ConfigService()
+    
+    def test_config_url_builders(self, test_config):
+        """Test URL builder methods"""
+        # Test agent API URL
+        agent_url = test_config.get_agent_api_url()
+        assert agent_url == "http://test.example.com/test/agent"
         
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
-            import toml
-            toml.dump(config_data, f)
-            config_file = f.name
+        # Test asset API URL
+        asset_url = test_config.get_asset_api_url("asset")
+        assert asset_url == "http://api.test.com/assets"
         
-        try:
-            with patch.object(Config, '_toml_file', config_file), \
-                 patch.dict(os.environ, {"FASTAPI_ENV": "PROD"}, clear=False):
-                config = Config()
-                assert config.FASTAPI_ENV == "PROD"
-                assert config.api_mode.CONFIG_NAME == "PROD"
-                assert config.api_mode.DEBUG is False
-        finally:
-            os.unlink(config_file)
+        # Test semantic API URL
+        semantic_url = test_config.get_semantic_api_url("search")
+        assert semantic_url == "http://semantic.test.com/search"
 
 
 class TestApplicationSetup:
@@ -60,7 +66,10 @@ class TestApplicationSetup:
     def test_app_creation_with_config(self, test_config):
         """Test FastAPI app creation with configuration"""
         with patch('src.app.main.load_lookup_assets', return_value=[]):
-            app = get_application(test_config)
+            # Set the global config for the application to use
+            import src.app.config
+            src.app.config._config_service = test_config
+            app = get_application()
             assert app is not None
             assert hasattr(app, 'state')
             assert app.state.VERSION == "0.1.0-test"
@@ -101,9 +110,16 @@ class TestEnvironmentVariables:
             assert response.status_code == 200
             # Should still render the page even with missing env vars
     
-    def test_env_vars_passed_to_template(self, client, mock_env):
-        """Test environment variables are passed to frontend template"""
-        response = client.get("/")
-        assert response.status_code == 200
-        # Template should render successfully with env vars
-        assert "text/html" in response.headers["content-type"]
+    def test_config_service_methods(self, test_config):
+        """Test config service utility methods"""
+        # Test JWT utils method
+        jwt_config = test_config.get_jwt_utils()
+        assert jwt_config["jwt_secret_key"] == "test-secret-key"
+        assert jwt_config["jwt_expiration_hours"] == 24
+        
+        # Test database config method
+        db_config = test_config.get_database()
+        assert "postgresql+asyncpg://" in db_config["database_url"]
+        
+        # Test SMTP configuration check
+        assert test_config.is_smtp_configured() is True

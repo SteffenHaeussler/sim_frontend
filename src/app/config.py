@@ -144,5 +144,23 @@ class ConfigService:
         return dict(database_url=database_url)
 
 
-# Global config service instance
-config_service = ConfigService()
+# Global config service instance - lazy initialization
+_config_service = None
+
+
+def get_config_service() -> ConfigService:
+    """Get or create the global config service instance"""
+    global _config_service
+    if _config_service is None:
+        _config_service = ConfigService()
+    return _config_service
+
+
+# For backward compatibility, create the instance on first access
+class ConfigServiceProxy:
+    """Proxy to lazy-load the config service"""
+    def __getattr__(self, name):
+        return getattr(get_config_service(), name)
+
+
+config_service = ConfigServiceProxy()
