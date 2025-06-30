@@ -23,7 +23,7 @@ class RequestAnalyzer:
                 parts = auth_header.split()
                 if len(parts) == 2 and parts[0].lower() == "bearer":
                     token = parts[1]
-                    token_data = verify_token(token)
+                    token_data = verify_token(token, expected_token_type="access")
                     if token_data and token_data.user_id:
                         user_id = uuid.UUID(token_data.user_id)
 

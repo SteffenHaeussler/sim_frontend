@@ -16,9 +16,14 @@ templates = Jinja2Templates(directory=f"{BASEDIR}/templates")
 @frontend_router.get("/", response_class=HTMLResponse)
 async def frontend(request: Request):
     """Serve the chat frontend"""
+    # Convert WebSocket URL to WSS if HTTPS is enabled
+    ws_base = config_service.agent_ws_base
+    if config_service.is_ssl_configured() and ws_base.startswith('ws://'):
+        ws_base = ws_base.replace('ws://', 'wss://')
+    
     context = {
         "request": request,
-        "agent_ws_base": config_service.agent_ws_base,
+        "agent_ws_base": ws_base,
         "agent_url": config_service.agent_url,
         "agent_base": config_service.agent_base,
         "api_base": config_service.api_base,
@@ -31,6 +36,7 @@ async def frontend(request: Request):
         "semantic_rank_url": config_service.semantic_rank_url,
         "semantic_search_url": config_service.semantic_search_url,
         "organisation_name": config_service.organisation_name,
+        "ssl_enabled": config_service.is_ssl_configured(),
     }
     return templates.TemplateResponse(request, "base.html", context)
 

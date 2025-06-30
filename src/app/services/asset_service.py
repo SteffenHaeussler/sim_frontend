@@ -16,7 +16,7 @@ class AssetService:
         self.config = config_service
 
     async def trigger_agent_question(
-        self, question: str, session_id: Optional[str] = None
+        self, question: str, session_id: Optional[str] = None, request_id: Optional[str] = None, event_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
         # Use frontend session ID if provided, otherwise generate one
@@ -28,6 +28,8 @@ class AssetService:
 
         logger.info(f"Received question: {question}")
         logger.info(f"Session ID: {session_id}")
+        logger.info(f"Request ID: {request_id}")
+        logger.info(f"Event ID: {event_id}")
         logger.info(f"Config agent_base: {self.config.agent_base}")
         logger.info(f"Config agent_url: {self.config.agent_url}")
         logger.info(f"Forwarding to: {api_url}")
@@ -45,6 +47,15 @@ class AssetService:
 
         def send_request():
             try:
+                # Prepare headers for external service
+                headers = {}
+                if session_id:
+                    headers["X-Session-ID"] = session_id
+                if request_id:
+                    headers["X-Request-ID"] = request_id
+                if event_id:
+                    headers["X-Event-ID"] = event_id
+                
                 with httpx.Client() as client:
                     response = client.get(
                         api_url,
@@ -52,6 +63,7 @@ class AssetService:
                             "q_id": session_id,
                             "question": question,
                         },
+                        headers=headers,
                         timeout=2,
                     )
                     logger.info(f"External API response: {response.status_code}")
@@ -61,9 +73,9 @@ class AssetService:
         # Fire and forget request to external API
         threading.Thread(target=send_request, daemon=True).start()
 
-        return {"status": "triggered", "session_id": session_id, "question": question}
+        return {"status": "triggered", "session_id": session_id, "request_id": request_id, "event_id": event_id, "question": question}
 
-    async def get_asset_info(self, asset_id: str) -> Dict[str, Any]:
+    async def get_asset_info(self, asset_id: str, session_id: str = None, request_id: str = None, event_id: str = None) -> Dict[str, Any]:
         """Get asset information by asset ID"""
         full_url = f"{self.config.get_asset_api_url('asset')}/{asset_id}"
 
@@ -71,15 +83,24 @@ class AssetService:
         logger.info(f"Forwarding to: {full_url}")
 
         try:
+            # Prepare headers for external service
+            headers = {}
+            if session_id:
+                headers["X-Session-ID"] = session_id
+            if request_id:
+                headers["X-Request-ID"] = request_id
+            if event_id:
+                headers["X-Event-ID"] = event_id
+                
             async with httpx.AsyncClient() as client:
-                response = await client.get(full_url, timeout=10)
+                response = await client.get(full_url, headers=headers, timeout=10)
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             logger.error(f"Asset API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
 
-    async def get_neighbor_assets(self, asset_id: str) -> Dict[str, Any]:
+    async def get_neighbor_assets(self, asset_id: str, session_id: str = None, request_id: str = None, event_id: str = None) -> Dict[str, Any]:
         """Get neighboring assets by asset ID"""
         full_url = f"{self.config.get_asset_api_url('neighbor')}/{asset_id}"
 
@@ -87,15 +108,24 @@ class AssetService:
         logger.info(f"Forwarding to: {full_url}")
 
         try:
+            # Prepare headers for external service
+            headers = {}
+            if session_id:
+                headers["X-Session-ID"] = session_id
+            if request_id:
+                headers["X-Request-ID"] = request_id
+            if event_id:
+                headers["X-Event-ID"] = event_id
+                
             async with httpx.AsyncClient() as client:
-                response = await client.get(full_url, timeout=10)
+                response = await client.get(full_url, headers=headers, timeout=10)
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             logger.error(f"Neighbor API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
 
-    async def get_name_from_id(self, asset_id: str) -> Dict[str, Any]:
+    async def get_name_from_id(self, asset_id: str, session_id: str = None, request_id: str = None, event_id: str = None) -> Dict[str, Any]:
         """Get asset name from asset ID"""
         full_url = f"{self.config.get_asset_api_url('name')}/{asset_id}"
 
@@ -103,15 +133,24 @@ class AssetService:
         logger.info(f"Forwarding to: {full_url}")
 
         try:
+            # Prepare headers for external service
+            headers = {}
+            if session_id:
+                headers["X-Session-ID"] = session_id
+            if request_id:
+                headers["X-Request-ID"] = request_id
+            if event_id:
+                headers["X-Event-ID"] = event_id
+                
             async with httpx.AsyncClient() as client:
-                response = await client.get(full_url, timeout=10)
+                response = await client.get(full_url, headers=headers, timeout=10)
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             logger.error(f"Name API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
 
-    async def get_id_from_name(self, name: str) -> Dict[str, Any]:
+    async def get_id_from_name(self, name: str, session_id: str = None, request_id: str = None, event_id: str = None) -> Dict[str, Any]:
         """Get asset ID from asset name"""
         full_url = f"{self.config.get_asset_api_url('id')}/{name}"
 
@@ -119,8 +158,17 @@ class AssetService:
         logger.info(f"Forwarding to: {full_url}")
 
         try:
+            # Prepare headers for external service
+            headers = {}
+            if session_id:
+                headers["X-Session-ID"] = session_id
+            if request_id:
+                headers["X-Request-ID"] = request_id
+            if event_id:
+                headers["X-Event-ID"] = event_id
+                
             async with httpx.AsyncClient() as client:
-                response = await client.get(full_url, timeout=10)
+                response = await client.get(full_url, headers=headers, timeout=10)
                 response.raise_for_status()
                 return response.json()
         except Exception as e:

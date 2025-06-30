@@ -3,11 +3,9 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 # Load environment variables FIRST, before any imports that use them
+from dotenv import load_dotenv
 load_dotenv(".env")
-
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -17,7 +15,7 @@ from src.app.auth import auth_router
 from src.app.config import config_service
 from src.app.core import router as core_router
 from src.app.logging import setup_logger
-from src.app.middleware import ApiUsageTracker, RequestTimer
+from src.app.middleware import ApiUsageTracker, RequestTimer, HTTPSRedirectMiddleware
 from src.app.models.database import close_db, init_database_engine
 from src.app.ratings import ratings_router
 
@@ -77,6 +75,11 @@ def get_application() -> FastAPI:
     # Initialize database connection
     init_database_engine()
 
+    # Add HTTPS redirect middleware if SSL is configured
+    if config_service.is_ssl_configured():
+        application.add_middleware(HTTPSRedirectMiddleware, force_https=True)
+        logger.info("HTTPS redirect middleware enabled")
+    
     application.middleware("http")(request_timer)
     application.middleware("http")(usage_tracker)
 

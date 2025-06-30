@@ -77,6 +77,12 @@ class ConfigService:
         self.organisation_name = self._get_optional(
             "organisation_name", "Company"
         ).title()
+        
+        # SSL/HTTPS Configuration
+        self.ssl_enabled = self._get_optional("SSL_ENABLED", "false").lower() == "true"
+        self.ssl_cert_file = self._get_optional("SSL_CERT_FILE", "")
+        self.ssl_key_file = self._get_optional("SSL_KEY_FILE", "")
+        self.ssl_ca_certs = self._get_optional("SSL_CA_CERTS", "")
 
     def _get_required(self, key: str) -> str:
         """Get required configuration value"""
@@ -123,6 +129,25 @@ class ConfigService:
     def is_smtp_configured(self) -> bool:
         """Check if SMTP is properly configured"""
         return all([self.smtp_host, self.sender_email, self.app_password])
+    
+    def is_ssl_configured(self) -> bool:
+        """Check if SSL is properly configured"""
+        return self.ssl_enabled and all([self.ssl_cert_file, self.ssl_key_file])
+    
+    def get_ssl_config(self) -> dict:
+        """Get SSL configuration for uvicorn"""
+        if not self.is_ssl_configured():
+            return {}
+        
+        config = {
+            "ssl_keyfile": self.ssl_key_file,
+            "ssl_certfile": self.ssl_cert_file,
+        }
+        
+        if self.ssl_ca_certs:
+            config["ssl_ca_certs"] = self.ssl_ca_certs
+            
+        return config
 
     def get_api_model(self):
         return AppConfig(

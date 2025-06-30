@@ -174,22 +174,24 @@ class AskAgent {
             });
             
             const ratingsUrl = new URL('/ratings/submit', window.location.origin);
+            
+            // Prepare headers for rating request
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
             if (sessionId) {
-                ratingsUrl.searchParams.append('session_id', sessionId);
+                headers['X-Session-ID'] = sessionId;
             }
             if (eventId) {
-                ratingsUrl.searchParams.append('event_id', eventId);
+                headers['X-Event-ID'] = eventId;
             }
             
             const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify({
                     rating_type: ratingType,
-                    session_id: sessionId,
-                    event_id: eventId,  // Include event ID for this specific message
                     message_context: content.substring(0, 500), // First 500 chars of the response
                     feedback_text: null
                 })
@@ -214,17 +216,37 @@ class AskAgent {
         actionsDiv.appendChild(thankYouMsg);
     }
 
+    generateRequestId() {
+        return 'req-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+
     async triggerEvent(question) {
         const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
         
-        // Send the frontend session ID to the backend
+        // Generate request and event IDs
+        const requestId = this.generateRequestId();
+        const eventId = this.generateEventId();
+        
+        // Prepare headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Add session ID to headers
         if (window.app && window.app.sessionId) {
-            url.searchParams.append('session_id', window.app.sessionId);
+            headers['X-Session-ID'] = window.app.sessionId;
         }
+        
+        // Add request and event IDs to headers
+        headers['X-Request-ID'] = requestId;
+        headers['X-Event-ID'] = eventId;
 
-        const response = await window.authAPI.authenticatedFetch(url.toString());
+        const response = await window.authAPI.authenticatedFetch(url.toString(), {
+            method: 'GET',
+            headers: headers
+        });
         const data = await response.json();
 
         return data;
