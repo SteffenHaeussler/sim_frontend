@@ -225,11 +225,10 @@ class AskAgent {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
         
-        // Generate request and event IDs
+        // Generate request ID for this API call
         const requestId = this.generateRequestId();
-        const eventId = this.generateEventId();
         
-        // Prepare headers
+        // Prepare headers (no event_id - that's generated when response arrives)
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -239,9 +238,8 @@ class AskAgent {
             headers['X-Session-ID'] = window.app.sessionId;
         }
         
-        // Add request and event IDs to headers
+        // Add request ID to headers
         headers['X-Request-ID'] = requestId;
-        headers['X-Event-ID'] = eventId;
 
         const response = await window.authAPI.authenticatedFetch(url.toString(), {
             method: 'GET',
