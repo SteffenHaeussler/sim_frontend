@@ -4,12 +4,15 @@ import sys
 
 from loguru import logger
 
-from src.app.context import ctx_session_id
+from src.app.context import ctx_session_id, ctx_event_id, ctx_request_id
 
 
-def session_id_filter(record):
+def tracking_filter(record):
+    """Add all tracking IDs to log records"""
     record["session_id"] = ctx_session_id.get()
-    return record["session_id"]
+    record["event_id"] = ctx_event_id.get()
+    record["request_id"] = ctx_request_id.get()
+    return True  # Always include the record
 
 
 class InterceptHandler(logging.Handler):
@@ -43,6 +46,8 @@ def sink_serializer(message):
         "message": record["message"],
         "timestamp": record["time"].timestamp(),
         "session_id": record["session_id"],
+        "event_id": record["event_id"],
+        "request_id": record["request_id"],
     }
     serialized = json.dumps(simplified)
     print(serialized, file=sys.stdout)
@@ -72,13 +77,13 @@ def setup_logger(config_name, json_serialize=True):
                 {
                     "sink": sink_serializer,
                     "level": service_log_level,
-                    "filter": session_id_filter,
+                    "filter": tracking_filter,
                 }
             ]
         )
 
     else:
-        fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <red> {session_id} </red> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+        fmt = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <red>S:{session_id}</red> | <blue>E:{event_id}</blue> | <magenta>R:{request_id}</magenta> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
 
         logger.configure(
             handlers=[
@@ -86,7 +91,7 @@ def setup_logger(config_name, json_serialize=True):
                     "sink": sys.stdout,
                     "level": service_log_level,
                     "format": fmt,
-                    "filter": session_id_filter,
+                    "filter": tracking_filter,
                 }
             ]
         )

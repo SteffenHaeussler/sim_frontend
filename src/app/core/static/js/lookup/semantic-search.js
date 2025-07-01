@@ -58,19 +58,15 @@ class SemanticSearch {
             // Generate event ID for this semantic search
             this.currentEventId = this.generateEventId();
 
-            // Add event_id and session_id to URL parameters
             const semanticUrl = new URL('/lookout/semantic', window.location.origin);
-            const sessionId = window.app ? window.app.sessionId : '';
-            if (sessionId) {
-                semanticUrl.searchParams.append('session_id', sessionId);
-            }
-            if (this.currentEventId) {
-                semanticUrl.searchParams.append('event_id', this.currentEventId);
-            }
+            
+            // Get tracking headers with the event ID
+            const trackingHeaders = window.app ? window.app.getTrackingHeaders(this.currentEventId) : {};
 
             // Make semantic search API call
             const response = await window.authAPI.authenticatedFetch(semanticUrl.toString(), {
                 method: 'POST',
+                headers: trackingHeaders,
                 body: JSON.stringify({
                     query: query
                 })
@@ -262,24 +258,19 @@ class SemanticSearch {
                 message_context: fullContext.substring(0, 100) + '...'
             });
             
-            // Add event_id and session_id to URL parameters
             const ratingsUrl = new URL('/ratings/submit', window.location.origin);
-            if (sessionId) {
-                ratingsUrl.searchParams.append('session_id', sessionId);
-            }
-            if (this.currentEventId) {
-                ratingsUrl.searchParams.append('event_id', this.currentEventId);
-            }
+            
+            // Get tracking headers with the event ID
+            const trackingHeaders = window.app ? window.app.getTrackingHeaders(this.currentEventId) : {};
 
             const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...trackingHeaders
                 },
                 body: JSON.stringify({
                     rating_type: ratingType,
-                    session_id: sessionId,
-                    event_id: this.currentEventId,  // Include event ID for linking
                     message_context: fullContext,  // Include both query and API response
                     feedback_text: null
                 })

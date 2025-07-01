@@ -174,22 +174,18 @@ class AskAgent {
             });
             
             const ratingsUrl = new URL('/ratings/submit', window.location.origin);
-            if (sessionId) {
-                ratingsUrl.searchParams.append('session_id', sessionId);
-            }
-            if (eventId) {
-                ratingsUrl.searchParams.append('event_id', eventId);
-            }
+            
+            // Get tracking headers with the event ID
+            const trackingHeaders = window.app ? window.app.getTrackingHeaders(eventId) : {};
             
             const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...trackingHeaders
                 },
                 body: JSON.stringify({
                     rating_type: ratingType,
-                    session_id: sessionId,
-                    event_id: eventId,  // Include event ID for this specific message
                     message_context: content.substring(0, 500), // First 500 chars of the response
                     feedback_text: null
                 })
@@ -219,12 +215,12 @@ class AskAgent {
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
         
-        // Send the frontend session ID to the backend
-        if (window.app && window.app.sessionId) {
-            url.searchParams.append('session_id', window.app.sessionId);
-        }
-
-        const response = await window.authAPI.authenticatedFetch(url.toString());
+        // Get tracking headers from the app
+        const trackingHeaders = window.app ? window.app.getTrackingHeaders() : {};
+        
+        const response = await window.authAPI.authenticatedFetch(url.toString(), {
+            headers: trackingHeaders
+        });
         const data = await response.json();
 
         return data;

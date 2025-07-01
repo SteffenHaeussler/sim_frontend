@@ -16,6 +16,10 @@ The application serves as a frontend interface and API for functionalities inclu
         *   Submitting and retrieving ratings.
         *   Interacting with a semantic search service for embedding, searching, and ranking.
     *   Health checks and application metadata.
+    *   **Request Tracking System:** Comprehensive tracking using three types of IDs:
+        *   `session_id` - Tracks user sessions across multiple requests
+        *   `event_id` - Tracks specific events (AI responses, ratings)
+        *   `request_id` - Tracks individual API requests
 *   **Streamlit Frontend:**
     *   User interface for interacting with the application's features (details to be expanded based on Streamlit app specifics).
 *   **Database Integration:**
@@ -133,6 +137,56 @@ The project uses `pytest` for testing.
 *   `pyproject.toml`: Project metadata and dependencies.
 *   `.env` (not committed): Local environment variable configuration.
 *   `entrypoint.sh`: Script executed when the Docker container starts.
+
+## Request Tracking System
+
+The application implements a comprehensive request tracking system using HTTP headers for consistent identification and correlation across all API calls.
+
+### Tracking Headers
+
+All API requests include the following tracking headers:
+
+*   **`X-Session-ID`** - Unique identifier for user sessions
+    *   Generated once per browser session
+    *   Used for session-level analytics and logging correlation
+    *   Persists across multiple requests and page reloads
+
+*   **`X-Event-ID`** - Unique identifier for specific events
+    *   Generated for AI responses, ratings, and semantic searches
+    *   Links user interactions to specific system responses
+    *   Essential for rating correlation and feedback tracking
+
+*   **`X-Request-ID`** - Unique identifier for individual requests
+    *   Generated per API call for request-level tracking
+    *   Enables detailed performance monitoring and debugging
+    *   Helps correlate logs across microservices
+
+### Implementation Details
+
+**Backend Processing:**
+*   Middleware automatically extracts tracking headers from all incoming requests
+*   Falls back to query parameters for backward compatibility
+*   Sets tracking IDs in logging context for correlation
+*   Enhanced logging includes all tracking IDs in every log message
+*   Stores all tracking data in the database for analytics
+
+**Frontend Integration:**
+*   JavaScript automatically generates and includes tracking headers
+*   Session ID persists across browser session
+*   Event IDs link user actions to system responses
+*   Request IDs provide detailed API call tracking
+
+**Database Storage:**
+*   All tracking IDs are stored in the `api_usage_logs` table
+*   Enables comprehensive usage analytics and debugging
+*   Links ratings to specific events via event_id correlation
+
+### WebSocket Connections
+
+WebSocket connections use query parameters for session tracking due to browser limitations with custom headers:
+```javascript
+const wsUrl = `${wsBase}?session_id=${sessionId}`;
+```
 
 ## Contributing
 

@@ -7,6 +7,7 @@ from fastapi import Request
 from loguru import logger
 
 from src.app.config import config_service
+from src.app.context import ctx_session_id
 
 
 class AssetService:
@@ -16,11 +17,12 @@ class AssetService:
         self.config = config_service
 
     async def trigger_agent_question(
-        self, question: str, session_id: Optional[str] = None
+        self, question: str
     ) -> Dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
-        # Use frontend session ID if provided, otherwise generate one
-        if not session_id:
+        # Get session ID from context (set by middleware)
+        session_id = ctx_session_id.get()
+        if session_id == "-" or not session_id:
             session_id = str(uuid.uuid4())
 
         # Get external API URL from config

@@ -34,6 +34,7 @@ class ApiUsageLog(Base):
     # Session and user context
     session_id = Column(String(255), index=True)  # Track user sessions
     event_id = Column(String(255), index=True)  # Links to specific WebSocket events
+    request_id = Column(String(255), index=True)  # Individual request identifier
     user_agent = Column(String(500))  # Browser/client information
     ip_address = Column(String(45))  # IPv4/IPv6 address
     
@@ -67,6 +68,7 @@ class ApiUsageLog(Base):
         organisation_id: uuid.UUID = None,
         session_id: str = None,
         event_id: str = None,
+        request_id: str = None,
         user_agent: str = None,
         ip_address: str = None,
         query_params: str = None,
@@ -109,6 +111,7 @@ class ApiUsageLog(Base):
             organisation_id=organisation_id,
             session_id=session_id,
             event_id=event_id,
+            request_id=request_id,
             user_agent=user_agent,
             ip_address=ip_address,
             query_params=query_params,

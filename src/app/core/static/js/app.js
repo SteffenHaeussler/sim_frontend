@@ -20,6 +20,27 @@ class App {
         });
     }
 
+    generateRequestId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    getTrackingHeaders(eventId = null) {
+        const headers = {
+            'X-Session-ID': this.sessionId,
+            'X-Request-ID': this.generateRequestId()
+        };
+        
+        if (eventId) {
+            headers['X-Event-ID'] = eventId;
+        }
+        
+        return headers;
+    }
+
     initializeElements() {
         this.sessionIdBottomElement = document.getElementById('session-id-bottom');
         this.logoButton = document.querySelector('.icon-item.logo');

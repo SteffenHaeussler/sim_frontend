@@ -14,18 +14,16 @@ def get_asset_service() -> AssetService:
 @asset_router.get("/agent")
 async def answer_question(
     question: str, 
-    session_id: str = None, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
     """Handle question from frontend and trigger external agent API"""
-    return await asset_service.trigger_agent_question(question, session_id)
+    return await asset_service.trigger_agent_question(question)
 
 
 @asset_router.get("/api/asset/{asset_id}")
 async def get_asset_info(
     asset_id: str, 
-    session_id: str = None, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
@@ -36,7 +34,6 @@ async def get_asset_info(
 @asset_router.get("/api/neighbor/{asset_id}")
 async def get_neighbor_assets(
     asset_id: str, 
-    session_id: str = None, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
@@ -47,7 +44,6 @@ async def get_neighbor_assets(
 @asset_router.get("/api/name/{asset_id}")
 async def get_name_from_id(
     asset_id: str, 
-    session_id: str = None, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
@@ -58,7 +54,6 @@ async def get_name_from_id(
 @asset_router.get("/api/id/{name}")
 async def get_id_from_name(
     name: str, 
-    session_id: str = None, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
@@ -69,7 +64,6 @@ async def get_id_from_name(
 @asset_router.get("/lookup/assets")
 async def get_lookup_assets(
     request: Request, 
-    session_id: str = None, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
@@ -85,7 +79,6 @@ async def search_assets(
     type: str = None,
     page: int = 1,
     limit: int = 50,
-    session_id: str = None,
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
