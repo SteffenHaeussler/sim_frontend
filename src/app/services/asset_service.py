@@ -17,7 +17,7 @@ class AssetService:
         self.config = config_service
 
     async def trigger_agent_question(
-        self, question: str
+        self, question: str, request: Request
     ) -> Dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
         # Get session ID from context (set by middleware)
@@ -47,6 +47,28 @@ class AssetService:
 
         def send_request():
             try:
+                # Extract headers from the incoming request
+                headers_to_forward = {}
+                if request.headers:
+                    # Forward common headers that might be needed
+                    for header_name in [
+                        "authorization",
+                        "x-api-key",
+                        "x-correlation-id",
+                        "x-request-id",
+                        "x-session-id",
+                        "x-event-id",
+                        "user-agent",
+                        "accept",
+                        "content-type",
+                    ]:
+                        if header_name in request.headers:
+                            headers_to_forward[header_name] = request.headers[
+                                header_name
+                            ]
+
+                logger.info(f"Forwarding headers: {list(headers_to_forward.keys())}")
+
                 with httpx.Client() as client:
                     response = client.get(
                         api_url,
@@ -54,6 +76,7 @@ class AssetService:
                             "q_id": session_id,
                             "question": question,
                         },
+                        headers=headers_to_forward,
                         timeout=2,
                     )
                     logger.info(f"External API response: {response.status_code}")

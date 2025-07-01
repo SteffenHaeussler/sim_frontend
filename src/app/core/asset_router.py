@@ -13,12 +13,13 @@ def get_asset_service() -> AssetService:
 
 @asset_router.get("/agent")
 async def answer_question(
+    request: Request,
     question: str, 
     token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service)
 ):
     """Handle question from frontend and trigger external agent API"""
-    return await asset_service.trigger_agent_question(question)
+    return await asset_service.trigger_agent_question(question, request)
 
 
 @asset_router.get("/api/asset/{asset_id}")
