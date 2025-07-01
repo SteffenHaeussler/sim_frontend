@@ -40,7 +40,10 @@ class AssetSearch {
 
     async loadFilterOptions() {
         try {
-            const response = await window.authAPI.authenticatedFetch('/lookup/search');
+            const trackingHeaders = window.app ? window.app.getTrackingHeaders() : {};
+            const response = await window.authAPI.authenticatedFetch('/lookup/search', {
+                headers: trackingHeaders
+            });
             const data = await response.json();
 
             // Populate asset type filter
@@ -100,7 +103,10 @@ class AssetSearch {
             if (assetType) params.append('asset_type', assetType);
             if (type) params.append('type', type);
 
-            const response = await window.authAPI.authenticatedFetch(`/lookup/search?${params}`);
+            const trackingHeaders = window.app ? window.app.getTrackingHeaders() : {};
+            const response = await window.authAPI.authenticatedFetch(`/lookup/search?${params}`, {
+                headers: trackingHeaders
+            });
             const data = await response.json();
 
             this.displayAssets(data);

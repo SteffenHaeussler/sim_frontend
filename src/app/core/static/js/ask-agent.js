@@ -58,7 +58,7 @@ class AskAgent {
 
         const messageDiv = document.createElement('div');
         messageDiv.className = isQuestion ? 'message question' : 'message';
-        
+
         // Generate unique event ID for AI responses (not for user questions)
         let eventId = null;
         if (!isQuestion) {
@@ -166,13 +166,13 @@ class AskAgent {
         try {
             const sessionId = window.app ? window.app.sessionId : '';
             const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
-            
+
             console.log('About to submit rating:', {
                 rating_type: ratingType,
                 session_id: sessionId,
                 message_context: content.substring(0, 100) + '...'
             });
-            
+
             const ratingsUrl = new URL('/ratings/submit', window.location.origin);
             if (sessionId) {
                 ratingsUrl.searchParams.append('session_id', sessionId);
@@ -180,7 +180,7 @@ class AskAgent {
             if (eventId) {
                 ratingsUrl.searchParams.append('event_id', eventId);
             }
-            
+
             const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
                 method: 'POST',
                 headers: {
@@ -218,13 +218,27 @@ class AskAgent {
         const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
+
+        // Generate request ID for correlation
+        const requestId = this.generateEventId();
         
-        // Send the frontend session ID to the backend
+        // Prepare headers with session and request IDs
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Add session ID header
         if (window.app && window.app.sessionId) {
             url.searchParams.append('session_id', window.app.sessionId);
+            headers['x-session-id'] = window.app.sessionId;
         }
+        
+        // Add request ID header for correlation
+        headers['x-request-id'] = requestId;
 
-        const response = await window.authAPI.authenticatedFetch(url.toString());
+        const response = await window.authAPI.authenticatedFetch(url.toString(), {
+            headers: headers
+        });
         const data = await response.json();
 
         return data;

@@ -7,6 +7,7 @@ from fastapi import Request
 from loguru import logger
 
 from src.app.config import config_service
+from src.app.context import ctx_session_id
 
 
 class AssetService:
@@ -16,11 +17,12 @@ class AssetService:
         self.config = config_service
 
     async def trigger_agent_question(
-        self, question: str, session_id: Optional[str] = None
+        self, question: str, request: Request
     ) -> Dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
-        # Use frontend session ID if provided, otherwise generate one
-        if not session_id:
+        # Get session ID from context (set by middleware)
+        session_id = ctx_session_id.get()
+        if session_id == "-" or not session_id:
             session_id = str(uuid.uuid4())
 
         # Get external API URL from config
@@ -45,6 +47,28 @@ class AssetService:
 
         def send_request():
             try:
+                # Extract headers from the incoming request
+                headers_to_forward = {}
+                if request.headers:
+                    # Forward common headers that might be needed
+                    for header_name in [
+                        "authorization",
+                        "x-api-key",
+                        "x-correlation-id",
+                        "x-request-id",
+                        "x-session-id",
+                        "x-event-id",
+                        "user-agent",
+                        "accept",
+                        "content-type",
+                    ]:
+                        if header_name in request.headers:
+                            headers_to_forward[header_name] = request.headers[
+                                header_name
+                            ]
+
+                logger.info(f"Forwarding headers: {list(headers_to_forward.keys())}")
+
                 with httpx.Client() as client:
                     response = client.get(
                         api_url,
@@ -52,6 +76,7 @@ class AssetService:
                             "q_id": session_id,
                             "question": question,
                         },
+                        headers=headers_to_forward,
                         timeout=2,
                     )
                     logger.info(f"External API response: {response.status_code}")

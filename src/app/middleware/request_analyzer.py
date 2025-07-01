@@ -60,13 +60,24 @@ class RequestAnalyzer:
         if request.query_params:
             query_params_data.update(dict(request.query_params))
 
-        # Extract session_id from query parameters
-        session_id = query_params_data.get("session_id")
+        # Extract tracking IDs - headers first, query params as fallback
+        session_id = (
+            request.headers.get("x-session-id") 
+            or query_params_data.get("session_id")
+        )
         if session_id:
-            logger.debug(f"Extracted session_id from query params: {session_id}")
+            logger.debug(f"Extracted session_id: {session_id}")
 
-        # Extract event_id from query parameters
-        event_id = query_params_data.get("event_id")
+        event_id = (
+            request.headers.get("x-event-id") 
+            or query_params_data.get("event_id")
+        )
+        
+        # Generate request_id if not provided in headers
+        request_id = (
+            request.headers.get("x-request-id") 
+            or str(uuid.uuid4())
+        )
 
         # Add POST body data for specific endpoints
         request_body = await request.body() if hasattr(request, "body") else b""
@@ -104,6 +115,7 @@ class RequestAnalyzer:
         return {
             "session_id": session_id,
             "event_id": event_id,
+            "request_id": request_id,
             "query_params": query_params,
             "request_size": request_size,
             "template_used": template_used,

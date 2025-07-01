@@ -44,7 +44,10 @@ class NeighborSearch {
 
         try {
             // Make API call to neighbor endpoint
-            const response = await window.authAPI.authenticatedFetch(`/api/neighbor/${encodeURIComponent(assetId)}`);
+            const trackingHeaders = window.app ? window.app.getTrackingHeaders() : {};
+            const response = await window.authAPI.authenticatedFetch(`/api/neighbor/${encodeURIComponent(assetId)}`, {
+                headers: trackingHeaders
+            });
             const data = await response.json();
 
             if (data.error) {

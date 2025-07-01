@@ -66,7 +66,10 @@ class AssetInfo {
             } else {
                 // Input is an asset name, get ID from name first
                 console.log('Input detected as name, fetching ID for:', assetInput);
-                const idResponse = await window.authAPI.authenticatedFetch(`/api/id/${encodeURIComponent(assetInput)}`);
+                const trackingHeaders = window.app ? window.app.getTrackingHeaders() : {};
+                const idResponse = await window.authAPI.authenticatedFetch(`/api/id/${encodeURIComponent(assetInput)}`, {
+                    headers: trackingHeaders
+                });
                 const idData = await idResponse.json();
 
                 if (idData.error) {
@@ -83,7 +86,10 @@ class AssetInfo {
             }
 
             // Get asset details using the ID
-            const assetResponse = await window.authAPI.authenticatedFetch(`/api/asset/${encodeURIComponent(assetId)}`);
+            const trackingHeaders2 = window.app ? window.app.getTrackingHeaders() : {};
+            const assetResponse = await window.authAPI.authenticatedFetch(`/api/asset/${encodeURIComponent(assetId)}`, {
+                headers: trackingHeaders2
+            });
             const assetData = await assetResponse.json();
 
             if (assetData.error) {
