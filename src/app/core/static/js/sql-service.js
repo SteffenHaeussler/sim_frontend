@@ -225,10 +225,8 @@ class AskSQLAgent {
     }
 
     async triggerEvent(question) {
-        const endpoint = '/agent';
+        const endpoint = '/sqlagent';
         const url = new URL(endpoint, window.location.origin);
-        // Add a parameter to indicate this is a SQL query
-        url.searchParams.append('query_type', 'sql');
         url.searchParams.append('question', question);
 
         // Generate request ID for correlation

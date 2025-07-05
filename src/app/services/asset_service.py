@@ -103,13 +103,13 @@ class AssetService:
         logger.info(f"Received question: {question}")
         logger.info(f"Session ID: {session_id}")
         logger.info(f"Config agent_base: {self.config.agent_base}")
-        logger.info(f"Config sql_agent_url: {self.config.sql_agent_url}")
+        logger.info(f"Config agent_sql_url: {self.config.agent_sql_url}")
         logger.info(f"Forwarding to: {api_url}")
 
         # Don't make the request if URL is empty/invalid
         if not api_url or api_url == "":
             logger.error(
-                "SQL Agent API URL is empty - check AGENT_BASE and SQL_AGENT_URL configuration"
+                "SQL Agent API URL is empty - check AGENT_BASE and agent_sql_url configuration"
             )
             return {
                 "status": "error",
