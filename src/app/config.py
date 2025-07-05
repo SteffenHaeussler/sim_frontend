@@ -49,6 +49,7 @@ class ConfigService:
         # Agent/External API Configuration
         self.agent_ws_base = self._get_required("agent_ws_base")
         self.agent_url = self._get_required("agent_url")
+        self.agent_sql_url = self._get_required("agent_sql_url")
         self.agent_base = self._get_required("agent_base")
 
         # Asset API Configuration
@@ -92,6 +93,10 @@ class ConfigService:
     def get_agent_api_url(self) -> str:
         """Get complete agent API URL"""
         return f"{self.agent_base}{self.agent_url}"
+
+    def get_sql_agent_api_url(self) -> str:
+        """Get complete sql agent API URL"""
+        return f"{self.agent_base}{self.agent_sql_url}"
 
     def get_asset_api_url(self, endpoint: str) -> str:
         """Get complete asset API URL for specific endpoint"""

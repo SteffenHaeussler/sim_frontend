@@ -61,23 +61,18 @@ class RequestAnalyzer:
             query_params_data.update(dict(request.query_params))
 
         # Extract tracking IDs - headers first, query params as fallback
-        session_id = (
-            request.headers.get("x-session-id") 
-            or query_params_data.get("session_id")
+        session_id = request.headers.get("x-session-id") or query_params_data.get(
+            "session_id"
         )
         if session_id:
             logger.debug(f"Extracted session_id: {session_id}")
 
-        event_id = (
-            request.headers.get("x-event-id") 
-            or query_params_data.get("event_id")
+        event_id = request.headers.get("x-event-id") or query_params_data.get(
+            "event_id"
         )
-        
+
         # Generate request_id if not provided in headers
-        request_id = (
-            request.headers.get("x-request-id") 
-            or str(uuid.uuid4())
-        )
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
 
         # Add POST body data for specific endpoints
         request_body = await request.body() if hasattr(request, "body") else b""
@@ -148,6 +143,8 @@ class RequestAnalyzer:
             return "ask-agent"
         elif path.startswith("/lookup") or path.startswith("/api"):
             return "lookup-service"
+        elif path.startswith("/sqlagent"):
+            return "ask-sql-agent"
         elif path.startswith("/lookout/semantic"):
             return "semantic-search"
         elif path.startswith("/auth"):

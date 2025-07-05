@@ -1,4 +1,4 @@
-class AskAgent {
+class AskSQLAgent {
     constructor() {
         this.websocket = null;
         this.messageEventIds = new Map();  // Store event IDs for each message
@@ -7,10 +7,16 @@ class AskAgent {
     }
 
     initializeElements() {
-        this.messagesElement = document.getElementById('messages');
-        this.questionInput = document.getElementById('question');
-        this.sendButton = document.getElementById('send-btn');
+        this.messagesElement = document.getElementById('sql-messages');
+        this.questionInput = document.getElementById('sql-question');
+        this.sendButton = document.getElementById('sql-send-btn');
         this.originalPlaceholder = this.questionInput ? this.questionInput.placeholder : '';
+        
+        // Debug: Check if elements exist
+        console.log('SQL Agent elements:');
+        console.log('messagesElement:', this.messagesElement);
+        console.log('questionInput:', this.questionInput);
+        console.log('sendButton:', this.sendButton);
     }
 
     setupEventListeners() {
@@ -126,6 +132,10 @@ class AskAgent {
 
         this.messagesElement.appendChild(messageDiv);
         this.messagesElement.scrollTop = this.messagesElement.scrollHeight;
+        
+        // Debug: Check if message was added
+        console.log('Message added to DOM. Total messages:', this.messagesElement.children.length);
+        console.log('Messages container innerHTML:', this.messagesElement.innerHTML);
     }
 
     async copyMessage(content, button) {
@@ -217,22 +227,24 @@ class AskAgent {
     async triggerEvent(question) {
         const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
+        // Add a parameter to indicate this is a SQL query
+        url.searchParams.append('query_type', 'sql');
         url.searchParams.append('question', question);
 
         // Generate request ID for correlation
         const requestId = this.generateEventId();
-        
+
         // Prepare headers with session and request IDs
         const headers = {
             'Content-Type': 'application/json'
         };
-        
+
         // Add session ID header
         if (window.app && window.app.sessionId) {
             url.searchParams.append('session_id', window.app.sessionId);
             headers['x-session-id'] = window.app.sessionId;
         }
-        
+
         // Add request ID header for correlation
         headers['x-request-id'] = requestId;
 
@@ -245,6 +257,7 @@ class AskAgent {
     }
 
     async connectWebSocket() {
+        console.log('SQL Agent: Connecting to WebSocket...');
         if (this.websocket) {
             this.websocket.close();
         }
@@ -252,10 +265,12 @@ class AskAgent {
         const sessionId = window.app ? window.app.sessionId : '';
         const wsBase = window.app ? window.app.wsBase : 'ws://localhost:5062/ws';
         const wsUrl = `${wsBase}?session_id=${sessionId}`;
+        console.log('SQL Agent WebSocket URL:', wsUrl);
         this.websocket = new WebSocket(wsUrl);
 
         this.websocket.onmessage = (event) => {
             const message = event.data;
+            console.log('SQL Agent WebSocket received:', message);
 
             if (message.startsWith("event: ")) {
                 // Handle status updates
@@ -296,29 +311,60 @@ class AskAgent {
 
 
     async handleSendMessage() {
-        console.log('Ask Agent: handleSendMessage called');
-        console.log('Ask Agent: Current active service:', window.app ? window.app.currentActiveService : 'unknown');
+        console.log('SQL Agent: handleSendMessage called');
+        console.log('SQL Agent: Current active service:', window.app ? window.app.currentActiveService : 'unknown');
         
-        // Only process if Ask Agent is the active service
-        if (window.app && window.app.currentActiveService !== 'ask-agent') {
-            console.log('Ask Agent: Not active service, ignoring send');
+        // Capture the question value immediately before any other handler can clear it
+        const question = this.questionInput ? this.questionInput.value.trim() : '';
+        console.log('SQL Agent: Captured question immediately:', question);
+        
+        // Only process if SQL Agent is the active service
+        if (window.app && window.app.currentActiveService !== 'ask-sql-agent') {
+            console.log('SQL Agent: Not active service, ignoring send');
             return;
         }
         
-        if (!this.questionInput || !this.sendButton) return;
+        if (!this.questionInput || !this.sendButton) {
+            console.log('SQL Agent: Missing elements:', {questionInput: this.questionInput, sendButton: this.sendButton});
+            return;
+        }
 
         // Check authentication first
-        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
-            if (window.authUI && typeof window.authUI.showLoginModal === 'function') {
-                window.authUI.showLoginModal('You need to be logged in to use the Ask Agent service.');
-            } else {
-                alert('Please log in to use the Ask Agent service.');
+        try {
+            console.log('SQL Agent: Checking authentication...');
+            console.log('SQL Agent: window.authAPI:', window.authAPI);
+            
+            if (!window.authAPI) {
+                console.log('SQL Agent: authAPI not available');
+                alert('Please log in to use the SQL Agent service.');
+                return;
             }
+            
+            const isLoggedIn = window.authAPI.isLoggedIn();
+            console.log('SQL Agent: isLoggedIn:', isLoggedIn);
+            
+            if (!isLoggedIn) {
+                console.log('SQL Agent: Authentication failed, showing login modal');
+                if (window.authUI && typeof window.authUI.showLoginModal === 'function') {
+                    window.authUI.showLoginModal('You need to be logged in to use the SQL Agent service.');
+                } else {
+                    alert('Please log in to use the SQL Agent service.');
+                }
+                return;
+            }
+            
+            console.log('SQL Agent: Authentication passed');
+        } catch (authError) {
+            console.error('SQL Agent: Authentication check error:', authError);
+            alert('Authentication error. Please try logging in again.');
             return;
         }
 
-        const question = this.questionInput.value.trim();
-        if (!question) return;
+        console.log('SQL Agent: Using captured question:', question);
+        if (!question) {
+            console.log('SQL Agent: Captured question is empty, returning');
+            return;
+        }
 
         this.sendButton.disabled = true;
         this.questionInput.value = '';
@@ -326,10 +372,12 @@ class AskAgent {
         this.updateStatus('Processing...');
 
         try {
+            console.log('SQL Agent: Triggering event...');
             await this.triggerEvent(question);
+            console.log('SQL Agent: Connecting WebSocket...');
             await this.connectWebSocket();
         } catch (error) {
-            console.error('Error:', error);
+            console.error('SQL Agent Error:', error);
             this.updateStatus('Error');
             this.sendButton.disabled = false;
         }
@@ -344,6 +392,7 @@ class AskAgent {
 
     handleNewSession() {
         // Clear all messages
+        console.log('SQL Agent handleNewSession() called - clearing messages');
         if (this.messagesElement) {
             this.messagesElement.innerHTML = '';
         }
@@ -367,11 +416,21 @@ class AskAgent {
             this.sendButton.disabled = false;
         }
 
-        console.log('New ask-agent session started');
+        // Update session ID display (same as main app)
+        this.updateSessionId();
+
+        console.log('New sql-agent session started');
+    }
+
+    updateSessionId() {
+        const sessionIdElement = document.getElementById('sql-session-id-bottom');
+        if (sessionIdElement && window.app && window.app.sessionId) {
+            sessionIdElement.textContent = window.app.sessionId;
+        }
     }
 }
 
-// Initialize ask-agent when DOM is loaded
+// Initialize sql-agent when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.askAgent = new AskAgent();
+    window.sqlAgent = new AskSQLAgent();
 });
