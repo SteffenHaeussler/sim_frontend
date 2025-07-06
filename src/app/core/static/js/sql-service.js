@@ -12,11 +12,6 @@ class AskSQLAgent {
         this.sendButton = document.getElementById('sql-send-btn');
         this.originalPlaceholder = this.questionInput ? this.questionInput.placeholder : '';
         
-        // Debug: Check if elements exist
-        console.log('SQL Agent elements:');
-        console.log('messagesElement:', this.messagesElement);
-        console.log('questionInput:', this.questionInput);
-        console.log('sendButton:', this.sendButton);
     }
 
     setupEventListeners() {
@@ -390,7 +385,6 @@ class AskSQLAgent {
 
     handleNewSession() {
         // Clear all messages
-        console.log('SQL Agent handleNewSession() called - clearing messages');
         if (this.messagesElement) {
             this.messagesElement.innerHTML = '';
         }
