@@ -52,7 +52,7 @@ class App {
         this.searchButton = document.getElementById('search-btn');
         this.libraryButton = document.getElementById('library-btn');
         this.userGreeting = document.getElementById('user-greeting');
-        
+
     }
 
     setupEventListeners() {
@@ -60,9 +60,9 @@ class App {
         this.themeToggleButton.addEventListener('click', () => this.toggleTheme());
         this.askAgentButton.addEventListener('click', () => this.handleServiceClickWithNewSession('ask-agent'));
         this.lookupServiceButton.addEventListener('click', () => this.handleServiceClickWithNewSession('lookup-service'));
-        
+
         this.askSqlAgentButton.addEventListener('click', () => this.handleServiceClickWithNewSession('ask-sql-agent'));
-        
+
         this.searchButton.addEventListener('click', () => this.handleServiceClick('search'));
         this.libraryButton.addEventListener('click', () => this.handleServiceClick('library'));
 
@@ -80,9 +80,9 @@ class App {
         document.querySelector('#theme-toggle-btn .icon-label').addEventListener('click', () => this.toggleTheme());
         document.querySelector('#ask-agent-btn .icon-label').addEventListener('click', () => this.handleServiceClickWithNewSession('ask-agent'));
         document.querySelector('#lookup-service-btn .icon-label').addEventListener('click', () => this.handleServiceClickWithNewSession('lookup-service'));
-        
+
         document.querySelector('#ask-sql-agent-btn .icon-label').addEventListener('click', () => this.handleServiceClickWithNewSession('ask-sql-agent'));
-        
+
         document.querySelector('#search-btn .icon-label').addEventListener('click', () => this.handleServiceClick('search'));
         document.querySelector('#library-btn .icon-label').addEventListener('click', () => this.handleServiceClick('library'));
     }
@@ -242,7 +242,6 @@ class App {
             }
         } else if (service === 'ask-sql-agent') {
             if (window.sqlAgent) {
-                console.log('Initializing SQL Agent without clearing session');
                 // Update session ID when SQL Agent becomes active
                 window.sqlAgent.updateSessionId();
             }
@@ -256,7 +255,6 @@ class App {
     }
 
     updateTemplates(service) {
-        console.log('updateTemplates called with service:', service);
         const templateContainer = document.querySelector('.template-list');
         const chatContainer = document.querySelector('.chat-container');
         const sqlChatContainer = document.querySelector('.sql-chat-container');
@@ -272,24 +270,35 @@ class App {
             if (lookupContainer) lookupContainer.style.display = 'block';
         } else if (service === 'ask-sql-agent') {
             // Show template section and SQL chat, hide regular chat and lookup
-            console.log('updateTemplates called with ask-sql-agent');
             templateContainer.style.display = '';
             if (chatContainer) chatContainer.style.display = 'none';
-            if (sqlChatContainer) {
-                console.log('Setting SQL chat container to display: block');
-                sqlChatContainer.style.display = 'block';
-                console.log('SQL chat container after setting visible:', sqlChatContainer);
-                
-                // Debug: Check if sql-messages element exists
-                const sqlMessagesEl = document.getElementById('sql-messages');
-                console.log('sql-messages element:', sqlMessagesEl);
-                if (window.sqlAgent) {
-                    console.log('SQL Agent messagesElement:', window.sqlAgent.messagesElement);
-                }
-            } else {
-                console.error('SQL chat container not found!');
-            }
+            if (sqlChatContainer) sqlChatContainer.style.display = 'block';
             if (lookupContainer) lookupContainer.style.display = 'none';
+            
+            // Clear existing templates except the header
+            const templateTexts = templateContainer.querySelectorAll('.template-text');
+            templateTexts.forEach(template => template.remove());
+            
+            // Add SQL Agent templates
+            const sqlTemplates = [
+                "How many customers do we have?",
+                "What are the top 5 selling products?",
+                "Find the name and email of all employees who have the role of 'Sales Representative",
+                "What are the top 5 customers by order value im ersten halbjahr 2024, including their order count?",
+                "Show each product's latest cost (by effective_date) in its original currency, including cost type",
+                "List the names and SKUs of all products that are supplied by more than one active supplier",
+                "Find the top 5 products (by total quantity sold) in the last 90 days, including their total revenue and category",
+                "Generate a report on customer purchasing behavior. For each customer who has made more than one order, calculate their total lifetime value (total spending), the number of orders they've placed, the date of their first and most recent order, and the average number of days between their consecutive orders."
+            ];
+            
+            sqlTemplates.forEach(templateText => {
+                const templateDiv = document.createElement('div');
+                templateDiv.className = 'template-text';
+                templateDiv.textContent = templateText;
+                templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
+                templateContainer.appendChild(templateDiv);
+            });
+            
         } else {
             // Show template section and regular chat, hide SQL chat and lookup
             templateContainer.style.display = '';
@@ -301,32 +310,17 @@ class App {
             const templateTexts = templateContainer.querySelectorAll('.template-text');
             templateTexts.forEach(template => template.remove());
 
-            // Define templates based on service
-            let templates = [];
-            if (service === 'ask-sql-agent') {
-                templates = [
-                    "Show me the top 10 assets by production volume",
-                    "What is the average temperature for all sensors this week?",
-                    "List all assets with pressure above 100 PSI",
-                    "Show me daily production trends for the last month",
-                    "Which tanks have levels below 20%?",
-                    "Get all maintenance records for asset TI-T0022",
-                    "Show me assets that haven't reported data in 24 hours",
-                    "What are the peak operating hours for production units?"
-                ];
-            } else {
-                // Default ask-agent templates
-                templates = [
-                    "What is the daily maximum value of PI-P0017 for the last two weeks?",
-                    "How much was produced in the first two weeks of 2025?",
-                    "Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?",
-                    "What is the current pressure in the distillation?",
-                    "Can you plot me the temperature of the distillation cooler A for the last two weeks?",
-                    "What is the level in Tank B?",
-                    "What is the id of TI-T0022?",
-                    "What assets are next to Asset BA100?"
-                ];
-            }
+            // Add ask-agent templates
+            const templates = [
+                "What is the daily maximum value of PI-P0017 for the last two weeks?",
+                "How much was produced in the first two weeks of 2025?",
+                "Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?",
+                "What is the current pressure in the distillation?",
+                "Can you plot me the temperature of the distillation cooler A for the last two weeks?",
+                "What is the level in Tank B?",
+                "What is the id of TI-T0022?",
+                "What assets are next to Asset BA100?"
+            ];
 
             templates.forEach(templateText => {
                 const templateDiv = document.createElement('div');
@@ -341,10 +335,8 @@ class App {
     toggleInputArea(service) {
         const inputArea = document.querySelector('.input-area');
         const sqlInputArea = document.querySelector('.sql-input-area');
-        
-        console.log('toggleInputArea called with service:', service);
-        console.log('inputArea:', inputArea, 'sqlInputArea:', sqlInputArea);
-        
+
+
         if (service === 'lookup-service') {
             // Hide both input areas for lookup service
             if (inputArea) inputArea.style.display = 'none';
@@ -353,12 +345,10 @@ class App {
             // Show SQL input area, hide regular input area
             if (inputArea) inputArea.style.display = 'none';
             if (sqlInputArea) sqlInputArea.style.display = 'block';
-            console.log('SQL input area should now be visible');
         } else {
             // Show regular input area, hide SQL input area
             if (inputArea) inputArea.style.display = '';
             if (sqlInputArea) sqlInputArea.style.display = 'none';
-            console.log('Regular input area should now be visible');
         }
     }
 
@@ -399,7 +389,6 @@ class App {
             }
         } else if (this.currentActiveService === 'ask-sql-agent') {
             if (window.sqlAgent) {
-                console.log('Calling SQL Agent handleNewSession from new session handler');
                 window.sqlAgent.handleNewSession();
             }
         } else {
