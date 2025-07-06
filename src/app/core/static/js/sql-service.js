@@ -135,8 +135,15 @@ class AskSQLAgent {
 
     async copyMessage(content, button) {
         try {
-            await navigator.clipboard.writeText(content);
-            console.log('Message copied to clipboard');
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(content);
+                console.log('Message copied to clipboard using modern API');
+            } else {
+                // Fallback to legacy method
+                this.copyToClipboardFallback(content);
+                console.log('Message copied to clipboard using fallback method');
+            }
 
             // Show visual feedback - permanent
             button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
@@ -144,6 +151,44 @@ class AskSQLAgent {
             button.title = 'Copied to clipboard';
         } catch (err) {
             console.error('Failed to copy message: ', err);
+            
+            // Try fallback method if modern API fails
+            try {
+                this.copyToClipboardFallback(content);
+                console.log('Message copied to clipboard using fallback after error');
+                
+                // Show visual feedback - permanent
+                button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+                button.disabled = true;
+                button.title = 'Copied to clipboard';
+            } catch (fallbackErr) {
+                console.error('Fallback copy also failed: ', fallbackErr);
+                // Show error feedback
+                button.innerHTML = '<img src="/static/icons/copy.svg" alt="Copy Failed">';
+                button.title = 'Failed to copy - try manual selection';
+            }
+        }
+    }
+
+    copyToClipboardFallback(text) {
+        // Create a temporary textarea element
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            // Use execCommand as fallback
+            const successful = document.execCommand('copy');
+            if (!successful) {
+                throw new Error('execCommand copy returned false');
+            }
+        } finally {
+            document.body.removeChild(textArea);
         }
     }
 

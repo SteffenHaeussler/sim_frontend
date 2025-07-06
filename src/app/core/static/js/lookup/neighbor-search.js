@@ -129,8 +129,15 @@ class NeighborSearch {
 
     async copyNeighborId(neighborId, button) {
         try {
-            await navigator.clipboard.writeText(neighborId);
-            console.log('Neighbor ID copied to clipboard:', neighborId);
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(neighborId);
+                console.log('Neighbor ID copied to clipboard using modern API:', neighborId);
+            } else {
+                // Fallback to legacy method
+                this.copyToClipboardFallback(neighborId);
+                console.log('Neighbor ID copied to clipboard using fallback method:', neighborId);
+            }
 
             // Show visual feedback
             const originalIcon = button.innerHTML;
@@ -146,6 +153,51 @@ class NeighborSearch {
             }, 2000);
         } catch (err) {
             console.error('Failed to copy neighbor ID: ', err);
+            
+            // Try fallback method if modern API fails
+            try {
+                this.copyToClipboardFallback(neighborId);
+                console.log('Neighbor ID copied to clipboard using fallback after error:', neighborId);
+                
+                // Show visual feedback
+                const originalIcon = button.innerHTML;
+                button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+                button.disabled = true;
+                button.title = 'Copied!';
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalIcon;
+                    button.disabled = false;
+                    button.title = 'Copy neighbor ID';
+                }, 2000);
+            } catch (fallbackErr) {
+                console.error('Fallback copy also failed: ', fallbackErr);
+                // Show error feedback
+                button.title = 'Failed to copy - try manual selection';
+            }
+        }
+    }
+
+    copyToClipboardFallback(text) {
+        // Create a temporary textarea element
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            // Use execCommand as fallback
+            const successful = document.execCommand('copy');
+            if (!successful) {
+                throw new Error('execCommand copy returned false');
+            }
+        } finally {
+            document.body.removeChild(textArea);
         }
     }
 

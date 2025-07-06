@@ -188,8 +188,15 @@ class AssetInfo {
 
     async copyAssetValue(value, button) {
         try {
-            await navigator.clipboard.writeText(value);
-            console.log('Asset value copied to clipboard:', value);
+            // Try modern clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(value);
+                console.log('Asset value copied to clipboard using modern API:', value);
+            } else {
+                // Fallback to legacy method
+                this.copyToClipboardFallback(value);
+                console.log('Asset value copied to clipboard using fallback method:', value);
+            }
 
             // Show visual feedback
             const originalIcon = button.innerHTML;
@@ -205,6 +212,51 @@ class AssetInfo {
             }, 2000);
         } catch (err) {
             console.error('Failed to copy asset value: ', err);
+            
+            // Try fallback method if modern API fails
+            try {
+                this.copyToClipboardFallback(value);
+                console.log('Asset value copied to clipboard using fallback after error:', value);
+                
+                // Show visual feedback
+                const originalIcon = button.innerHTML;
+                button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
+                button.disabled = true;
+                button.title = 'Copied!';
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.innerHTML = originalIcon;
+                    button.disabled = false;
+                    button.title = 'Copy value';
+                }, 2000);
+            } catch (fallbackErr) {
+                console.error('Fallback copy also failed: ', fallbackErr);
+                // Show error feedback
+                button.title = 'Failed to copy - try manual selection';
+            }
+        }
+    }
+
+    copyToClipboardFallback(text) {
+        // Create a temporary textarea element
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            // Use execCommand as fallback
+            const successful = document.execCommand('copy');
+            if (!successful) {
+                throw new Error('execCommand copy returned false');
+            }
+        } finally {
+            document.body.removeChild(textArea);
         }
     }
 
