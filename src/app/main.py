@@ -74,8 +74,9 @@ def get_application() -> FastAPI:
     # Load lookup assets into application state
     application.state.lookup_assets = load_lookup_assets()
 
-    # Initialize database connection
-    init_database_engine()
+    # Initialize database connection (skip in test environment)
+    if config_service.config_name != "TEST":
+        init_database_engine()
 
     application.middleware("http")(request_timer)
     application.middleware("http")(usage_tracker)

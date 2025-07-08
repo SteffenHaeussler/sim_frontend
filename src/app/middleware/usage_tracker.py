@@ -91,6 +91,11 @@ class ApiUsageTracker:
         duration_ms,
     ):
         """Log usage data to database"""
+        # Skip database logging in test environment
+        if hasattr(request.app.state, 'config_name') and request.app.state.config_name == "TEST":
+            logger.debug("Skipping usage logging in test environment")
+            return
+            
         try:
             # First create the usage log
             usage_log_id = await self.usage_logger.log_usage(
