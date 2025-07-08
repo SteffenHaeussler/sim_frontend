@@ -12,13 +12,14 @@ class TestRatingsWithMocking:
     """Test ratings endpoints with full database mocking"""
 
     @pytest.mark.asyncio
-    async def test_submit_rating_success(
-        self, client_with_mocked_db, mock_db_session, mock_user
-    ):
+    async def test_submit_rating_success(self, client_with_mocked_db, mock_db_session, mock_user):
         """Test successful rating submission"""
         # Mock token verification to return our mock user's ID
         from src.app.auth.jwt_utils import TokenData
-        token_data = TokenData(user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id))
+
+        token_data = TokenData(
+            user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id)
+        )
 
         with patch("src.app.auth.dependencies.verify_token", return_value=token_data):
             # Mock user lookup for active user check
@@ -62,12 +63,13 @@ class TestRatingsWithMocking:
             assert rating_obj.event_id == "test-event-456"
 
     @pytest.mark.asyncio
-    async def test_submit_thumbs_down_rating(
-        self, client_with_mocked_db, mock_db_session, mock_user
-    ):
+    async def test_submit_thumbs_down_rating(self, client_with_mocked_db, mock_db_session, mock_user):
         """Test thumbs down rating submission"""
         from src.app.auth.jwt_utils import TokenData
-        token_data = TokenData(user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id))
+
+        token_data = TokenData(
+            user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id)
+        )
 
         with patch("src.app.auth.dependencies.verify_token", return_value=token_data):
             # Mock user lookup for active user check
@@ -85,7 +87,7 @@ class TestRatingsWithMocking:
                 "/ratings/submit",
                 json=rating_data,
                 headers={"Authorization": "Bearer test-token"},
-                params={"session_id": "session-123", "event_id": "event-456"}  # Test query params fallback
+                params={"session_id": "session-123", "event_id": "event-456"},  # Test query params fallback
             )
 
             assert response.status_code == status.HTTP_200_OK
@@ -107,12 +109,13 @@ class TestRatingsWithMocking:
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
 
     @pytest.mark.asyncio
-    async def test_submit_rating_long_context(
-        self, client_with_mocked_db, mock_db_session, mock_user
-    ):
+    async def test_submit_rating_long_context(self, client_with_mocked_db, mock_db_session, mock_user):
         """Test rating with very long context (should be truncated)"""
         from src.app.auth.jwt_utils import TokenData
-        token_data = TokenData(user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id))
+
+        token_data = TokenData(
+            user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id)
+        )
 
         with patch("src.app.auth.dependencies.verify_token", return_value=token_data):
             # Mock user lookup for active user check
@@ -127,9 +130,7 @@ class TestRatingsWithMocking:
             }
 
             response = client_with_mocked_db.post(
-                "/ratings/submit",
-                json=rating_data,
-                headers={"Authorization": "Bearer test-token"}
+                "/ratings/submit", json=rating_data, headers={"Authorization": "Bearer test-token"}
             )
 
             assert response.status_code == status.HTTP_200_OK
@@ -137,4 +138,3 @@ class TestRatingsWithMocking:
             # Verify context was truncated to 500 chars
             rating_obj = mock_db_session.add.call_args[0][0]
             assert len(rating_obj.message_context) == 500
-

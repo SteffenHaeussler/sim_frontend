@@ -92,7 +92,7 @@ class ApiUsageTracker:
     ):
         """Log usage data to database"""
         # Skip database logging in test environment
-        if hasattr(request.app.state, 'config_name') and request.app.state.config_name == "TEST":
+        if hasattr(request.app.state, "config_name") and request.app.state.config_name == "TEST":
             logger.debug("Skipping usage logging in test environment")
             return
 

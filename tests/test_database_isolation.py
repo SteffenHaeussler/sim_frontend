@@ -64,7 +64,7 @@ class TestDatabaseIsolation:
             "password": "TestPass123!",
             "first_name": "Test",
             "last_name": "User",
-            "organisation_name": "Test Org"
+            "organisation_name": "Test Org",
         }
 
         # Mock JWT token creation
@@ -91,15 +91,10 @@ class TestDatabaseIsolation:
         assert "localhost" in db_url or "test" in db_url
 
     @pytest.mark.asyncio
-    async def test_middleware_database_usage_mocked(
-        self, client_with_mocked_db, mock_db_session, auth_headers
-    ):
+    async def test_middleware_database_usage_mocked(self, client_with_mocked_db, mock_db_session, auth_headers):
         """Test that middleware database usage is properly mocked"""
         # Make authenticated request that triggers usage tracking
-        response = client_with_mocked_db.get(
-            "/lookup/assets",
-            headers=auth_headers
-        )
+        response = client_with_mocked_db.get("/lookup/assets", headers=auth_headers)
 
         # Request should succeed without real database
         assert response.status_code == 200

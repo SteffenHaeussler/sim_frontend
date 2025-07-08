@@ -15,7 +15,10 @@ class TestWebSocketHealth:
 
     def test_websocket_health_multiple_messages(self, client):
         """Test receiving multiple health messages"""
-        with patch("asyncio.sleep", return_value=None), client.websocket_connect("/ws/health") as websocket:  # Skip sleep delays
+        with (
+            patch("asyncio.sleep", return_value=None),
+            client.websocket_connect("/ws/health") as websocket,
+        ):  # Skip sleep delays
             # Receive first message
             data1 = websocket.receive_json()
             assert "version" in data1

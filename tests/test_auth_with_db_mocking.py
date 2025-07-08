@@ -76,9 +76,7 @@ class TestAuthEndpointsWithMocking:
         assert "already registered" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_login_success(
-        self, client_with_mocked_db, mock_db_session, mock_user, mock_password_utils
-    ):
+    async def test_login_success(self, client_with_mocked_db, mock_db_session, mock_user, mock_password_utils):
         """Test successful login"""
         # Mock finding user
         mock_result = MagicMock()
@@ -86,10 +84,12 @@ class TestAuthEndpointsWithMocking:
         mock_db_session.execute.return_value = mock_result
 
         # Mock JWT token creation and config
-        with patch("src.app.auth.router.create_access_token") as mock_access_token, \
-             patch("src.app.auth.router.create_refresh_token") as mock_refresh_token, \
-             patch("src.app.auth.router.config_service") as mock_config_service, \
-             patch("src.app.auth.router.verify_password") as mock_verify_password:
+        with (
+            patch("src.app.auth.router.create_access_token") as mock_access_token,
+            patch("src.app.auth.router.create_refresh_token") as mock_refresh_token,
+            patch("src.app.auth.router.config_service") as mock_config_service,
+            patch("src.app.auth.router.verify_password") as mock_verify_password,
+        ):
             mock_access_token.return_value = "test_access_token"
             mock_refresh_token.return_value = "test_refresh_token"
             mock_verify_password.return_value = True  # Password is valid
@@ -97,7 +97,7 @@ class TestAuthEndpointsWithMocking:
             # Mock JWT config
             mock_config_service.get_jwt_utils.return_value = {
                 "jwt_access_expiration_minutes": 15,
-                "JWT_REFRESH_EXPIRATION_DAYS": 7
+                "JWT_REFRESH_EXPIRATION_DAYS": 7,
             }
 
             login_data = {"email": mock_user.email, "password": "correct_password"}
@@ -130,9 +130,7 @@ class TestAuthEndpointsWithMocking:
         assert "Incorrect email or password" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    async def test_forgot_password_success(
-        self, client_with_mocked_db, mock_db_session, mock_user
-    ):
+    async def test_forgot_password_success(self, client_with_mocked_db, mock_db_session, mock_user):
         """Test password reset request"""
         # Mock finding user
         user_result = MagicMock()
@@ -158,9 +156,7 @@ class TestAuthEndpointsWithMocking:
             assert mock_db_session.commit.called
 
     @pytest.mark.asyncio
-    async def test_forgot_password_nonexistent_user(
-        self, client_with_mocked_db, mock_db_session
-    ):
+    async def test_forgot_password_nonexistent_user(self, client_with_mocked_db, mock_db_session):
         """Test password reset for non-existent user"""
         # Mock not finding user
         mock_result = MagicMock()
@@ -183,9 +179,7 @@ class TestAuthEndpointsWithMocking:
             mock_email_instance.send_password_reset_email.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_reset_password_success(
-        self, client_with_mocked_db, mock_db_session, mock_user, mock_password_utils
-    ):
+    async def test_reset_password_success(self, client_with_mocked_db, mock_db_session, mock_user, mock_password_utils):
         """Test successful password reset"""
         # Create mock password reset token with future expiry
         reset_token = PasswordReset(
@@ -193,7 +187,7 @@ class TestAuthEndpointsWithMocking:
             user_id=mock_user.id,
             token="valid_reset_token",
             is_used=False,
-            expires_at=datetime.now(UTC) + timedelta(hours=24)
+            expires_at=datetime.now(UTC) + timedelta(hours=24),
         )
         reset_token.user = mock_user
 

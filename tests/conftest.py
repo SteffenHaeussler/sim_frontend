@@ -176,13 +176,7 @@ def mock_db_session():
 @pytest.fixture
 def mock_organisation():
     """Create a mock organisation"""
-    org = Organisation(
-        id=uuid.uuid4(),
-        name="test_org",
-        display_name="Test Organization",
-        max_users=50,
-        is_active=True
-    )
+    org = Organisation(id=uuid.uuid4(), name="test_org", display_name="Test Organization", max_users=50, is_active=True)
     return org
 
 
@@ -196,7 +190,7 @@ def mock_user(mock_organisation):
         first_name="Test",
         last_name="User",
         organisation_id=mock_organisation.id,
-        is_active=True
+        is_active=True,
     )
     user.organisation = mock_organisation
     return user
@@ -205,8 +199,10 @@ def mock_user(mock_organisation):
 @pytest.fixture
 def override_get_db(mock_db_session):
     """Override get_db dependency to return mock session"""
+
     async def _get_db():
         yield mock_db_session
+
     return _get_db
 
 
@@ -227,8 +223,10 @@ def client_with_mocked_db(app_with_mocked_db):
 @pytest.fixture
 def mock_password_utils():
     """Mock password hashing and verification utilities"""
-    with patch("src.app.auth.password.hash_password") as mock_hash, \
-         patch("src.app.auth.password.verify_password") as mock_verify:
+    with (
+        patch("src.app.auth.password.hash_password") as mock_hash,
+        patch("src.app.auth.password.verify_password") as mock_verify,
+    ):
         mock_hash.return_value = "hashed_password"
         mock_verify.return_value = True
         yield mock_hash, mock_verify
