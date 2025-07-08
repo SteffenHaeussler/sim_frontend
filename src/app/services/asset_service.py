@@ -1,6 +1,6 @@
 import threading
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 from fastapi import Request
@@ -16,9 +16,7 @@ class AssetService:
     def __init__(self):
         self.config = config_service
 
-    async def trigger_agent_question(
-        self, question: str, request: Request
-    ) -> Dict[str, Any]:
+    async def trigger_agent_question(self, question: str, request: Request) -> dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
         # Get session ID from context (set by middleware)
         session_id = ctx_session_id.get()
@@ -36,9 +34,7 @@ class AssetService:
 
         # Don't make the request if URL is empty/invalid
         if not api_url or api_url == "":
-            logger.error(
-                "Agent API URL is empty - check AGENT_BASE and AGENT_URL configuration"
-            )
+            logger.error("Agent API URL is empty - check AGENT_BASE and AGENT_URL configuration")
             return {
                 "status": "error",
                 "message": "Agent API not configured",
@@ -63,9 +59,7 @@ class AssetService:
                         "content-type",
                     ]:
                         if header_name in request.headers:
-                            headers_to_forward[header_name] = request.headers[
-                                header_name
-                            ]
+                            headers_to_forward[header_name] = request.headers[header_name]
 
                 logger.info(f"Forwarding headers: {list(headers_to_forward.keys())}")
 
@@ -88,9 +82,7 @@ class AssetService:
 
         return {"status": "triggered", "session_id": session_id, "question": question}
 
-    async def trigger_sql_agent_question(
-        self, question: str, request: Request
-    ) -> Dict[str, Any]:
+    async def trigger_sql_agent_question(self, question: str, request: Request) -> dict[str, Any]:
         """Handle question from frontend and trigger external agent API"""
         # Get session ID from context (set by middleware)
         session_id = ctx_session_id.get()
@@ -108,9 +100,7 @@ class AssetService:
 
         # Don't make the request if URL is empty/invalid
         if not api_url or api_url == "":
-            logger.error(
-                "SQL Agent API URL is empty - check AGENT_BASE and agent_sql_url configuration"
-            )
+            logger.error("SQL Agent API URL is empty - check AGENT_BASE and agent_sql_url configuration")
             return {
                 "status": "error",
                 "message": "SQL Agent API not configured",
@@ -135,9 +125,7 @@ class AssetService:
                         "content-type",
                     ]:
                         if header_name in request.headers:
-                            headers_to_forward[header_name] = request.headers[
-                                header_name
-                            ]
+                            headers_to_forward[header_name] = request.headers[header_name]
 
                 logger.info(f"Forwarding headers: {list(headers_to_forward.keys())}")
 
@@ -160,7 +148,7 @@ class AssetService:
 
         return {"status": "triggered", "session_id": session_id, "question": question}
 
-    async def get_asset_info(self, asset_id: str) -> Dict[str, Any]:
+    async def get_asset_info(self, asset_id: str) -> dict[str, Any]:
         """Get asset information by asset ID"""
         full_url = f"{self.config.get_asset_api_url('asset')}/{asset_id}"
 
@@ -176,7 +164,7 @@ class AssetService:
             logger.error(f"Asset API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
 
-    async def get_neighbor_assets(self, asset_id: str) -> Dict[str, Any]:
+    async def get_neighbor_assets(self, asset_id: str) -> dict[str, Any]:
         """Get neighboring assets by asset ID"""
         full_url = f"{self.config.get_asset_api_url('neighbor')}/{asset_id}"
 
@@ -192,7 +180,7 @@ class AssetService:
             logger.error(f"Neighbor API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
 
-    async def get_name_from_id(self, asset_id: str) -> Dict[str, Any]:
+    async def get_name_from_id(self, asset_id: str) -> dict[str, Any]:
         """Get asset name from asset ID"""
         full_url = f"{self.config.get_asset_api_url('name')}/{asset_id}"
 
@@ -208,7 +196,7 @@ class AssetService:
             logger.error(f"Name API request failed: {e}")
             return {"error": str(e), "asset_id": asset_id}
 
-    async def get_id_from_name(self, name: str) -> Dict[str, Any]:
+    async def get_id_from_name(self, name: str) -> dict[str, Any]:
         """Get asset ID from asset name"""
         full_url = f"{self.config.get_asset_api_url('id')}/{name}"
 
@@ -224,7 +212,7 @@ class AssetService:
             logger.error(f"ID API request failed: {e}")
             return {"error": str(e), "name": name}
 
-    def get_lookup_assets(self, request: Request) -> Dict[str, Any]:
+    def get_lookup_assets(self, request: Request) -> dict[str, Any]:
         """Get all lookup assets from application state"""
         try:
             assets = request.app.state.lookup_assets
@@ -236,12 +224,12 @@ class AssetService:
     def search_assets(
         self,
         request: Request,
-        name: Optional[str] = None,
-        asset_type: Optional[str] = None,
-        type: Optional[str] = None,
+        name: str | None = None,
+        asset_type: str | None = None,
+        type: str | None = None,
         page: int = 1,
         limit: int = 50,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Search and filter lookup assets with pagination"""
         try:
             assets = request.app.state.lookup_assets
@@ -249,27 +237,17 @@ class AssetService:
 
             # Filter by name (case-insensitive partial match)
             if name:
-                filtered_assets = [
-                    asset
-                    for asset in filtered_assets
-                    if name.lower() in asset.get("name", "").lower()
-                ]
+                filtered_assets = [asset for asset in filtered_assets if name.lower() in asset.get("name", "").lower()]
 
             # Filter by asset_type (exact match)
             if asset_type:
                 filtered_assets = [
-                    asset
-                    for asset in filtered_assets
-                    if asset.get("asset_type", "").lower() == asset_type.lower()
+                    asset for asset in filtered_assets if asset.get("asset_type", "").lower() == asset_type.lower()
                 ]
 
             # Filter by type (exact match)
             if type:
-                filtered_assets = [
-                    asset
-                    for asset in filtered_assets
-                    if asset.get("type", "").lower() == type.lower()
-                ]
+                filtered_assets = [asset for asset in filtered_assets if asset.get("type", "").lower() == type.lower()]
 
             # Calculate pagination
             total_count = len(filtered_assets)

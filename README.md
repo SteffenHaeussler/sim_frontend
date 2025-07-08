@@ -106,17 +106,69 @@ Key configuration areas:
 
 ## Running Tests
 
-The project uses `pytest` for testing.
-1.  Ensure you have the development dependencies installed (`uv sync --dev` if not using the default `uv sync` which includes them, or ensure your Docker image has them).
-2.  Execute tests using the `run_tests.sh` script or directly with `pytest`:
-    ```bash
-    ./run_tests.sh
-    ```
-    or
-    ```bash
-    pytest
-    ```
-    (Ensure your environment, especially database connections for integration tests, is correctly configured).
+The project uses `pytest` for Python tests and `vitest` for JavaScript tests.
+
+### Quick Start
+
+Run all tests (Python + JavaScript):
+```bash
+make test
+```
+
+Run tests with coverage reports:
+```bash
+make coverage
+```
+
+### Detailed Test Options
+
+Use the `run_tests.sh` script for more control:
+
+```bash
+# Run all tests (default)
+./run_tests.sh
+
+# Run only Python tests
+./run_tests.sh -p
+
+# Run only JavaScript tests
+./run_tests.sh -j
+
+# Run tests with coverage reports
+./run_tests.sh -c
+
+# Run JavaScript tests in watch mode
+./run_tests.sh -j -w
+
+# Run tests with verbose output
+./run_tests.sh -v
+
+# Show help
+./run_tests.sh -h
+```
+
+### Test Coverage
+
+*   **Python:** 61 tests covering authentication, endpoints, sessions, and WebSocket functionality (63% code coverage)
+*   **JavaScript:** 85 tests covering frontend services including auth, form validation, asset search, and agent interaction
+
+Coverage reports are generated in:
+*   **Python:** `htmlcov_python/index.html`
+*   **JavaScript:** `coverage/index.html`
+
+### JavaScript Test Setup
+
+The JavaScript tests use:
+*   **Vitest** - Fast unit test framework
+*   **JSDOM** - DOM simulation for browser APIs
+*   **Coverage** - Built-in coverage reporting
+
+To run JavaScript tests directly:
+```bash
+npm test              # Run once
+npm test -- --watch   # Watch mode
+npm run coverage      # With coverage report
+```
 
 ## Project Structure
 
@@ -188,9 +240,54 @@ WebSocket connections use query parameters for session tracking due to browser l
 const wsUrl = `${wsBase}?session_id=${sessionId}`;
 ```
 
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+### Automated Checks
+
+Every pull request triggers:
+- **Linting** - Ruff checks for code style and formatting
+- **Python Tests** - 61 tests with coverage reporting
+- **JavaScript Tests** - 85 tests with coverage reporting
+- **Security Scan** - Trivy vulnerability scanner
+- **Docker Build** - Ensures the application builds correctly
+
+### Branch Protection
+
+The repository should have branch protection rules configured for `main` and `develop` branches. See [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for recommended settings.
+
+### Workflows
+
+- **CI** (`.github/workflows/ci.yml`) - Runs on every push and PR
+- **Dependency Review** (`.github/workflows/dependency-review.yml`) - Checks for vulnerable dependencies
+- **Release** (`.github/workflows/release.yml`) - Automated releases on version tags
+- **Dependabot** (`.github/dependabot.yml`) - Automated dependency updates
+
 ## Contributing
 
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details on contributions (if this file exists).
+
+When submitting a pull request:
+1. Ensure all tests pass locally: `make test`
+2. Run linting: `uv run ruff check .` and `uv run ruff format .`
+3. Update tests if adding new features
+4. Follow the PR template
+
+### Setting Up Pre-commit Hooks (Recommended)
+
+To automatically run linting and formatting before each commit:
+
+```bash
+# Install pre-commit
+uv pip install pre-commit
+
+# Install the git hook scripts
+pre-commit install
+
+# (Optional) Run against all files
+pre-commit run --all-files
+```
 
 ## License
 

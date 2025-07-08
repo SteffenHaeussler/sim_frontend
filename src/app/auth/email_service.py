@@ -2,7 +2,6 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
 
 from loguru import logger
 
@@ -21,27 +20,21 @@ class EmailService:
         self.smtp_port = int(os.getenv("smtp_port", os.getenv("SMTP_PORT", "587")))
         self.smtp_username = os.getenv("sender_email") or os.getenv("SMTP_USERNAME")
         self.smtp_password = os.getenv("app_password") or os.getenv("SMTP_PASSWORD")
-        self.from_email = os.getenv("sender_email") or os.getenv(
-            "FROM_EMAIL", self.smtp_username
-        )
+        self.from_email = os.getenv("sender_email") or os.getenv("FROM_EMAIL", self.smtp_username)
         self.from_name = os.getenv("FROM_NAME", "Password Reset Service")
 
         # Check if SMTP is properly configured
-        self.is_configured = all(
-            [self.smtp_server, self.smtp_username, self.smtp_password, self.from_email]
-        )
+        self.is_configured = all([self.smtp_server, self.smtp_username, self.smtp_password, self.from_email])
 
         if not self.is_configured:
-            logger.warning(
-                "SMTP not configured. Emails will be logged instead of sent."
-            )
+            logger.warning("SMTP not configured. Emails will be logged instead of sent.")
 
     async def send_password_reset_email(
         self,
         to_email: str,
         reset_token: str,
         base_url: str,
-        user_name: Optional[str] = None,
+        user_name: str | None = None,
     ) -> bool:
         """
         Send password reset email to user
@@ -138,9 +131,7 @@ This link will expire in 24 hours for security reasons.
 This is an automated message. Please do not reply to this email.
         """.strip()
 
-    async def _send_email(
-        self, to_email: str, subject: str, html_content: str, text_content: str
-    ) -> bool:
+    async def _send_email(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
         """
         Send email using SMTP or log it if SMTP is not configured
 

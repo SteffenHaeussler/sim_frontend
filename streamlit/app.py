@@ -4,10 +4,11 @@ import threading
 import uuid
 
 import httpx
-import streamlit as st
 import websockets
 from dotenv import load_dotenv
 from loguru import logger
+
+import streamlit as st
 
 # Load .env file
 load_dotenv()
@@ -96,9 +97,7 @@ def main():
     if st.button("Answer question") and question:
         trigger_event(st.session_state.session_id, question)
 
-        asyncio.run(
-            listen_to_websocket(st.session_state.session_id, status_placeholder)
-        )
+        asyncio.run(listen_to_websocket(st.session_state.session_id, status_placeholder))
 
 
 if __name__ == "__main__":

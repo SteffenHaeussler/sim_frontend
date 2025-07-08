@@ -28,9 +28,7 @@ async def health(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                response = HealthCheckResponse(
-                    version=websocket.app.state.VERSION, timestamp=time()
-                )
+                response = HealthCheckResponse(version=websocket.app.state.VERSION, timestamp=time())
 
                 await websocket.send_json(response.model_dump())
             except ValidationError as e:

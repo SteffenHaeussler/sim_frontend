@@ -62,9 +62,7 @@ class ResponseAnalyzer:
         if response_body:
             try:
                 # Try to decode response as text for preview
-                if content_type.startswith(
-                    "application/json"
-                ) or content_type.startswith("text/"):
+                if content_type.startswith("application/json") or content_type.startswith("text/"):
                     response_text = response_body.decode("utf-8")
                     content_preview = response_text[:500]  # First 500 characters
 

@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from loguru import logger
 
@@ -9,28 +8,28 @@ from src.app.models.tracking import ApiUsageLog
 
 class UsageLogger:
     """Handles logging API usage to the database"""
-    
+
     async def log_usage(
         self,
         endpoint: str,
         method: str,
         status_code: int,
         duration_ms: float,
-        user_id: Optional[uuid.UUID],
-        organisation_id: Optional[uuid.UUID],
-        session_id: Optional[str],
-        event_id: Optional[str],
-        request_id: Optional[str],
+        user_id: uuid.UUID | None,
+        organisation_id: uuid.UUID | None,
+        session_id: str | None,
+        event_id: str | None,
+        request_id: str | None,
         user_agent: str,
         ip_address: str,
-        query_params: Optional[str],
-        request_size: Optional[int],
-        response_size: Optional[int],
+        query_params: str | None,
+        request_size: int | None,
+        response_size: int | None,
         service_type: str,
-        template_used: Optional[str],
-        error_message: Optional[str],
-        response_metadata = None
-    ) -> Optional[uuid.UUID]:
+        template_used: str | None,
+        error_message: str | None,
+        response_metadata=None,
+    ) -> uuid.UUID | None:
         """Log API usage and response metadata to database"""
         try:
             async for db in get_db():
@@ -54,17 +53,17 @@ class UsageLogger:
                     template_used=template_used,
                     error_message=error_message,
                 )
-                
+
                 db.add(usage_log)
                 await db.flush()  # Get the usage_log.id without committing yet
-                
+
                 # Add response metadata if provided
                 if response_metadata:
                     db.add(response_metadata)
-                
+
                 await db.commit()
                 return usage_log.id
-                
+
         except Exception as e:
             logger.error(f"Failed to log API usage and response metadata: {e}")
             return None

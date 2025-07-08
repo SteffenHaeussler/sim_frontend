@@ -4,10 +4,11 @@ import threading
 import uuid
 
 import httpx
-import streamlit as st
 import websockets
 from dotenv import load_dotenv
 from loguru import logger
+
+import streamlit as st
 
 # Load .env file
 load_dotenv()

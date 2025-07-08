@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -26,27 +26,25 @@ class ApiUsageLog(Base):
     status_code = Column(String(10))  # 200, 404, etc.
 
     # Enhanced tracking details
-    timestamp = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
-    )
+    timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
     duration_ms = Column(String(50))  # How long the call took
-    
+
     # Session and user context
     session_id = Column(String(255), index=True)  # Track user sessions
     event_id = Column(String(255), index=True)  # Links to specific WebSocket events
     request_id = Column(String(255), index=True)  # Individual request identifier
     user_agent = Column(String(500))  # Browser/client information
     ip_address = Column(String(45))  # IPv4/IPv6 address
-    
+
     # Request details
     query_params = Column(String(1000))  # Store query parameters if needed
     request_size = Column(String(20))  # Request body size in bytes
     response_size = Column(String(20))  # Response body size in bytes
-    
+
     # Service usage tracking
     service_type = Column(String(50), index=True)  # ask-agent, lookup-service, auth, etc.
     template_used = Column(String(100))  # Which template was clicked (if any)
-    
+
     # Error tracking
     error_message = Column(String(1000))  # Store error details if request failed
 
@@ -120,7 +118,7 @@ class ApiUsageLog(Base):
             service_type=service_type,
             template_used=template_used,
             error_message=error_message,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
 
@@ -128,36 +126,32 @@ class ApiResponseMetadata(Base):
     __tablename__ = "api_response_metadata"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
+
     # Link to the original request
-    usage_log_id = Column(
-        UUID(as_uuid=True), ForeignKey("api_usage_logs.id"), nullable=False, index=True
-    )
-    
+    usage_log_id = Column(UUID(as_uuid=True), ForeignKey("api_usage_logs.id"), nullable=False, index=True)
+
     # Response metadata
     response_status_code = Column(String(10), nullable=False)
     response_size_bytes = Column(Integer)
     response_time_ms = Column(String(50))  # Processing time
-    
+
     # Content metadata (without storing full content)
     content_type = Column(String(100))  # application/json, text/plain, etc.
     content_preview = Column(String(500))  # First 500 chars for debugging
     has_images = Column(Boolean, default=False)  # Whether response contained images
     image_count = Column(Integer, default=0)  # Number of images in response
-    
+
     # Service-specific metadata
     service_response_id = Column(String(255))  # External service response ID if available
     processing_steps = Column(String(1000))  # For semantic search: embedding→search→rank
-    
+
     # Error information
     error_type = Column(String(100))  # timeout, api_error, validation_error, etc.
     error_details = Column(String(1000))  # Detailed error message
-    
+
     # Timestamps
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
     # Relationships
     usage_log = relationship("ApiUsageLog", backref="response_metadata")
 
@@ -201,34 +195,28 @@ class UserResponseRating(Base):
     __tablename__ = "user_response_ratings"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
+
     # Link to the original API usage log that triggered this rating
-    usage_log_id = Column(
-        UUID(as_uuid=True), ForeignKey("api_usage_logs.id"), nullable=True, index=True
-    )
-    
+    usage_log_id = Column(UUID(as_uuid=True), ForeignKey("api_usage_logs.id"), nullable=True, index=True)
+
     # User who rated the response
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
-    )
-    
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+
     # Rating information
     rating_type = Column(String(20), nullable=False)  # 'thumbs_up', 'thumbs_down'
     rating_value = Column(Integer, nullable=False)  # 1 for up, -1 for down
-    
+
     # Optional feedback
     feedback_text = Column(String(1000))  # Optional text feedback
-    
+
     # Context information
     session_id = Column(String(255), index=True)  # Link to user session
     event_id = Column(String(255), index=True)  # Unique ID linking to specific ask-agent event
     message_context = Column(String(500))  # The question/query that led to this response
-    
+
     # Timestamps
-    rated_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
-    
+    rated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
     # Relationships
     usage_log = relationship("ApiUsageLog", backref="ratings")
     user = relationship("User", backref="response_ratings")
@@ -247,8 +235,8 @@ class UserResponseRating(Base):
         feedback_text: str = None,
     ) -> "UserResponseRating":
         """Create a user rating for a response"""
-        rating_value = 1 if rating_type == 'thumbs_up' else -1
-        
+        rating_value = 1 if rating_type == "thumbs_up" else -1
+
         return cls(
             response_metadata_id=response_metadata_id,
             user_id=user_id,

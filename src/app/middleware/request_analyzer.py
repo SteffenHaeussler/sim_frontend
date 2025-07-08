@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import Request
 from loguru import logger
@@ -11,7 +11,7 @@ from src.app.auth.jwt_utils import verify_token
 class RequestAnalyzer:
     """Analyzes incoming requests to extract metadata and authentication info"""
 
-    async def extract_user_info(self, request: Request) -> Dict[str, Any]:
+    async def extract_user_info(self, request: Request) -> dict[str, Any]:
         """Extract user ID and organization ID from request"""
         user_id = None
         organisation_id = None
@@ -40,7 +40,7 @@ class RequestAnalyzer:
 
         return {"user_id": user_id, "organisation_id": organisation_id}
 
-    def extract_request_metadata(self, request: Request) -> Dict[str, Any]:
+    def extract_request_metadata(self, request: Request) -> dict[str, Any]:
         """Extract basic request metadata"""
         user_agent = request.headers.get("user-agent", "")
         ip_address = self._get_client_ip(request)
@@ -52,7 +52,7 @@ class RequestAnalyzer:
             "service_type": service_type,
         }
 
-    async def extract_query_and_body_data(self, request: Request) -> Dict[str, Any]:
+    async def extract_query_and_body_data(self, request: Request) -> dict[str, Any]:
         """Extract query parameters and request body data"""
         query_params_data = {}
 
@@ -61,15 +61,11 @@ class RequestAnalyzer:
             query_params_data.update(dict(request.query_params))
 
         # Extract tracking IDs - headers first, query params as fallback
-        session_id = request.headers.get("x-session-id") or query_params_data.get(
-            "session_id"
-        )
+        session_id = request.headers.get("x-session-id") or query_params_data.get("session_id")
         if session_id:
             logger.debug(f"Extracted session_id: {session_id}")
 
-        event_id = request.headers.get("x-event-id") or query_params_data.get(
-            "event_id"
-        )
+        event_id = request.headers.get("x-event-id") or query_params_data.get("event_id")
 
         # Generate request_id if not provided in headers
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
@@ -81,31 +77,22 @@ class RequestAnalyzer:
         if request.method == "POST" and request_body:
             try:
                 # Try to parse JSON body
-                if request.headers.get("content-type", "").startswith(
-                    "application/json"
-                ):
+                if request.headers.get("content-type", "").startswith("application/json"):
                     body_data = json.loads(request_body.decode("utf-8"))
                     if isinstance(body_data, dict):
                         # For semantic search, capture the query
-                        if (
-                            "/lookout/semantic" in request.url.path
-                            and "query" in body_data
-                        ):
+                        if "/lookout/semantic" in request.url.path and "query" in body_data:
                             query_params_data["semantic_query"] = body_data["query"]
                         # For other endpoints, capture relevant fields
                         elif "question" in body_data:
                             query_params_data["question"] = body_data["question"]
                         elif "email" in body_data:
-                            query_params_data["email"] = body_data[
-                                "email"
-                            ]  # For auth endpoints
+                            query_params_data["email"] = body_data["email"]  # For auth endpoints
             except (json.JSONDecodeError, UnicodeDecodeError) as e:
                 logger.debug(f"Could not parse request body as JSON: {e}")
 
         query_params = str(query_params_data) if query_params_data else None
-        template_used = request.query_params.get(
-            "template"
-        ) or request.query_params.get("example")
+        template_used = request.query_params.get("template") or request.query_params.get("example")
 
         return {
             "session_id": session_id,

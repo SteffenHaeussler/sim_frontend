@@ -29,7 +29,7 @@ def load_lookup_assets() -> list:
     """Load lookup asset data from JSON file"""
     try:
         lookup_file = Path(BASEDIR / "data" / "lookup_asset.json")
-        with open(lookup_file, "r") as f:
+        with open(lookup_file) as f:
             assets = json.load(f)
         logger.info(f"Loaded {len(assets)} lookup assets from {lookup_file}")
         return assets
@@ -85,9 +85,7 @@ def get_application() -> FastAPI:
     application.include_router(ratings_router, tags=["ratings"])
 
     # Mount static files and templates
-    application.mount(
-        "/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static"
-    )
+    application.mount("/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static")
 
     logger.info(f"API running in {application.state.config_name} mode")
     return application

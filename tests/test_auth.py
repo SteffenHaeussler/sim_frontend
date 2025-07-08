@@ -46,18 +46,14 @@ class TestAuthenticationEndpoints:
 class TestAuthenticationFlow:
     """Test authentication flow with valid tokens"""
 
-    def test_agent_endpoint_with_valid_token(
-        self, client, auth_headers, mock_httpx_client
-    ):
+    def test_agent_endpoint_with_valid_token(self, client, auth_headers, mock_httpx_client):
         """Test agent endpoint with valid authentication"""
         mock_client, mock_sync_client = mock_httpx_client
 
         # Mock the sync client response
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_sync_client.return_value.__enter__.return_value.get.return_value = (
-            mock_response
-        )
+        mock_sync_client.return_value.__enter__.return_value.get.return_value = mock_response
 
         response = client.get("/agent?question=test question", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK

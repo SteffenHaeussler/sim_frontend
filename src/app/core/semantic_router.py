@@ -16,7 +16,7 @@ def get_search_service() -> SearchService:
 async def semantic_search(
     request: SemanticRequest,
     token_data=Depends(verify_token_only),
-    search_service: SearchService = Depends(get_search_service)
+    search_service: SearchService = Depends(get_search_service),
 ):
     """
     Perform semantic search with embedding → search → ranking pipeline

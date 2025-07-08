@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from src.app.context import ctx_session_id, ctx_event_id, ctx_request_id
+from src.app.context import ctx_event_id, ctx_request_id, ctx_session_id
 
 
 def tracking_filter(record):
@@ -34,9 +34,7 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def sink_serializer(message):
@@ -56,11 +54,7 @@ def sink_serializer(message):
 def setup_logger(config_name, json_serialize=True):
     intercept_handler = InterceptHandler()
 
-    loggers = (
-        logging.getLogger(name)
-        for name in logging.root.manager.loggerDict
-        if name.startswith("uvicorn.")
-    )
+    loggers = (logging.getLogger(name) for name in logging.root.manager.loggerDict if name.startswith("uvicorn."))
     for uvicorn_logger in loggers:
         uvicorn_logger.handlers = [intercept_handler]
 

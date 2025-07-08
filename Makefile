@@ -1,6 +1,8 @@
 export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
 
+.PHONY: all build up down dev prod test coverage
+
 all: down build up test
 
 # dev:
@@ -35,3 +37,25 @@ prod:
 
 test:
 	FASTAPI_ENV=TEST ./run_app.sh
+
+coverage:
+	@echo "🧪 Running tests with coverage reports..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "🐍 Python Coverage Report"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@uv run python -m pytest --cov-report term --cov-report html:htmlcov_python --cov=src -q
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "📦 JavaScript Coverage Report"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@npm run coverage 2>/dev/null
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "📊 Coverage Summary"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ Python coverage report: htmlcov_python/index.html"
+	@echo "✅ JavaScript coverage report: coverage/index.html"
+	@echo ""
+	@echo "To view reports:"
+	@echo "  Python:     open htmlcov_python/index.html"
+	@echo "  JavaScript: open coverage/index.html"

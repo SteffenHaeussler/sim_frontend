@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -20,15 +20,11 @@ class PasswordReset(Base):
     __tablename__ = "password_reset"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
-    )
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     token = Column(String(255), nullable=False, unique=True, index=True)
     is_used = Column(Boolean, nullable=False, default=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
-    )
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     used_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
@@ -38,9 +34,7 @@ class PasswordReset(Base):
         return f"<PasswordReset(id={self.id}, user={self.user_id}, expires={self.expires_at})>"
 
     @classmethod
-    def create_reset_token(
-        cls, user_id: uuid.UUID, token: str, expiration_hours: int = 24
-    ) -> "PasswordReset":
+    def create_reset_token(cls, user_id: uuid.UUID, token: str, expiration_hours: int = 24) -> "PasswordReset":
         """
         Create a new password reset token
 
@@ -55,14 +49,14 @@ class PasswordReset(Base):
         return cls(
             user_id=user_id,
             token=token,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=expiration_hours),
+            expires_at=datetime.now(UTC) + timedelta(hours=expiration_hours),
             is_used=False,
         )
 
     @property
     def is_expired(self) -> bool:
         """Check if the reset token has expired"""
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.now(UTC) > self.expires_at
 
     @property
     def is_valid(self) -> bool:
@@ -72,4 +66,4 @@ class PasswordReset(Base):
     def mark_as_used(self) -> None:
         """Mark the token as used"""
         self.is_used = True
-        self.used_at = datetime.now(timezone.utc)
+        self.used_at = datetime.now(UTC)

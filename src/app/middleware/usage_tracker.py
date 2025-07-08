@@ -3,7 +3,7 @@ import time
 from fastapi import Request
 from loguru import logger
 
-from src.app.context import ctx_session_id, ctx_event_id, ctx_request_id
+from src.app.context import ctx_event_id, ctx_request_id, ctx_session_id
 from src.app.middleware.request_analyzer import RequestAnalyzer
 from src.app.middleware.response_analyzer import ResponseAnalyzer
 from src.app.middleware.usage_logger import UsageLogger
@@ -39,15 +39,13 @@ class ApiUsageTracker:
         request_metadata = self.request_analyzer.extract_request_metadata(request)
 
         # Extract query and body data
-        query_body_data = await self.request_analyzer.extract_query_and_body_data(
-            request
-        )
+        query_body_data = await self.request_analyzer.extract_query_and_body_data(request)
 
         # Set tracking IDs in context for logging
         session_id = query_body_data.get("session_id", "-")
         event_id = query_body_data.get("event_id", "-")
         request_id = query_body_data.get("request_id", "-")
-        
+
         ctx_session_id.set(session_id)
         ctx_event_id.set(event_id)
         ctx_request_id.set(request_id)

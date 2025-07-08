@@ -46,9 +46,7 @@ async def register(
     existing_user = result.scalar_one_or_none()
 
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     # Get the organisation to check max_users limit
     org_stmt = select(Organisation).where(Organisation.is_active).limit(1)
@@ -62,9 +60,7 @@ async def register(
         )
 
     # Check current user count for this organisation
-    user_count_stmt = select(func.count(User.id)).where(
-        User.organisation_id == organisation.id
-    )
+    user_count_stmt = select(func.count(User.id)).where(User.organisation_id == organisation.id)
     user_count_result = await db.execute(user_count_stmt)
     current_users = user_count_result.scalar()
 
@@ -173,9 +169,7 @@ async def logout(_=require_auth()):
 @router.post("/refresh_token", response_model=AuthResponse)
 async def refresh_token_route(
     refresh_request: RefreshTokenRequest,
-    db: AsyncSession = Depends(
-        get_db
-    ),  # Added db for potential future use (e.g. revocation list)
+    db: AsyncSession = Depends(get_db),  # Added db for potential future use (e.g. revocation list)
 ):
     """Refresh access token using a refresh token"""
     from src.app.auth.jwt_utils import verify_token  # Moved import here for clarity
@@ -186,9 +180,7 @@ async def refresh_token_route(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token_data = verify_token(
-        token=refresh_request.refresh_token, expected_token_type="refresh"
-    )
+    token_data = verify_token(token=refresh_request.refresh_token, expected_token_type="refresh")
     if not token_data or not token_data.user_id or not token_data.email:
         logger.warning(
             f"Invalid or expired refresh token provided for user_id: {token_data.user_id if token_data else 'unknown'}"
@@ -203,20 +195,14 @@ async def refresh_token_route(
     access_token_expire_minutes = jwt_config.get("JWT_ACCESS_EXPIRATION_MINUTES", 15)
 
     new_access_token = create_access_token(
-        user_id=uuid.UUID(
-            token_data.user_id
-        ),  # Convert string UUID from token back to UUID object
+        user_id=uuid.UUID(token_data.user_id),  # Convert string UUID from token back to UUID object
         email=token_data.email,
-        organisation_id=uuid.UUID(token_data.organisation_id)
-        if token_data.organisation_id
-        else None,
+        organisation_id=uuid.UUID(token_data.organisation_id) if token_data.organisation_id else None,
         expires_delta=timedelta(minutes=access_token_expire_minutes),
     )
     access_token_expires_in_seconds = access_token_expire_minutes * 60
 
-    logger.info(
-        f"New access token issued for user {token_data.email} using refresh token."
-    )
+    logger.info(f"New access token issued for user {token_data.email} using refresh token.")
 
     # Return only new access token details.
     # Refresh token itself is not returned again here, nor are user details.
@@ -255,9 +241,7 @@ async def forgot_password(
         reset_token = secrets.token_urlsafe(32)
 
         # Create password reset record
-        password_reset = PasswordReset.create_reset_token(
-            user_id=user.id, token=reset_token, expiration_hours=24
-        )
+        password_reset = PasswordReset.create_reset_token(user_id=user.id, token=reset_token, expiration_hours=24)
 
         db.add(password_reset)
         await db.commit()
@@ -310,9 +294,7 @@ async def reset_password(
     user = user_result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not found")
 
     # Update user's password
     user.password_hash = hash_password(reset_request.new_password)
@@ -334,9 +316,7 @@ async def _get_user_by_token(token_data, db: AsyncSession) -> User:
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
 
@@ -374,9 +354,7 @@ async def delete_account(
     user = await _get_user_by_token(token_data, db)
 
     if not verify_password(delete_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
 
     # Delete related records first to avoid foreign key constraint violations
     from src.app.models.tracking import UserResponseRating
