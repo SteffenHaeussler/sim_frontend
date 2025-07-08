@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -24,7 +23,7 @@ def verify_token_only(
     token = credentials.credentials
 
     # Verify and decode token
-    token_data: Optional[TokenData] = verify_token(token, expected_token_type="access")
+    token_data: TokenData | None = verify_token(token, expected_token_type="access")
     if not token_data:  # verify_token now checks user_id and token_type
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -32,12 +32,8 @@ class ConfigService:
         self.jwt_secret_key = self._get_required("JWT_SECRET_KEY")
         self.jwt_algorithm = self._get_required("JWT_ALGORITHM")
         self.jwt_expiration_hours = int(self._get_required("JWT_EXPIRATION_HOURS"))
-        self.jwt_access_expiration_minutes = int(
-            self._get_required("JWT_ACCESS_EXPIRATION_MINUTES")
-        )
-        self.jwt_refresh_expiration_days = int(
-            self._get_required("JWT_REFRESH_EXPIRATION_DAYS")
-        )
+        self.jwt_access_expiration_minutes = int(self._get_required("JWT_ACCESS_EXPIRATION_MINUTES"))
+        self.jwt_refresh_expiration_days = int(self._get_required("JWT_REFRESH_EXPIRATION_DAYS"))
 
         # Postgres DB Configuration
         self.db_user = self._get_required("DB_USER")
@@ -75,9 +71,7 @@ class ConfigService:
         self.app_password = self._get_required("app_password")
 
         # Organization Configuration
-        self.organisation_name = self._get_optional(
-            "organisation_name", "Company"
-        ).title()
+        self.organisation_name = self._get_optional("organisation_name", "Company").title()
 
     def _get_required(self, key: str) -> str:
         """Get required configuration value"""
@@ -138,23 +132,25 @@ class ConfigService:
         )
 
     def get_jwt_utils(self):
-        return dict(
-            jwt_algorithm=self.jwt_algorithm,
-            jwt_secret_key=self.jwt_secret_key,
-            jwt_expiration_hours=self.jwt_expiration_hours,
-            jwt_access_expiration_minutes=self.jwt_access_expiration_minutes,
-            jwt_refresh_expiration_days=self.jwt_refresh_expiration_days,
-        )
+        return {
+            "jwt_algorithm": self.jwt_algorithm,
+            "jwt_secret_key": self.jwt_secret_key,
+            "jwt_expiration_hours": self.jwt_expiration_hours,
+            "jwt_access_expiration_minutes": self.jwt_access_expiration_minutes,
+            "jwt_refresh_expiration_days": self.jwt_refresh_expiration_days,
+        }
 
     def get_database(self):
-        database_url = f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        database_url = (
+            f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
 
-        return dict(database_url=database_url)
+        return {"database_url": database_url}
 
     def get_sync_database(self):
         database_url = f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
-        return dict(database_url=database_url)
+        return {"database_url": database_url}
 
 
 # Global config service instance - lazy initialization

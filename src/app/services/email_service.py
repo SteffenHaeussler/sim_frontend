@@ -1,7 +1,6 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
 
 from loguru import logger
 
@@ -29,16 +28,14 @@ class EmailService:
         self.is_configured = self.config.is_smtp_configured()
 
         if not self.is_configured:
-            logger.warning(
-                "SMTP not configured. Emails will be logged instead of sent."
-            )
+            logger.warning("SMTP not configured. Emails will be logged instead of sent.")
 
     async def send_password_reset_email(
         self,
         to_email: str,
         reset_token: str,
         base_url: str,
-        user_name: Optional[str] = None,
+        user_name: str | None = None,
     ) -> bool:
         """
         Send password reset email to user
@@ -135,9 +132,7 @@ This link will expire in 24 hours for security reasons.
 This is an automated message. Please do not reply to this email.
         """.strip()
 
-    async def _send_email(
-        self, to_email: str, subject: str, html_content: str, text_content: str
-    ) -> bool:
+    async def _send_email(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
         """
         Send email using SMTP or log it if SMTP is not configured
 

@@ -9,17 +9,17 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from loguru import logger
+from fastapi import FastAPI  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from loguru import logger  # noqa: E402
 
-from src.app.auth import auth_router
-from src.app.config import config_service
-from src.app.core import router as core_router
-from src.app.logging import setup_logger
-from src.app.middleware import ApiUsageTracker, RequestTimer
-from src.app.models.database import close_db, init_database_engine
-from src.app.ratings import ratings_router
+from src.app.auth import auth_router  # noqa: E402
+from src.app.config import config_service  # noqa: E402
+from src.app.core import router as core_router  # noqa: E402
+from src.app.logging import setup_logger  # noqa: E402
+from src.app.middleware import ApiUsageTracker, RequestTimer  # noqa: E402
+from src.app.models.database import close_db, init_database_engine  # noqa: E402
+from src.app.ratings import ratings_router  # noqa: E402
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
@@ -29,7 +29,7 @@ def load_lookup_assets() -> list:
     """Load lookup asset data from JSON file"""
     try:
         lookup_file = Path(BASEDIR / "data" / "lookup_asset.json")
-        with open(lookup_file, "r") as f:
+        with open(lookup_file) as f:
             assets = json.load(f)
         logger.info(f"Loaded {len(assets)} lookup assets from {lookup_file}")
         return assets
@@ -39,7 +39,7 @@ def load_lookup_assets() -> list:
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(_application: FastAPI):
     """Lifespan context manager for FastAPI application startup and shutdown events"""
     # Startup
     logger.info("Application startup - database connection initialized")
@@ -74,8 +74,9 @@ def get_application() -> FastAPI:
     # Load lookup assets into application state
     application.state.lookup_assets = load_lookup_assets()
 
-    # Initialize database connection
-    init_database_engine()
+    # Initialize database connection (skip in test environment)
+    if config_service.config_name != "TEST":
+        init_database_engine()
 
     application.middleware("http")(request_timer)
     application.middleware("http")(usage_tracker)
@@ -85,9 +86,7 @@ def get_application() -> FastAPI:
     application.include_router(ratings_router, tags=["ratings"])
 
     # Mount static files and templates
-    application.mount(
-        "/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static"
-    )
+    application.mount("/static", StaticFiles(directory=f"{BASEDIR}/core/static"), name="static")
 
     logger.info(f"API running in {application.state.config_name} mode")
     return application

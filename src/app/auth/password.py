@@ -29,8 +29,6 @@ def verify_password(password: str, hashed_password: str) -> bool:
         bool: True if password matches
     """
     try:
-        return bcrypt.checkpw(
-            password.encode("utf-8"), hashed_password.encode("utf-8")
-        )
+        return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
     except Exception:
         return False

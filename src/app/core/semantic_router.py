@@ -15,8 +15,8 @@ def get_search_service() -> SearchService:
 @semantic_router.post("/lookout/semantic")
 async def semantic_search(
     request: SemanticRequest,
-    token_data=Depends(verify_token_only),
-    search_service: SearchService = Depends(get_search_service)
+    _token_data=Depends(verify_token_only),
+    search_service: SearchService = Depends(get_search_service),
 ):
     """
     Perform semantic search with embedding → search → ranking pipeline

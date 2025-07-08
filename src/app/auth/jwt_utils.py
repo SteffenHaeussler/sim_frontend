@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from jose import JWTError, jwt
 from pydantic import BaseModel
@@ -9,17 +9,17 @@ from src.app.config import config_service
 
 
 class TokenData(BaseModel):
-    user_id: Optional[str] = None
-    email: Optional[str] = None
-    organisation_id: Optional[str] = None
-    token_type: Optional[str] = None  # Expected values: "access" or "refresh"
+    user_id: str | None = None
+    email: str | None = None
+    organisation_id: str | None = None
+    token_type: str | None = None  # Expected values: "access" or "refresh"
 
 
 def create_access_token(
     user_id: uuid.UUID,
     email: str,
-    organisation_id: Optional[uuid.UUID] = None,
-    expires_delta: Optional[timedelta] = None,
+    organisation_id: uuid.UUID | None = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
     """
     Create JWT access token
@@ -37,21 +37,17 @@ def create_access_token(
     config = config_service.get_jwt_utils()
 
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        access_token_expire_minutes = config.get(
-            "JWT_ACCESS_EXPIRATION_MINUTES", 15
-        )
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=access_token_expire_minutes
-        )
+        access_token_expire_minutes = config.get("JWT_ACCESS_EXPIRATION_MINUTES", 15)
+        expire = datetime.now(UTC) + timedelta(minutes=access_token_expire_minutes)
 
     to_encode = {
         "sub": str(user_id),
         "email": email,
         "token_type": "access",  # Explicitly set token type
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
         "jti": str(uuid.uuid4()),  # JWT ID for token tracking
     }
 
@@ -70,8 +66,8 @@ def create_access_token(
 def create_refresh_token(
     user_id: uuid.UUID,
     email: str,
-    organisation_id: Optional[uuid.UUID] = None,
-    expires_delta: Optional[timedelta] = None,
+    organisation_id: uuid.UUID | None = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
     """
     Create JWT refresh token.
@@ -89,19 +85,17 @@ def create_refresh_token(
     config = config_service.get_jwt_utils()
 
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        refresh_token_expire_days = config.get(
-            "JWT_REFRESH_EXPIRATION_DAYS", 7
-        )
-        expire = datetime.now(timezone.utc) + timedelta(days=refresh_token_expire_days)
+        refresh_token_expire_days = config.get("JWT_REFRESH_EXPIRATION_DAYS", 7)
+        expire = datetime.now(UTC) + timedelta(days=refresh_token_expire_days)
 
     to_encode = {
         "sub": str(user_id),
         "email": email,
         "token_type": "refresh",  # Explicitly set token type
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
         "jti": str(uuid.uuid4()),  # JWT ID for token tracking
     }
     if organisation_id:
@@ -115,7 +109,7 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def verify_token(token: str, expected_token_type: str) -> Optional[TokenData]:
+def verify_token(token: str, expected_token_type: str) -> TokenData | None:
     """
     Verify and decode JWT token, checking for expected token type.
 
@@ -153,7 +147,7 @@ def verify_token(token: str, expected_token_type: str) -> Optional[TokenData]:
         return None
 
 
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
+def decode_token(token: str) -> dict[str, Any] | None:
     """
     Decode JWT token without verification (for debugging)
 

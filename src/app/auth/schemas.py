@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, EmailStr
 
 
@@ -35,8 +33,8 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # seconds until access_token expires
-    refresh_token: Optional[str] = None
-    refresh_token_expires_in: Optional[int] = None  # seconds until refresh_token expires
+    refresh_token: str | None = None
+    refresh_token_expires_in: int | None = None  # seconds until refresh_token expires
     user_email: str
     first_name: str
     last_name: str

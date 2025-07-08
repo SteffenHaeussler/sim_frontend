@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Lint with Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          uv sync --frozen
+      
+      - name: Run Ruff linter
+        run: |
+          uv run ruff check .
+      
+      - name: Run Ruff formatter check
+        run: |
+          uv run ruff format --check .
+
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      
+      - name: Install dependencies
+        run: |
+          uv sync --frozen
+      
+      - name: Load test environment
+        run: |
+          cp .env.test .env
+          
+      - name: Run Python tests with coverage
+        env:
+          # Override database settings for CI PostgreSQL service
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: testuser
+          DB_NAME: testdb
+          PGPASSWORD: testpass
+        run: |
+          uv run python -m pytest --cov=src --cov-report=xml --cov-report=term-missing
+      
+      - name: Upload Python coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: python
+          name: python-coverage
+          fail_ci_if_error: false
+
+  test-javascript:
+    name: JavaScript Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run JavaScript tests with coverage
+        run: npm run coverage
+      
+      - name: Upload JavaScript coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage
+          flags: javascript
+          name: javascript-coverage
+          fail_ci_if_error: false
+
+  # Docker build disabled for now - uncomment when needed
+  # build:
+  #   name: Build Docker Image
+  #   runs-on: ubuntu-latest
+  #   needs: [test-python, test-javascript]
+  #   
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #     
+  #     - name: Build Docker image
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: .
+  #         push: false
+  #         tags: sim-frontend:${{ github.sha }}
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'HIGH,CRITICAL'
+      
+      # Disabled: Upload to GitHub Security tab requires Advanced Security (not available for private repos on free plan)
+      # - name: Upload Trivy scan results to GitHub Security tab
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: 'trivy-results.sarif'

@@ -1,5 +1,5 @@
+from collections.abc import AsyncGenerator
 from functools import lru_cache
-from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -14,7 +14,7 @@ engine = None
 AsyncSessionLocal = None
 
 
-@lru_cache()
+@lru_cache
 def get_database_url() -> str:
     """Get database URL from config"""
     config = config_service.get_database()
@@ -36,9 +36,7 @@ def init_database_engine():
         )
 
         # Create async session factory
-        AsyncSessionLocal = async_sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
+        AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 # Dependency to get database session

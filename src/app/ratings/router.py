@@ -21,20 +21,11 @@ async def submit_rating(
 ):
     """Submit a user rating for a response"""
     user_id = UUID(token_data.user_id)
-    
+
     # Extract tracking IDs from headers (with fallback to query params for backward compatibility)
-    session_id = (
-        request.headers.get("x-session-id") 
-        or request.query_params.get("session_id")
-    )
-    event_id = (
-        request.headers.get("x-event-id") 
-        or request.query_params.get("event_id")
-    )
-    request_id = (
-        request.headers.get("x-request-id")
-        or request.query_params.get("request_id")
-    )
+    session_id = request.headers.get("x-session-id") or request.query_params.get("session_id")
+    event_id = request.headers.get("x-event-id") or request.query_params.get("event_id")
+    request_id = request.headers.get("x-request-id") or request.query_params.get("request_id")
 
     logger.info(
         f"Rating submission: user_id={user_id}, session_id={session_id}, event_id={event_id}, request_id={request_id}, rating_type={rating_request.rating_type}"
@@ -48,12 +39,8 @@ async def submit_rating(
         rating_value=1 if rating_request.rating_type == "thumbs_up" else -1,
         session_id=session_id,
         event_id=event_id,  # Store the unique event ID
-        message_context=rating_request.message_context[:500]
-        if rating_request.message_context
-        else None,
-        feedback_text=rating_request.feedback_text[:1000]
-        if rating_request.feedback_text
-        else None,
+        message_context=rating_request.message_context[:500] if rating_request.message_context else None,
+        feedback_text=rating_request.feedback_text[:1000] if rating_request.feedback_text else None,
     )
 
     db.add(new_rating)
