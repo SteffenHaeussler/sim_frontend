@@ -18,6 +18,7 @@ def mock_env():
     env_vars = {
         "agent_ws_base": "ws://test.example.com",
         "agent_url": "/test/agent",
+        "agent_sql_url": "/test/sql-agent",
         "agent_base": "http://test.example.com",
         "api_base": "http://api.test.com",
         "api_asset_url": "/assets",
@@ -47,6 +48,7 @@ def test_config():
         "PGPASSWORD": "test_password",
         "agent_ws_base": "ws://test.example.com",
         "agent_url": "/test/agent",
+        "agent_sql_url": "/test/sql-agent",
         "agent_base": "http://test.example.com",
         "api_base": "http://api.test.com",
         "api_asset_url": "/assets",
