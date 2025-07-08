@@ -16,11 +16,11 @@ class EmailService:
 
     def __init__(self):
         # Support both your variable names and standard names
-        self.smtp_server = os.getenv("smtp_host") or os.getenv("SMTP_SERVER")
-        self.smtp_port = int(os.getenv("smtp_port", os.getenv("SMTP_PORT", "587")))
-        self.smtp_username = os.getenv("sender_email") or os.getenv("SMTP_USERNAME")
-        self.smtp_password = os.getenv("app_password") or os.getenv("SMTP_PASSWORD")
-        self.from_email = os.getenv("sender_email") or os.getenv("FROM_EMAIL", self.smtp_username)
+        self.smtp_server = os.getenv("SMTP_HOST") or os.getenv("SMTP_SERVER")
+        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        self.smtp_username = os.getenv("SENDER_EMAIL") or os.getenv("SMTP_USERNAME")
+        self.smtp_password = os.getenv("APP_PASSWORD") or os.getenv("SMTP_PASSWORD")
+        self.from_email = os.getenv("SENDER_EMAIL") or os.getenv("FROM_EMAIL", self.smtp_username)
         self.from_name = os.getenv("FROM_NAME", "Password Reset Service")
 
         # Check if SMTP is properly configured

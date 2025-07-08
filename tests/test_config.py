@@ -41,9 +41,8 @@ class TestConfiguration:
 
     def test_config_missing_required_env_var(self):
         """Test configuration fails with missing required environment variable"""
-        with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(ConfigurationError, match="Missing required configuration"):
-                ConfigService()
+        with patch.dict(os.environ, {}, clear=True), pytest.raises(ConfigurationError, match="Missing required configuration"):
+            ConfigService()
 
     def test_config_url_builders(self, test_config):
         """Test URL builder methods"""

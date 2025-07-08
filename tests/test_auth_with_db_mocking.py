@@ -1,13 +1,13 @@
 """Test authentication endpoints with complete database mocking"""
 
 import uuid
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import status
 
-from src.app.models import PasswordReset, User
+from src.app.models import PasswordReset
 
 
 class TestAuthEndpointsWithMocking:
@@ -22,15 +22,15 @@ class TestAuthEndpointsWithMocking:
         # 1. Check existing user - None
         user_check = MagicMock()
         user_check.scalar_one_or_none.return_value = None
-        
+
         # 2. Get active organisation
         org_check = MagicMock()
         org_check.scalar_one_or_none.return_value = mock_organisation
-        
+
         # 3. Count users in organisation
         count_check = MagicMock()
         count_check.scalar.return_value = 5  # Less than max_users
-        
+
         mock_db_session.execute.side_effect = [user_check, org_check, count_check]
 
         # Registration data
@@ -93,13 +93,13 @@ class TestAuthEndpointsWithMocking:
             mock_access_token.return_value = "test_access_token"
             mock_refresh_token.return_value = "test_refresh_token"
             mock_verify_password.return_value = True  # Password is valid
-            
+
             # Mock JWT config
             mock_config_service.get_jwt_utils.return_value = {
                 "jwt_access_expiration_minutes": 15,
                 "JWT_REFRESH_EXPIRATION_DAYS": 7
             }
-            
+
             login_data = {"email": mock_user.email, "password": "correct_password"}
 
             response = client_with_mocked_db.post("/auth/login", json=login_data)
@@ -137,7 +137,7 @@ class TestAuthEndpointsWithMocking:
         # Mock finding user
         user_result = MagicMock()
         user_result.scalar_one_or_none.return_value = mock_user
-        
+
         mock_db_session.execute.return_value = user_result
 
         # Mock the email service
@@ -145,14 +145,14 @@ class TestAuthEndpointsWithMocking:
             mock_email_instance = mock_email_service_class.return_value
             mock_email_instance.is_configured = True
             mock_email_instance.send_password_reset_email = AsyncMock(return_value=True)
-            
+
             forgot_data = {"email": mock_user.email}
 
             response = client_with_mocked_db.post("/auth/forgot-password", json=forgot_data)
 
             assert response.status_code == status.HTTP_200_OK
             assert "reset link has been sent" in response.json()["message"]
-            
+
             # Verify email service was called
             mock_email_instance.send_password_reset_email.assert_called_once()
             assert mock_db_session.commit.called
@@ -170,7 +170,7 @@ class TestAuthEndpointsWithMocking:
         with patch("src.app.auth.router.EmailService") as mock_email_service_class:
             mock_email_instance = mock_email_service_class.return_value
             mock_email_instance.send_password_reset_email = AsyncMock(return_value=True)
-            
+
             forgot_data = {"email": "nonexistent@example.com"}
 
             response = client_with_mocked_db.post("/auth/forgot-password", json=forgot_data)
@@ -178,7 +178,7 @@ class TestAuthEndpointsWithMocking:
             # Should still return success for security
             assert response.status_code == status.HTTP_200_OK
             assert "reset link has been sent" in response.json()["message"]
-            
+
             # Email should not be sent
             mock_email_instance.send_password_reset_email.assert_not_called()
 
@@ -196,14 +196,14 @@ class TestAuthEndpointsWithMocking:
             expires_at=datetime.now(UTC) + timedelta(hours=24)
         )
         reset_token.user = mock_user
-        
+
         # Mock finding reset token and user
         reset_result = MagicMock()
         reset_result.scalar_one_or_none.return_value = reset_token
-        
+
         user_result = MagicMock()
         user_result.scalar_one_or_none.return_value = mock_user
-        
+
         mock_db_session.execute.side_effect = [reset_result, user_result]
 
         reset_data = {"token": "valid_reset_token", "new_password": "NewSecurePass123!"}

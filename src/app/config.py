@@ -132,25 +132,25 @@ class ConfigService:
         )
 
     def get_jwt_utils(self):
-        return dict(
-            jwt_algorithm=self.jwt_algorithm,
-            jwt_secret_key=self.jwt_secret_key,
-            jwt_expiration_hours=self.jwt_expiration_hours,
-            jwt_access_expiration_minutes=self.jwt_access_expiration_minutes,
-            jwt_refresh_expiration_days=self.jwt_refresh_expiration_days,
-        )
+        return {
+            "jwt_algorithm": self.jwt_algorithm,
+            "jwt_secret_key": self.jwt_secret_key,
+            "jwt_expiration_hours": self.jwt_expiration_hours,
+            "jwt_access_expiration_minutes": self.jwt_access_expiration_minutes,
+            "jwt_refresh_expiration_days": self.jwt_refresh_expiration_days,
+        }
 
     def get_database(self):
         database_url = (
             f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
         )
 
-        return dict(database_url=database_url)
+        return {"database_url": database_url}
 
     def get_sync_database(self):
         database_url = f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
-        return dict(database_url=database_url)
+        return {"database_url": database_url}
 
 
 # Global config service instance - lazy initialization

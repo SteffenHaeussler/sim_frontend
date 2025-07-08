@@ -12,9 +12,9 @@ import streamlit as st
 # Load .env file
 load_dotenv()
 
-API_BASE = os.getenv("agent_api_base")
+API_BASE = os.getenv("AGENT_API_BASE")
 
-API_URL = API_BASE + os.getenv("agent_api_url")
+API_URL = API_BASE + os.getenv("AGENT_API_URL")
 
 
 async def listen_to_sse(session_id):
@@ -22,32 +22,31 @@ async def listen_to_sse(session_id):
     timeout = httpx.Timeout(connect=10.0, read=180.0, write=10.0, pool=10.0)
 
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            async with client.stream("GET", sse_url) as response:
-                async for message in response.aiter_lines():
-                    if message.startswith(": keep-alive"):
-                        continue
+        async with httpx.AsyncClient(timeout=timeout) as client, client.stream("GET", sse_url) as response:
+            async for message in response.aiter_lines():
+                if message.startswith(": keep-alive"):
+                    continue
 
-                    if message.startswith("event: end"):
-                        return  # End the SSE connection
+                if message.startswith("event: end"):
+                    return  # End the SSE connection
 
-                    # Check if message contains base64 image
-                    if message.startswith("data: "):
-                        message = message.replace("data: ", "")
-                    else:
-                        pass
+                # Check if message contains base64 image
+                if message.startswith("data: "):
+                    message = message.replace("data: ", "")
+                else:
+                    pass
 
-                    for _message in message.split("$%$%"):
-                        if _message.startswith("Plot:"):
-                            try:
-                                # Extract the base64 part after the comma
-                                base64_data = _message.split("Plot:")[1].strip()
-                                # Add data URI prefix for PNG image
-                                base64_data = f"data:image/png;base64,{base64_data}"
-                                # Display the image using the data URI
-                                st.image(base64_data)
-                            except Exception as e:
-                                logger.error(f"Error processing image: {e}")
+                for _message in message.split("$%$%"):
+                    if _message.startswith("Plot:"):
+                        try:
+                            # Extract the base64 part after the comma
+                            base64_data = _message.split("Plot:")[1].strip()
+                            # Add data URI prefix for PNG image
+                            base64_data = f"data:image/png;base64,{base64_data}"
+                            # Display the image using the data URI
+                            st.image(base64_data)
+                        except Exception as e:
+                            logger.error(f"Error processing image: {e}")
 
                         else:
                             for m in _message.split("\n"):

@@ -169,7 +169,7 @@ async def logout(_=require_auth()):
 @router.post("/refresh_token", response_model=AuthResponse)
 async def refresh_token_route(
     refresh_request: RefreshTokenRequest,
-    db: AsyncSession = Depends(get_db),  # Added db for potential future use (e.g. revocation list)
+    _db: AsyncSession = Depends(get_db),  # Added db for potential future use (e.g. revocation list)
 ):
     """Refresh access token using a refresh token"""
     from src.app.auth.jwt_utils import verify_token  # Moved import here for clarity

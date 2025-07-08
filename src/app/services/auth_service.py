@@ -77,7 +77,7 @@ class AuthService:
     async def login_user(self, db: AsyncSession, email: str, password: str) -> dict[str, Any]:
         """Login a user"""
         # Find user by email
-        stmt = select(User).where(User.email == email, User.is_active == True)
+        stmt = select(User).where(User.email == email, User.is_active.is_(True))
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
@@ -107,7 +107,7 @@ class AuthService:
     async def request_password_reset(self, db: AsyncSession, email: str, base_url: str) -> dict[str, Any]:
         """Request a password reset"""
         # Find user by email
-        stmt = select(User).where(User.email == email, User.is_active == True)
+        stmt = select(User).where(User.email == email, User.is_active.is_(True))
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
@@ -169,7 +169,7 @@ class AuthService:
     async def _check_user_limit(self, db: AsyncSession, organisation_id) -> bool:
         """Check if organisation has reached user limit"""
         # Count current active users
-        stmt = select(func.count(User.id)).where(User.organisation_id == organisation_id, User.is_active == True)
+        stmt = select(func.count(User.id)).where(User.organisation_id == organisation_id, User.is_active.is_(True))
         result = await db.execute(stmt)
         current_user_count = result.scalar()
 

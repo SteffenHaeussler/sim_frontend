@@ -150,11 +150,11 @@ def mock_db_session():
     """Create a mock database session with common query patterns"""
     # Create mock session
     session = MagicMock(spec=AsyncSession)
-    
+
     # Mock the async context manager
     session.__aenter__ = AsyncMock(return_value=session)
     session.__aexit__ = AsyncMock(return_value=None)
-    
+
     # Mock common session methods
     session.add = MagicMock()
     session.commit = AsyncMock()
@@ -162,14 +162,14 @@ def mock_db_session():
     session.flush = AsyncMock()
     session.refresh = AsyncMock()
     session.close = AsyncMock()
-    
+
     # Mock execute for queries
     session.execute = AsyncMock()
-    
+
     # Mock scalar methods
     session.scalar = AsyncMock()
     session.scalars = AsyncMock()
-    
+
     return session
 
 

@@ -1,7 +1,6 @@
 """Test ratings endpoints with complete database mocking"""
 
-import uuid
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -20,13 +19,13 @@ class TestRatingsWithMocking:
         # Mock token verification to return our mock user's ID
         from src.app.auth.jwt_utils import TokenData
         token_data = TokenData(user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id))
-        
+
         with patch("src.app.auth.dependencies.verify_token", return_value=token_data):
             # Mock user lookup for active user check
             user_result = MagicMock()
             user_result.scalar_one_or_none.return_value = mock_user
             mock_db_session.execute.return_value = user_result
-            
+
             # Rating data
             rating_data = {
                 "rating_type": "thumbs_up",
@@ -69,13 +68,13 @@ class TestRatingsWithMocking:
         """Test thumbs down rating submission"""
         from src.app.auth.jwt_utils import TokenData
         token_data = TokenData(user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id))
-        
+
         with patch("src.app.auth.dependencies.verify_token", return_value=token_data):
             # Mock user lookup for active user check
             user_result = MagicMock()
             user_result.scalar_one_or_none.return_value = mock_user
             mock_db_session.execute.return_value = user_result
-            
+
             rating_data = {
                 "rating_type": "thumbs_down",
                 "message_context": "Question about API",
@@ -83,8 +82,8 @@ class TestRatingsWithMocking:
             }
 
             response = client_with_mocked_db.post(
-                "/ratings/submit", 
-                json=rating_data, 
+                "/ratings/submit",
+                json=rating_data,
                 headers={"Authorization": "Bearer test-token"},
                 params={"session_id": "session-123", "event_id": "event-456"}  # Test query params fallback
             )
@@ -114,13 +113,13 @@ class TestRatingsWithMocking:
         """Test rating with very long context (should be truncated)"""
         from src.app.auth.jwt_utils import TokenData
         token_data = TokenData(user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id))
-        
+
         with patch("src.app.auth.dependencies.verify_token", return_value=token_data):
             # Mock user lookup for active user check
             user_result = MagicMock()
             user_result.scalar_one_or_none.return_value = mock_user
             mock_db_session.execute.return_value = user_result
-            
+
             long_context = "x" * 1000  # 1000 characters
             rating_data = {
                 "rating_type": "thumbs_up",
@@ -128,8 +127,8 @@ class TestRatingsWithMocking:
             }
 
             response = client_with_mocked_db.post(
-                "/ratings/submit", 
-                json=rating_data, 
+                "/ratings/submit",
+                json=rating_data,
                 headers={"Authorization": "Bearer test-token"}
             )
 

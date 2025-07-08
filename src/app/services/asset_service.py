@@ -256,11 +256,11 @@ class AssetService:
             paginated_assets = filtered_assets[start_idx:end_idx]
 
             # Get unique asset types and types for filter options
-            asset_types = list(set(asset.get("asset_type", "") for asset in assets))
+            asset_types = list({asset.get("asset_type", "") for asset in assets})
             asset_types = [t for t in asset_types if t]  # Remove empty strings
             asset_types.sort()
 
-            types = list(set(asset.get("type", "") for asset in assets))
+            types = list({asset.get("type", "") for asset in assets})
             types = [t for t in types if t]  # Remove empty strings
             types.sort()
 

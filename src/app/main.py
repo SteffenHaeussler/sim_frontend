@@ -9,17 +9,17 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from loguru import logger
+from fastapi import FastAPI  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from loguru import logger  # noqa: E402
 
-from src.app.auth import auth_router
-from src.app.config import config_service
-from src.app.core import router as core_router
-from src.app.logging import setup_logger
-from src.app.middleware import ApiUsageTracker, RequestTimer
-from src.app.models.database import close_db, init_database_engine
-from src.app.ratings import ratings_router
+from src.app.auth import auth_router  # noqa: E402
+from src.app.config import config_service  # noqa: E402
+from src.app.core import router as core_router  # noqa: E402
+from src.app.logging import setup_logger  # noqa: E402
+from src.app.middleware import ApiUsageTracker, RequestTimer  # noqa: E402
+from src.app.models.database import close_db, init_database_engine  # noqa: E402
+from src.app.ratings import ratings_router  # noqa: E402
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
@@ -39,7 +39,7 @@ def load_lookup_assets() -> list:
 
 
 @asynccontextmanager
-async def lifespan(application: FastAPI):
+async def lifespan(_application: FastAPI):
     """Lifespan context manager for FastAPI application startup and shutdown events"""
     # Startup
     logger.info("Application startup - database connection initialized")
