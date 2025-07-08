@@ -1,3 +1,6 @@
+# Disabled: Dependency Review requires GitHub Advanced Security (not available for private repos on free plan)
+# To re-enable: rename this file back to dependency-review.yml when you have access to Advanced Security
+
 name: Dependency Review
 
 on:
