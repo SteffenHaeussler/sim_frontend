@@ -76,13 +76,43 @@ jobs:
       
       - name: Run Python tests with coverage
         env:
+          # Test environment
+          FASTAPI_ENV: TEST
+          CONFIG_NAME: TEST
+          VERSION: 0.1.0-test
+          DEBUG: "true"
+          # Database
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: testuser
           DB_NAME: testdb
           PGPASSWORD: testpass
+          # JWT
           JWT_SECRET_KEY: test-secret-key-for-ci
-          FASTAPI_ENV: test
+          JWT_ALGORITHM: HS256
+          JWT_EXPIRATION_HOURS: 24
+          JWT_ACCESS_EXPIRATION_MINUTES: 15
+          JWT_REFRESH_EXPIRATION_DAYS: 7
+          # API URLs (test values)
+          agent_ws_base: ws://test.example.com
+          agent_url: /test/agent
+          agent_base: http://test.example.com
+          api_base: http://api.test.com
+          api_asset_url: /assets
+          api_neighbor_url: /neighbors
+          api_name_url: /names
+          api_id_url: /ids
+          semantic_base: http://semantic.test.com
+          semantic_emb_url: /embedding
+          semantic_search_url: /search
+          semantic_rank_url: /ranking
+          semantic_table: test_table
+          # Email (test values)
+          SMTP_HOST: smtp.test.com
+          SMTP_PORT: 587
+          SENDER_EMAIL: test@example.com
+          APP_PASSWORD: test-password
+          organisation_name: Test Organization
         run: |
           uv run python -m pytest --cov=src --cov-report=xml --cov-report=term-missing
       
