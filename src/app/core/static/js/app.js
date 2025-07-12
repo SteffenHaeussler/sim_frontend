@@ -152,7 +152,7 @@ class App {
 
     handleServiceClick(service) {
         // Define protected services
-        const protectedServices = ['ask-agent', 'ask-sql-agent', 'lookup-service', 'search', 'library'];
+        const protectedServices = ['ask-agent', 'ask-sql-agent', 'lookup-service', 'search', 'library', 'scenario'];
 
         // Check if user is logged in for protected services
         if (protectedServices.includes(service) && !this.isUserLoggedIn()) {
@@ -172,7 +172,7 @@ class App {
 
     handleServiceClickWithNewSession(service) {
         // Define protected services
-        const protectedServices = ['ask-agent', 'ask-sql-agent', 'lookup-service', 'search', 'library'];
+        const protectedServices = ['ask-agent', 'ask-sql-agent', 'lookup-service', 'search', 'library', 'scenario'];
 
         // Check if user is logged in for protected services
         if (protectedServices.includes(service) && !this.isUserLoggedIn()) {
