@@ -51,19 +51,29 @@ class ScenarioService:
             
             # Step 2: Generate recommendations
             recommendations = self.generator.generate(query, analysis)
-            recommendation_texts = [rec.query for rec in recommendations]
             
             # Store queries for retry functionality
             self.query_store[message_id] = {
                 rec.sub_id: rec.query for rec in recommendations
             }
             
+            # Create candidate objects for the message
+            from src.app.core.scenario_schema import ScenarioCandidate
+            candidates = [
+                ScenarioCandidate(
+                    sub_id=rec.sub_id,
+                    question=rec.query,
+                    endpoint=rec.agent_type
+                )
+                for rec in recommendations
+            ]
+            
             # Step 3: Send initial recommendation message
             rec_message = self.formatter.format_recommendation(
                 session_id=session_id,
                 message_id=message_id,
                 query=query,
-                recommendations=recommendation_texts
+                recommendations=candidates
             )
             await self._send_websocket_message(websocket, rec_message.model_dump())
             

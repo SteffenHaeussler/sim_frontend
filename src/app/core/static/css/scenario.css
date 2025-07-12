@@ -175,6 +175,37 @@ body.dark-mode .scenario-result-section {
     border-color: var(--border-color);
 }
 
+/* Endpoint badges */
+.endpoint-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.endpoint-badge.sqlagent {
+    background-color: var(--sql-badge-bg, #e3f2fd);
+    color: var(--sql-badge-color, #1565c0);
+}
+
+.endpoint-badge.toolagent {
+    background-color: var(--tool-badge-bg, #f3e5f5);
+    color: var(--tool-badge-color, #6a1b9a);
+}
+
+/* Dark mode endpoint badges */
+body.dark-mode .endpoint-badge.sqlagent {
+    background-color: var(--sql-badge-bg-dark, #1565c0);
+    color: var(--sql-badge-color-dark, #e3f2fd);
+}
+
+body.dark-mode .endpoint-badge.toolagent {
+    background-color: var(--tool-badge-bg-dark, #6a1b9a);
+    color: var(--tool-badge-color-dark, #f3e5f5);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .scenario-results {

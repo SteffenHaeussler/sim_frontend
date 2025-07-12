@@ -11,10 +11,17 @@ class ScenarioMessage(BaseModel):
     type: str  # "scenario_recommendation" or "scenario_result"
 
 
+class ScenarioCandidate(BaseModel):
+    """A single recommendation/candidate query"""
+    sub_id: str
+    question: str  # The recommended query
+    endpoint: str  # "sqlagent" or "toolagent"
+
+
 class ScenarioRecommendation(ScenarioMessage):
-    """Initial recommendation message"""
+    """Initial recommendation message with candidates"""
     type: str = "scenario_recommendation"
-    recommendations: List[str]
+    recommendations: List[ScenarioCandidate]  # List of candidate queries with endpoints
     query: str
 
 

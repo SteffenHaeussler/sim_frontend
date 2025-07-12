@@ -1,7 +1,7 @@
 import pytest
 
 from src.app.services.message_formatter import MessageFormatter
-from src.app.core.scenario_schema import ScenarioRecommendation, ScenarioResult
+from src.app.core.scenario_schema import ScenarioCandidate, ScenarioRecommendation, ScenarioResult
 
 
 class TestMessageFormatter:
@@ -12,11 +12,11 @@ class TestMessageFormatter:
         formatter = MessageFormatter()
         
         recommendations = [
-            "Check temperature trends for DC-101",
-            "Analyze pressure patterns",
-            "Review historical alarms",
-            "Compare with similar units",
-            "Generate performance report"
+            ScenarioCandidate(sub_id="sub-1", question="Check temperature trends for DC-101", endpoint="sqlagent"),
+            ScenarioCandidate(sub_id="sub-2", question="Analyze pressure patterns", endpoint="toolagent"),
+            ScenarioCandidate(sub_id="sub-3", question="Review historical alarms", endpoint="sqlagent"),
+            ScenarioCandidate(sub_id="sub-4", question="Compare with similar units", endpoint="toolagent"),
+            ScenarioCandidate(sub_id="sub-5", question="Generate performance report", endpoint="sqlagent")
         ]
         
         message = formatter.format_recommendation(
@@ -33,6 +33,9 @@ class TestMessageFormatter:
         assert message.type == "scenario_recommendation"
         assert len(message.recommendations) == 5
         assert message.query == "Analyze distillation column"
+        assert message.recommendations[0].sub_id == "sub-1"
+        assert message.recommendations[0].question == "Check temperature trends for DC-101"
+        assert message.recommendations[0].endpoint == "sqlagent"
 
     def test_format_result_message(self):
         """Test formatting agent result message"""
@@ -101,7 +104,10 @@ class TestMessageFormatter:
             session_id="test-session",
             message_id="scenario-001",
             query="Test query",
-            recommendations=["Rec 1", "Rec 2"]
+            recommendations=[
+                ScenarioCandidate(sub_id="sub-1", question="Rec 1", endpoint="sqlagent"),
+                ScenarioCandidate(sub_id="sub-2", question="Rec 2", endpoint="toolagent")
+            ]
         )
         
         rec_dict = rec_message.model_dump()

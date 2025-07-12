@@ -45,9 +45,9 @@ describe('ScenarioUIRenderer', () => {
     it('should update recommendations correctly', () => {
         const messageId = 'scenario-001';
         const recommendations = [
-            'Get tank level data from SQL',
-            'Analyze tank level trends',
-            'Check for anomalies'
+            { sub_id: 'sub-1', question: 'Get tank level data from SQL', endpoint: 'sqlagent' },
+            { sub_id: 'sub-2', question: 'Analyze tank level trends', endpoint: 'toolagent' },
+            { sub_id: 'sub-3', question: 'Check for anomalies', endpoint: 'sqlagent' }
         ];
         
         // First create container
@@ -60,9 +60,12 @@ describe('ScenarioUIRenderer', () => {
         const listItems = recsDiv.querySelectorAll('li');
         
         expect(listItems.length).toBe(3);
-        expect(listItems[0].textContent).toBe(recommendations[0]);
-        expect(listItems[1].textContent).toBe(recommendations[1]);
-        expect(listItems[2].textContent).toBe(recommendations[2]);
+        expect(listItems[0].textContent).toContain('[SQLAGENT]');
+        expect(listItems[0].textContent).toContain('Get tank level data from SQL');
+        expect(listItems[1].textContent).toContain('[TOOLAGENT]');
+        expect(listItems[1].textContent).toContain('Analyze tank level trends');
+        expect(listItems[2].textContent).toContain('[SQLAGENT]');
+        expect(listItems[2].textContent).toContain('Check for anomalies');
     });
 
     it('should add result sections correctly', () => {
@@ -132,7 +135,7 @@ describe('ScenarioUIRenderer', () => {
     it('should handle missing container gracefully', () => {
         // Try to update non-existent scenario
         expect(() => {
-            renderer.updateRecommendations('non-existent', ['test']);
+            renderer.updateRecommendations('non-existent', [{ sub_id: 'sub-1', question: 'test', endpoint: 'sqlagent' }]);
         }).not.toThrow();
         
         expect(() => {
@@ -147,9 +150,9 @@ describe('ScenarioUIRenderer', () => {
     it('should prevent XSS in recommendations', () => {
         const messageId = 'scenario-001';
         const maliciousRecs = [
-            '<script>alert("XSS")</script>Safe text',
-            'Normal recommendation',
-            '<img src=x onerror="alert(\'XSS\')">'
+            { sub_id: 'sub-1', question: '<script>alert("XSS")</script>Safe text', endpoint: 'sqlagent' },
+            { sub_id: 'sub-2', question: 'Normal recommendation', endpoint: 'toolagent' },
+            { sub_id: 'sub-3', question: '<img src=x onerror="alert(\'XSS\')">', endpoint: '<script>bad</script>' }
         ];
         
         renderer.createScenarioContainer(messageId, 'Test');
@@ -168,6 +171,9 @@ describe('ScenarioUIRenderer', () => {
         // Check that dangerous attributes are escaped
         const listItems = container.querySelectorAll('.scenario-recommendations li');
         expect(listItems[2].textContent).toContain('<img src=x onerror="alert');
+        
+        // Check that endpoint is also escaped
+        expect(html).toContain('[&lt;SCRIPT&gt;BAD&lt;/SCRIPT&gt;]');
         
         // Ensure no executable scripts
         expect(() => {

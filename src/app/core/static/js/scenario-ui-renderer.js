@@ -45,10 +45,14 @@ export class ScenarioUIRenderer {
         
         statusDiv.textContent = 'Executing parallel queries...';
         
-        // Sanitize each recommendation before rendering
-        const sanitizedRecs = recommendations.map(rec => 
-            `<li>${this.sanitizer.escapeHtml(rec)}</li>`
-        ).join('');
+        // Process recommendations with endpoint info
+        const sanitizedRecs = recommendations.map(rec => {
+            const endpoint = this.sanitizer.escapeHtml(rec.endpoint.toUpperCase());
+            const question = this.sanitizer.escapeHtml(rec.question);
+            // Sanitize endpoint for class name - only allow alphanumeric
+            const safeClass = rec.endpoint.replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
+            return `<li><span class="endpoint-badge ${safeClass}">[${endpoint}]</span> ${question}</li>`;
+        }).join('');
         
         recsDiv.innerHTML = '<h4>Recommendations:</h4><ol>' + sanitizedRecs + '</ol>';
     }

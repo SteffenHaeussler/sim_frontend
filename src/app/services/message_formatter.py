@@ -1,13 +1,13 @@
 from typing import List, Optional
 
-from src.app.core.scenario_schema import ScenarioRecommendation, ScenarioResult
+from src.app.core.scenario_schema import ScenarioCandidate, ScenarioRecommendation, ScenarioResult
 
 
 class MessageFormatter:
     """Formats messages for scenario analysis"""
     
     def format_recommendation(self, session_id: str, message_id: str, 
-                            query: str, recommendations: List[str]) -> ScenarioRecommendation:
+                            query: str, recommendations: List[ScenarioCandidate]) -> ScenarioRecommendation:
         """Format initial recommendation message"""
         return ScenarioRecommendation(
             session_id=session_id,
