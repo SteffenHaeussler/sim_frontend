@@ -15,6 +15,11 @@ The application serves as a frontend interface and API for functionalities inclu
         *   Loading and accessing "lookup assets".
         *   Submitting and retrieving ratings.
         *   Interacting with a semantic search service for embedding, searching, and ranking.
+        *   **Scenario Analysis:** WebSocket-based endpoint for multi-agent query analysis:
+            *   Analyzes user queries to extract keywords, domain context, and time periods
+            *   Generates up to 5 parallel agent-specific recommendations
+            *   Executes parallel calls to sqlagent and toolagent services
+            *   Streams results in real-time via WebSocket with parent-child message structure
     *   Health checks and application metadata.
     *   **Request Tracking System:** Comprehensive tracking using three types of IDs:
         *   `session_id` - Tracks user sessions across multiple requests
@@ -239,6 +244,14 @@ WebSocket connections use query parameters for session tracking due to browser l
 ```javascript
 const wsUrl = `${wsBase}?session_id=${sessionId}`;
 ```
+
+**Available WebSocket Endpoints:**
+
+1. **`/ws/scenario`** - Scenario Analysis WebSocket
+   - Accepts JSON messages with `query` and `message_id`
+   - Returns `scenario_recommendation` messages with analysis results
+   - Streams `scenario_result` messages for each parallel agent call
+   - Message structure includes `message_id`, `sub_id` for parent-child tracking
 
 ## CI/CD Pipeline
 
