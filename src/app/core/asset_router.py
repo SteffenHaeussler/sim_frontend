@@ -33,6 +33,17 @@ async def answer_sql_question(
     return await asset_service.trigger_sql_agent_question(question, request)
 
 
+@asset_router.get("/scenario")
+async def analyze_scenario(
+    request: Request,
+    question: str,
+    _token_data=Depends(verify_token_only),
+    asset_service: AssetService = Depends(get_asset_service),
+):
+    """Handle scenario analysis request and trigger parallel agent calls"""
+    return await asset_service.trigger_scenario_analysis(question, request)
+
+
 @asset_router.get("/api/asset/{asset_id}")
 async def get_asset_info(
     asset_id: str,

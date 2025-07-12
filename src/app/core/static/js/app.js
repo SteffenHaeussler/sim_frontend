@@ -49,6 +49,7 @@ class App {
         this.askAgentButton = document.getElementById('ask-agent-btn');
         this.lookupServiceButton = document.getElementById('lookup-service-btn');
         this.askSqlAgentButton = document.getElementById('ask-sql-agent-btn');
+        this.scenarioButton = document.getElementById('scenario-btn');
         this.searchButton = document.getElementById('search-btn');
         this.libraryButton = document.getElementById('library-btn');
         this.userGreeting = document.getElementById('user-greeting');
@@ -62,6 +63,7 @@ class App {
         this.lookupServiceButton.addEventListener('click', () => this.handleServiceClickWithNewSession('lookup-service'));
 
         this.askSqlAgentButton.addEventListener('click', () => this.handleServiceClickWithNewSession('ask-sql-agent'));
+        this.scenarioButton.addEventListener('click', () => this.handleServiceClickWithNewSession('scenario'));
 
         this.searchButton.addEventListener('click', () => this.handleServiceClick('search'));
         this.libraryButton.addEventListener('click', () => this.handleServiceClick('library'));
@@ -82,6 +84,7 @@ class App {
         document.querySelector('#lookup-service-btn .icon-label').addEventListener('click', () => this.handleServiceClickWithNewSession('lookup-service'));
 
         document.querySelector('#ask-sql-agent-btn .icon-label').addEventListener('click', () => this.handleServiceClickWithNewSession('ask-sql-agent'));
+        document.querySelector('#scenario-btn .icon-label').addEventListener('click', () => this.handleServiceClickWithNewSession('scenario'));
 
         document.querySelector('#search-btn .icon-label').addEventListener('click', () => this.handleServiceClick('search'));
         document.querySelector('#library-btn .icon-label').addEventListener('click', () => this.handleServiceClick('library'));
@@ -206,6 +209,7 @@ class App {
         this.askAgentButton.classList.remove('active');
         this.lookupServiceButton.classList.remove('active');
         this.askSqlAgentButton.classList.remove('active');
+        this.scenarioButton.classList.remove('active');
 
         // Add active class to selected service
         if (service === 'ask-agent') {
@@ -214,6 +218,8 @@ class App {
             this.lookupServiceButton.classList.add('active');
         } else if (service === 'ask-sql-agent') {
             this.askSqlAgentButton.classList.add('active');
+        } else if (service === 'scenario') {
+            this.scenarioButton.classList.add('active');
         }
 
         // Update current active service
@@ -244,6 +250,10 @@ class App {
             if (window.sqlAgent) {
                 // Update session ID when SQL Agent becomes active
                 window.sqlAgent.updateSessionId();
+            }
+        } else if (service === 'scenario') {
+            if (window.scenarioAgent) {
+                window.scenarioAgent.handleNewSession();
             }
         } else {
             if (window.askAgent) {
@@ -299,6 +309,36 @@ class App {
                 templateContainer.appendChild(templateDiv);
             });
             
+        } else if (service === 'scenario') {
+            // Show template section and regular chat for scenario, hide SQL chat and lookup
+            templateContainer.style.display = '';
+            if (chatContainer) chatContainer.style.display = 'block';
+            if (sqlChatContainer) sqlChatContainer.style.display = 'none';
+            if (lookupContainer) lookupContainer.style.display = 'none';
+
+            // Clear existing templates except the header
+            const templateTexts = templateContainer.querySelectorAll('.template-text');
+            templateTexts.forEach(template => template.remove());
+
+            // Add scenario templates
+            const scenarioTemplates = [
+                "Analyze the performance of distillation column DC-101 over the last month",
+                "What are the critical parameters for Tank Farm operations today?",
+                "Investigate the root cause of pressure fluctuations in the reactor system",
+                "Compare production efficiency across all processing units this week",
+                "Identify potential maintenance issues in the cooling system",
+                "Analyze energy consumption patterns across the plant",
+                "What are the optimal operating conditions for maximizing yield?",
+                "Investigate correlations between temperature and pressure in the process"
+            ];
+
+            scenarioTemplates.forEach(templateText => {
+                const templateDiv = document.createElement('div');
+                templateDiv.className = 'template-text';
+                templateDiv.textContent = templateText;
+                templateDiv.addEventListener('click', () => this.handleTemplateClick(templateDiv));
+                templateContainer.appendChild(templateDiv);
+            });
         } else {
             // Show template section and regular chat, hide SQL chat and lookup
             templateContainer.style.display = '';

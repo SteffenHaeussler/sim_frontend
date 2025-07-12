@@ -277,3 +277,27 @@ class AssetService:
         except Exception as e:
             logger.error(f"Failed to search assets: {e}")
             return {"error": str(e), "assets": [], "total_count": 0}
+
+    async def trigger_scenario_analysis(self, question: str, request: Request) -> dict[str, Any]:
+        """Handle scenario analysis request"""
+        # Get session ID from context (set by middleware)
+        session_id = ctx_session_id.get()
+        if session_id == "-" or not session_id:
+            session_id = str(uuid.uuid4())
+
+        # Get message_id from query params if provided
+        message_id = request.query_params.get("message_id", f"scenario-{uuid.uuid4()}")
+
+        logger.info(f"Received scenario query: {question}")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Message ID: {message_id}")
+
+        # For now, just trigger the scenario analysis
+        # The actual WebSocket handling will stream the results
+        return {
+            "status": "triggered",
+            "session_id": session_id,
+            "message_id": message_id,
+            "question": question,
+            "message": "Scenario analysis initiated"
+        }
