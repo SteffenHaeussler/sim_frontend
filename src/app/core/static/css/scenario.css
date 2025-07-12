@@ -206,6 +206,297 @@ body.dark-mode .endpoint-badge.toolagent {
     color: var(--tool-badge-color-dark, #f3e5f5);
 }
 
+/* JSON Response Styling */
+.json-response {
+    background-color: var(--bg-secondary);
+    border-left: 3px solid var(--primary-color);
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.json-container {
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.json-header {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+}
+
+.json-object,
+.json-array {
+    margin: 5px 0;
+}
+
+.json-property,
+.json-array-item {
+    margin: 3px 0;
+    display: flex;
+    align-items: flex-start;
+}
+
+.json-key {
+    color: var(--json-key-color, #881391);
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.json-index {
+    color: var(--json-index-color, #666);
+    margin-right: 5px;
+}
+
+.json-value {
+    color: var(--json-value-color, #0a84ff);
+}
+
+/* Dark mode JSON colors */
+body.dark-mode .json-key {
+    color: var(--json-key-color-dark, #bb86fc);
+}
+
+body.dark-mode .json-index {
+    color: var(--json-index-color-dark, #aaa);
+}
+
+body.dark-mode .json-value {
+    color: var(--json-value-color-dark, #03dac6);
+}
+
+body.dark-mode .json-response {
+    background-color: var(--bg-tertiary, #2a2a2a);
+    border-left-color: var(--primary-color);
+}
+
+/* Nested JSON indentation */
+.json-object .json-object,
+.json-object .json-array,
+.json-array .json-object,
+.json-array .json-array {
+    border-left: 1px dashed var(--border-color);
+    padding-left: 10px;
+    margin-left: 10px;
+}
+
+/* SQL Agent Requests Container */
+.sql-requests-container {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.sql-requests-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.sql-requests-header h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.3em;
+}
+
+.sql-progress {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    background-color: var(--bg-primary);
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.sql-completed {
+    color: var(--success-color, #28a745);
+    font-weight: bold;
+}
+
+.sql-requests-grid {
+    display: grid;
+    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+}
+
+/* SQL Request Card */
+.sql-request-card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.sql-request-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sql-request-card.pending {
+    opacity: 0.7;
+}
+
+.sql-request-card.processing {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.sql-request-card.completed {
+    border-color: var(--success-color, #28a745);
+}
+
+.sql-request-card.error {
+    border-color: var(--error-color, #dc3545);
+}
+
+.sql-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.sql-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sql-sub-id {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.sql-endpoint {
+    background-color: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: monospace;
+    color: var(--text-secondary);
+}
+
+.sql-card-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sql-status-icon {
+    font-size: 1.2em;
+}
+
+.sql-status-text {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+}
+
+.sql-card-question {
+    color: var(--text-color);
+    font-size: 0.95em;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    padding: 10px;
+    background-color: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.sql-card-result {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.sql-result-content {
+    color: var(--text-color);
+    font-size: 0.9em;
+    line-height: 1.5;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.sql-result-content pre {
+    background-color: var(--bg-tertiary, #f5f5f5);
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+}
+
+.sql-error-message {
+    color: var(--error-color, #dc3545);
+    background-color: rgba(220, 53, 69, 0.1);
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* SQL Evaluation Section */
+.sql-evaluation-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+.sql-evaluation-header {
+    margin-bottom: 15px;
+}
+
+.sql-evaluation-header h4 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.sql-evaluation-content {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.sql-evaluation-content p {
+    margin: 0 0 10px 0;
+}
+
+.sql-evaluation-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Dark mode SQL styling */
+body.dark-mode .sql-requests-container {
+    background-color: var(--bg-secondary);
+}
+
+body.dark-mode .sql-request-card {
+    background-color: var(--bg-tertiary, #2a2a2a);
+}
+
+body.dark-mode .sql-card-question {
+    background-color: var(--bg-primary);
+}
+
+body.dark-mode .sql-result-content pre {
+    background-color: var(--bg-primary);
+}
+
+body.dark-mode .sql-evaluation-content {
+    background-color: var(--bg-tertiary, #2a2a2a);
+    border-color: var(--border-color);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .scenario-results {
@@ -213,6 +504,20 @@ body.dark-mode .endpoint-badge.toolagent {
     }
     
     .scenario-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .json-container {
+        font-size: 0.85em;
+    }
+    
+    .sql-requests-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sql-requests-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
