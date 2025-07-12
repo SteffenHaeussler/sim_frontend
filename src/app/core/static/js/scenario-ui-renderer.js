@@ -21,10 +21,6 @@ export class ScenarioUIRenderer {
         const scenarioDiv = document.createElement('div');
         scenarioDiv.className = 'agent-message scenario-container';
         scenarioDiv.innerHTML = `
-            <div class="scenario-header">
-                <h3>Scenario Analysis</h3>
-                <div class="scenario-status">Analyzing...</div>
-            </div>
             <div class="scenario-recommendations"></div>
             <div class="scenario-results"></div>
         `;
@@ -41,9 +37,6 @@ export class ScenarioUIRenderer {
         if (!container) return;
         
         const recsDiv = container.querySelector('.scenario-recommendations');
-        const statusDiv = container.querySelector('.scenario-status');
-        
-        statusDiv.textContent = 'Executing parallel queries...';
         
         // Process recommendations with endpoint info
         const sanitizedRecs = recommendations.map(rec => {
@@ -77,16 +70,8 @@ export class ScenarioUIRenderer {
     }
 
     updateStatus(messageId, status) {
-        const container = this.findScenarioContainer(messageId);
-        if (!container) return;
-        
-        const statusDiv = container.querySelector('.scenario-status');
-        if (status.completed === status.total) {
-            statusDiv.textContent = 'Analysis complete';
-            statusDiv.className = 'scenario-status complete';
-        } else {
-            statusDiv.textContent = `Executing parallel queries... (${status.completed}/${status.total} - ${status.percentage}%)`;
-        }
+        // Status updates are now handled elsewhere or ignored
+        // since we removed the status div
     }
 
     // Private helper methods

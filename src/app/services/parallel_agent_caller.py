@@ -6,8 +6,6 @@ import httpx
 from loguru import logger
 
 from src.app.config import config_service
-from src.app.core.scenario_schema import AgentQuery
-from src.app.services.scenario_error_handler import ScenarioErrorHandler
 
 
 class ParallelAgentCaller:
@@ -21,13 +19,11 @@ class ParallelAgentCaller:
         self.tool_agent_timeout = float(os.getenv("TOOL_AGENT_TIMEOUT", "60"))
         self.default_timeout = float(os.getenv("DEFAULT_AGENT_TIMEOUT", "30"))
         
-        self.error_handler = ScenarioErrorHandler()
-        
         # Retry configuration
         self.max_retries = int(os.getenv("AGENT_MAX_RETRIES", "3"))
         self.retry_delay = float(os.getenv("AGENT_RETRY_DELAY", "1"))  # seconds
     
-    async def call_agents(self, queries: List[AgentQuery], session_id: str) -> Dict:
+    async def call_agents(self, queries: List[Dict], session_id: str) -> Dict:
         """Call multiple agents in parallel"""
         if not queries:
             return {}
@@ -35,15 +31,19 @@ class ParallelAgentCaller:
         # Create tasks for each query
         tasks = []
         for query in queries:
-            if query.agent_type == "sqlagent":
-                task = self._call_sql_agent(query.query, session_id)
-            elif query.agent_type == "toolagent":
-                task = self._call_tool_agent(query.query, session_id)
+            agent_type = query.get("agent_type", "")
+            query_text = query.get("query", "")
+            sub_id = query.get("sub_id", "")
+            
+            if agent_type == "sqlagent":
+                task = self._call_sql_agent(query_text, session_id)
+            elif agent_type == "toolagent":
+                task = self._call_tool_agent(query_text, session_id)
             else:
                 # Unknown agent type
-                task = self._create_error_result(f"Unknown agent type: {query.agent_type}")
+                task = self._create_error_result(f"Unknown agent type: {agent_type}")
             
-            tasks.append((query.sub_id, task))
+            tasks.append((sub_id, task))
         
         # Execute all tasks concurrently
         results = {}

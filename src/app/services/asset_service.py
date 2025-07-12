@@ -148,6 +148,72 @@ class AssetService:
 
         return {"status": "triggered", "session_id": session_id, "question": question}
 
+    async def trigger_scenario_question(self, question: str, request: Request) -> dict[str, Any]:
+        """Handle question from frontend and trigger external agent API"""
+        # Get session ID from context (set by middleware)
+        session_id = ctx_session_id.get()
+        if session_id == "-" or not session_id:
+            session_id = str(uuid.uuid4())
+
+        # Get external API URL from config
+        api_url = self.config.get_scenario_agent_api_url()
+
+        logger.info(f"Received question: {question}")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Config agent_base: {self.config.agent_base}")
+        logger.info(f"Config agent_scenario_url: {self.config.agent_scenario_url}")
+        logger.info(f"Forwarding to: {api_url}")
+
+        # Don't make the request if URL is empty/invalid
+        if not api_url or api_url == "":
+            logger.error("Scenario Agent API URL is empty - check AGENT_BASE and agent_scenario_url configuration")
+            return {
+                "status": "error",
+                "message": "Scenario Agent API not configured",
+                "session_id": session_id,
+            }
+
+        def send_request():
+            try:
+                # Extract headers from the incoming request
+                headers_to_forward = {}
+                if request.headers:
+                    # Forward common headers that might be needed
+                    for header_name in [
+                        "authorization",
+                        "x-api-key",
+                        "x-correlation-id",
+                        "x-request-id",
+                        "x-session-id",
+                        "x-event-id",
+                        "user-agent",
+                        "accept",
+                        "content-type",
+                    ]:
+                        if header_name in request.headers:
+                            headers_to_forward[header_name] = request.headers[header_name]
+
+                logger.info(f"Forwarding headers: {list(headers_to_forward.keys())}")
+
+                with httpx.Client() as client:
+                    response = client.get(
+                        api_url,
+                        params={
+                            "q_id": session_id,
+                            "question": question,
+                        },
+                        headers=headers_to_forward,
+                        timeout=2,
+                    )
+                    logger.info(f"External API response: {response.status_code}")
+            except Exception as e:
+                logger.error(f"External API request failed: {e}")
+
+        # Fire and forget request to external API
+        threading.Thread(target=send_request, daemon=True).start()
+
+        return {"status": "triggered", "session_id": session_id, "question": question}
+
     async def get_asset_info(self, asset_id: str) -> dict[str, Any]:
         """Get asset information by asset ID"""
         full_url = f"{self.config.get_asset_api_url('asset')}/{asset_id}"
@@ -299,5 +365,5 @@ class AssetService:
             "session_id": session_id,
             "message_id": message_id,
             "question": question,
-            "message": "Scenario analysis initiated"
+            "message": "Scenario analysis initiated",
         }

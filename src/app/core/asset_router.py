@@ -41,7 +41,7 @@ async def analyze_scenario(
     asset_service: AssetService = Depends(get_asset_service),
 ):
     """Handle scenario analysis request and trigger parallel agent calls"""
-    return await asset_service.trigger_scenario_analysis(question, request)
+    return await asset_service.trigger_scenario_question(question, request)
 
 
 @asset_router.get("/api/asset/{asset_id}")
