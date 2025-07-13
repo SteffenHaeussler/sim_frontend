@@ -450,16 +450,125 @@ class ScenarioAgent {
             <div class="sql-card-result" style="display: none;">
                 <div class="sql-result-content"></div>
             </div>
+            <div class="sql-card-actions" style="display: none;">
+                <button class="sql-action-btn sql-copy-btn" title="Copy to clipboard">
+                    <img src="/static/icons/copy.svg" alt="Copy" width="16" height="16">
+                </button>
+                <button class="sql-action-btn sql-thumbs-up" title="Good response">
+                    <img src="/static/icons/thumbs-up.svg" alt="Thumbs up" width="16" height="16">
+                </button>
+                <button class="sql-action-btn sql-thumbs-down" title="Poor response">
+                    <img src="/static/icons/thumbs-down.svg" alt="Thumbs down" width="16" height="16">
+                </button>
+            </div>
             <div class="sql-card-footer" style="display: none;">
                 <span class="sql-session-id"></span>
             </div>
         `;
+        
+        // Add event listeners for action buttons
+        const copyBtn = card.querySelector('.sql-copy-btn');
+        const thumbsUpBtn = card.querySelector('.sql-thumbs-up');
+        const thumbsDownBtn = card.querySelector('.sql-thumbs-down');
+        
+        copyBtn.addEventListener('click', () => {
+            const content = card.querySelector('.sql-result-content').innerText;
+            this.copyToClipboard(content, copyBtn);
+        });
+        
+        thumbsUpBtn.addEventListener('click', () => {
+            this.rateResponse(request, card, 'up', thumbsUpBtn);
+        });
+        
+        thumbsDownBtn.addEventListener('click', () => {
+            this.rateResponse(request, card, 'down', thumbsDownBtn);
+        });
         
         return card;
     }
     
     generateSessionId() {
         return 'sql-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    async copyToClipboard(content, button) {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(content);
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement("textarea");
+                textArea.value = content;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+                
+                document.body.removeChild(textArea);
+            }
+            
+            // Visual feedback - permanent
+            button.querySelector('img').src = '/static/icons/copy-active.svg';
+            button.disabled = true;
+            button.title = 'Copied!';
+            
+        } catch (err) {
+            console.error('Failed to copy to clipboard:', err);
+        }
+    }
+    
+    async rateResponse(request, card, rating, button) {
+        try {
+            const content = card.querySelector('.sql-result-content').innerText;
+            const sessionId = card.querySelector('.sql-session-id')?.textContent || window.app?.sessionId;
+            
+            const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
+            
+            // Use the same endpoint as other services
+            const ratingsUrl = new URL('/ratings/submit', window.location.origin);
+            if (sessionId) {
+                ratingsUrl.searchParams.append('session_id', sessionId);
+            }
+            
+            const response = await window.authAPI.authenticatedFetch(ratingsUrl.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    rating_type: ratingType,
+                    session_id: sessionId,
+                    event_id: request.sub_id,  // Use sub_id as event_id
+                    message_context: content.substring(0, 500), // First 500 chars of the response
+                    feedback_text: null
+                })
+            });
+            
+            if (response.ok) {
+                // Visual feedback - use active icons
+                const activeIcon = rating === 'up' ? 
+                    '/static/icons/thumbs-up-active.svg' : 
+                    '/static/icons/thumbs-down-active.svg';
+                button.querySelector('img').src = activeIcon;
+                button.disabled = true;
+                button.title = `Rated as ${rating === 'up' ? 'good' : 'poor'}`;
+                
+                // Hide the other rating button
+                const otherButton = rating === 'up' 
+                    ? card.querySelector('.sql-thumbs-down') 
+                    : card.querySelector('.sql-thumbs-up');
+                otherButton.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Failed to submit rating:', error);
+        }
     }
     
     async executeSQLAgentRequest(request, card, container) {
@@ -471,7 +580,7 @@ class ScenarioAgent {
             // Display session ID in footer
             const sessionIdElement = card.querySelector('.sql-session-id');
             const footerElement = card.querySelector('.sql-card-footer');
-            sessionIdElement.textContent = `Session: ${uniqueSessionId}`;
+            sessionIdElement.textContent = uniqueSessionId;
             footerElement.style.display = 'block';
             
             // Update status to processing
@@ -514,6 +623,12 @@ class ScenarioAgent {
             const contentDiv = resultDiv.querySelector('.sql-result-content');
             contentDiv.innerHTML = `<div class="sql-error-message">Error: ${error.message}</div>`;
             resultDiv.style.display = 'block';
+            
+            // Show action buttons even for errors
+            const actionsDiv = card.querySelector('.sql-card-actions');
+            if (actionsDiv) {
+                actionsDiv.style.display = 'flex';
+            }
         }
     }
     
@@ -557,6 +672,12 @@ class ScenarioAgent {
                         });
                         contentDiv.innerHTML = marked.parse(responseContent);
                         resultDiv.style.display = 'block';
+                        
+                        // Show action buttons
+                        const actionsDiv = card.querySelector('.sql-card-actions');
+                        if (actionsDiv) {
+                            actionsDiv.style.display = 'flex';
+                        }
                         
                         ws.close();
                         resolve();
