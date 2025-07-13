@@ -7,6 +7,7 @@ from fastapi import WebSocket
 from src.app.services.scenario_service import ScenarioService
 
 
+@pytest.mark.skip(reason="Scenario WebSocket endpoint moved to external agent - frontend connects directly")
 class TestScenarioRetry:
     """Test the scenario retry functionality"""
     

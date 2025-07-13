@@ -326,7 +326,7 @@ body.dark-mode .json-response {
 .sql-requests-grid {
     display: grid;
     gap: 15px;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: 1fr;
 }
 
 /* SQL Request Card */
@@ -340,6 +340,11 @@ body.dark-mode .json-response {
 
 .sql-request-card:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sql-request-card.queued {
+    opacity: 0.5;
+    background-color: var(--bg-secondary);
 }
 
 .sql-request-card.pending {
@@ -386,6 +391,24 @@ body.dark-mode .json-response {
     color: var(--text-secondary);
 }
 
+.sql-card-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    text-align: right;
+}
+
+.sql-session-id {
+    background-color: var(--bg-secondary);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.7em;
+    font-family: monospace;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    display: inline-block;
+}
+
 .sql-card-status {
     display: flex;
     align-items: center;
@@ -399,6 +422,10 @@ body.dark-mode .json-response {
 .sql-status-text {
     font-size: 0.85em;
     color: var(--text-secondary);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sql-card-question {
@@ -421,8 +448,6 @@ body.dark-mode .json-response {
     color: var(--text-color);
     font-size: 0.9em;
     line-height: 1.5;
-    max-height: 300px;
-    overflow-y: auto;
 }
 
 .sql-result-content pre {

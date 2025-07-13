@@ -372,19 +372,58 @@ class ScenarioAgent {
         // Add container to messages
         this.messagesElement.appendChild(containerDiv);
         
-        // Process each request
+        // Process each request sequentially
+        // Create all cards first with queued status
+        const allCards = [];
         for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
             const requestCard = this.createSQLRequestCard(request, i);
             requestsGrid.appendChild(requestCard);
+            allCards.push({ request, card: requestCard });
             
-            // Execute SQL agent request
-            this.executeSQLAgentRequest(request, requestCard, containerDiv).then(() => {
-                // Update progress
-                const completed = containerDiv.querySelectorAll('.sql-request-card.completed').length;
-                containerDiv.querySelector('.sql-completed').textContent = completed;
-            });
+            // Set queued status for cards that will wait
+            if (i > 0) {
+                requestCard.classList.remove('pending');
+                requestCard.classList.add('queued');
+                requestCard.querySelector('.sql-status-icon').textContent = '⏸️';
+                requestCard.querySelector('.sql-status-text').textContent = 'Queued';
+            }
         }
+        
+        // Process each request sequentially
+        const processRequestsSequentially = async () => {
+            for (let i = 0; i < allCards.length; i++) {
+                const { request, card: requestCard } = allCards[i];
+                
+                // Update from queued to processing
+                if (requestCard.classList.contains('queued')) {
+                    requestCard.classList.remove('queued');
+                    requestCard.classList.add('pending');
+                    requestCard.querySelector('.sql-status-icon').textContent = '⏳';
+                    requestCard.querySelector('.sql-status-text').textContent = 'Pending';
+                }
+                
+                // Execute SQL agent request and wait for completion
+                try {
+                    await this.executeSQLAgentRequest(request, requestCard, containerDiv);
+                    
+                    // Update progress
+                    const completed = containerDiv.querySelectorAll('.sql-request-card.completed').length;
+                    containerDiv.querySelector('.sql-completed').textContent = completed;
+                    
+                    // Add delay between requests to respect rate limits (1 second)
+                    if (i < requests.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                } catch (error) {
+                    console.error(`Failed to process request ${i}:`, error);
+                    // Continue with next request even if one fails
+                }
+            }
+        };
+        
+        // Start sequential processing
+        processRequestsSequentially();
         
         this.messagesElement.scrollTop = this.messagesElement.scrollHeight;
     }
@@ -411,6 +450,9 @@ class ScenarioAgent {
             <div class="sql-card-result" style="display: none;">
                 <div class="sql-result-content"></div>
             </div>
+            <div class="sql-card-footer" style="display: none;">
+                <span class="sql-session-id"></span>
+            </div>
         `;
         
         return card;
@@ -425,6 +467,12 @@ class ScenarioAgent {
             // Generate unique session ID for this request
             const uniqueSessionId = this.generateSessionId();
             card.dataset.sessionId = uniqueSessionId;
+            
+            // Display session ID in footer
+            const sessionIdElement = card.querySelector('.sql-session-id');
+            const footerElement = card.querySelector('.sql-card-footer');
+            sessionIdElement.textContent = `Session: ${uniqueSessionId}`;
+            footerElement.style.display = 'block';
             
             // Update status to processing
             card.classList.remove('pending');
@@ -480,9 +528,15 @@ class ScenarioAgent {
             
             ws.onmessage = (event) => {
                 const message = event.data;
+                console.log(`WebSocket message for ${request.sub_id}:`, message);
                 
                 if (message.startsWith("event: ")) {
                     const statusText = message.replace("event: ", "").trim();
+                    
+                    // Update status text with the event message
+                    if (statusText && !message.startsWith("event: end")) {
+                        card.querySelector('.sql-status-text').textContent = statusText;
+                    }
                     
                     if (message.startsWith("event: end")) {
                         // Request completed
@@ -490,12 +544,13 @@ class ScenarioAgent {
                         card.classList.add('completed');
                         card.querySelector('.sql-status-icon').textContent = '✅';
                         card.querySelector('.sql-status-text').textContent = 'Completed';
-                        
+                    
                         // Show result
                         const resultDiv = card.querySelector('.sql-card-result');
                         const contentDiv = resultDiv.querySelector('.sql-result-content');
                         
                         // Render as markdown
+                        console.log(`Final responseContent for ${request.sub_id}:`, responseContent);
                         marked.setOptions({
                             breaks: true,
                             gfm: true
@@ -507,9 +562,14 @@ class ScenarioAgent {
                         resolve();
                     }
                 } else if (message.startsWith("data: ")) {
-                    const data = message.replace("data: ", "").trim();
-                    if (data) {
-                        responseContent += data + '\n';
+                    const data = message.substring(6); // Keep everything after "data: " including spaces and newlines
+                    responseContent += data + '\n';
+                    console.log(`Added data to responseContent for ${request.sub_id}:`, data);
+                } else {
+                    // Handle messages that don't follow event/data format
+                    // This could be raw response data
+                    if (message.trim()) {
+                        responseContent += message + '\n';
                     }
                 }
             };
