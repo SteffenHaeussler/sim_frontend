@@ -8,6 +8,7 @@ from fastapi import WebSocket
 from src.app.services.scenario_service import ScenarioService
 
 
+@pytest.mark.skip(reason="Scenario WebSocket endpoint moved to external agent - frontend connects directly")
 @pytest.mark.asyncio
 class TestScenarioIntegration:
     """Integration tests for complete scenario flow"""

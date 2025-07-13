@@ -21,6 +21,10 @@ export class ScenarioUIRenderer {
         const scenarioDiv = document.createElement('div');
         scenarioDiv.className = 'agent-message scenario-container';
         scenarioDiv.innerHTML = `
+            <div class="scenario-header">
+                <h3>Scenario Analysis</h3>
+                <div class="scenario-status">Processing...</div>
+            </div>
             <div class="scenario-recommendations"></div>
             <div class="scenario-results"></div>
         `;
@@ -70,8 +74,18 @@ export class ScenarioUIRenderer {
     }
 
     updateStatus(messageId, status) {
-        // Status updates are now handled elsewhere or ignored
-        // since we removed the status div
+        const container = this.findScenarioContainer(messageId);
+        if (!container) return;
+        
+        const statusDiv = container.querySelector('.scenario-status');
+        if (!statusDiv) return;
+        
+        if (status.percentage === 100) {
+            statusDiv.textContent = 'Analysis complete';
+            statusDiv.classList.add('complete');
+        } else {
+            statusDiv.textContent = `Processing... ${status.completed}/${status.total} (${status.percentage}%)`;
+        }
     }
 
     // Private helper methods

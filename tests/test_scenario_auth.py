@@ -9,6 +9,7 @@ from src.app.auth.jwt_utils import create_access_token
 from src.app.main import app
 
 
+@pytest.mark.skip(reason="Scenario WebSocket endpoint moved to external agent - frontend connects directly")
 class TestScenarioAuthentication:
     """Test authentication for scenario WebSocket endpoint"""
     

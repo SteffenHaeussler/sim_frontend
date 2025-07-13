@@ -1,11 +1,12 @@
 import asyncio
 import os
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import httpx
 from loguru import logger
 
 from src.app.config import config_service
+from src.app.core.scenario_schema import AgentQuery
 
 
 class ParallelAgentCaller:
@@ -23,7 +24,7 @@ class ParallelAgentCaller:
         self.max_retries = int(os.getenv("AGENT_MAX_RETRIES", "3"))
         self.retry_delay = float(os.getenv("AGENT_RETRY_DELAY", "1"))  # seconds
     
-    async def call_agents(self, queries: List[Dict], session_id: str) -> Dict:
+    async def call_agents(self, queries: List[Union[Dict, AgentQuery]], session_id: str) -> Dict:
         """Call multiple agents in parallel"""
         if not queries:
             return {}
@@ -31,9 +32,15 @@ class ParallelAgentCaller:
         # Create tasks for each query
         tasks = []
         for query in queries:
-            agent_type = query.get("agent_type", "")
-            query_text = query.get("query", "")
-            sub_id = query.get("sub_id", "")
+            # Handle both dict and AgentQuery objects
+            if isinstance(query, dict):
+                agent_type = query.get("agent_type", "")
+                query_text = query.get("query", "")
+                sub_id = query.get("sub_id", "")
+            else:  # AgentQuery object
+                agent_type = query.agent_type
+                query_text = query.query
+                sub_id = query.sub_id
             
             if agent_type == "sqlagent":
                 task = self._call_sql_agent(query_text, session_id)
