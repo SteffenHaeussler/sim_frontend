@@ -372,19 +372,58 @@ class ScenarioAgent {
         // Add container to messages
         this.messagesElement.appendChild(containerDiv);
         
-        // Process each request
+        // Process each request sequentially
+        // Create all cards first with queued status
+        const allCards = [];
         for (let i = 0; i < requests.length; i++) {
             const request = requests[i];
             const requestCard = this.createSQLRequestCard(request, i);
             requestsGrid.appendChild(requestCard);
+            allCards.push({ request, card: requestCard });
             
-            // Execute SQL agent request
-            this.executeSQLAgentRequest(request, requestCard, containerDiv).then(() => {
-                // Update progress
-                const completed = containerDiv.querySelectorAll('.sql-request-card.completed').length;
-                containerDiv.querySelector('.sql-completed').textContent = completed;
-            });
+            // Set queued status for cards that will wait
+            if (i > 0) {
+                requestCard.classList.remove('pending');
+                requestCard.classList.add('queued');
+                requestCard.querySelector('.sql-status-icon').textContent = '⏸️';
+                requestCard.querySelector('.sql-status-text').textContent = 'Queued';
+            }
         }
+        
+        // Process each request sequentially
+        const processRequestsSequentially = async () => {
+            for (let i = 0; i < allCards.length; i++) {
+                const { request, card: requestCard } = allCards[i];
+                
+                // Update from queued to processing
+                if (requestCard.classList.contains('queued')) {
+                    requestCard.classList.remove('queued');
+                    requestCard.classList.add('pending');
+                    requestCard.querySelector('.sql-status-icon').textContent = '⏳';
+                    requestCard.querySelector('.sql-status-text').textContent = 'Pending';
+                }
+                
+                // Execute SQL agent request and wait for completion
+                try {
+                    await this.executeSQLAgentRequest(request, requestCard, containerDiv);
+                    
+                    // Update progress
+                    const completed = containerDiv.querySelectorAll('.sql-request-card.completed').length;
+                    containerDiv.querySelector('.sql-completed').textContent = completed;
+                    
+                    // Add delay between requests to respect rate limits (1 second)
+                    if (i < requests.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                } catch (error) {
+                    console.error(`Failed to process request ${i}:`, error);
+                    // Continue with next request even if one fails
+                }
+            }
+        };
+        
+        // Start sequential processing
+        processRequestsSequentially();
         
         this.messagesElement.scrollTop = this.messagesElement.scrollHeight;
     }
@@ -399,6 +438,7 @@ class ScenarioAgent {
                 <div class="sql-card-title">
                     <span class="sql-sub-id">Query ${request.sub_id}</span>
                     <span class="sql-endpoint">${request.endpoint || request.end_point}</span>
+                    <span class="sql-session-id" style="display: none;"></span>
                 </div>
                 <div class="sql-card-status">
                     <span class="sql-status-icon">⏳</span>
@@ -425,6 +465,11 @@ class ScenarioAgent {
             // Generate unique session ID for this request
             const uniqueSessionId = this.generateSessionId();
             card.dataset.sessionId = uniqueSessionId;
+            
+            // Display session ID
+            const sessionIdElement = card.querySelector('.sql-session-id');
+            sessionIdElement.textContent = uniqueSessionId;
+            sessionIdElement.style.display = 'inline-block';
             
             // Update status to processing
             card.classList.remove('pending');
