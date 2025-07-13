@@ -548,3 +548,57 @@ body.dark-mode .sql-evaluation-content {
         gap: 10px;
     }
 }
+
+/* SQL Card Action Buttons */
+.sql-card-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.sql-action-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    color: var(--text-color);
+}
+
+.sql-action-btn:hover:not(:disabled) {
+    background-color: var(--hover-bg);
+    border-color: var(--primary-color);
+}
+
+.sql-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.sql-action-btn img {
+    width: 16px;
+    height: 16px;
+}
+
+.sql-copy-btn:hover:not(:disabled) {
+    background-color: rgba(74, 222, 128, 0.1);
+    border-color: #4ade80;
+}
+
+.sql-thumbs-up:hover:not(:disabled) {
+    background-color: rgba(74, 222, 128, 0.1);
+    border-color: #4ade80;
+}
+
+.sql-thumbs-down:hover:not(:disabled) {
+    background-color: rgba(248, 113, 113, 0.1);
+    border-color: #f87171;
+}
