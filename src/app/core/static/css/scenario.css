@@ -391,14 +391,22 @@ body.dark-mode .json-response {
     color: var(--text-secondary);
 }
 
+.sql-card-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    text-align: right;
+}
+
 .sql-session-id {
     background-color: var(--bg-secondary);
     padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75em;
+    border-radius: 3px;
+    font-size: 0.7em;
     font-family: monospace;
     color: var(--text-secondary);
-    opacity: 0.8;
+    opacity: 0.6;
+    display: inline-block;
 }
 
 .sql-card-status {
@@ -414,6 +422,10 @@ body.dark-mode .json-response {
 .sql-status-text {
     font-size: 0.85em;
     color: var(--text-secondary);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sql-card-question {

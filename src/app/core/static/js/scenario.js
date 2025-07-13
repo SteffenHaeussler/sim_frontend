@@ -438,7 +438,6 @@ class ScenarioAgent {
                 <div class="sql-card-title">
                     <span class="sql-sub-id">Query ${request.sub_id}</span>
                     <span class="sql-endpoint">${request.endpoint || request.end_point}</span>
-                    <span class="sql-session-id" style="display: none;"></span>
                 </div>
                 <div class="sql-card-status">
                     <span class="sql-status-icon">⏳</span>
@@ -450,6 +449,9 @@ class ScenarioAgent {
             </div>
             <div class="sql-card-result" style="display: none;">
                 <div class="sql-result-content"></div>
+            </div>
+            <div class="sql-card-footer" style="display: none;">
+                <span class="sql-session-id"></span>
             </div>
         `;
         
@@ -466,10 +468,11 @@ class ScenarioAgent {
             const uniqueSessionId = this.generateSessionId();
             card.dataset.sessionId = uniqueSessionId;
             
-            // Display session ID
+            // Display session ID in footer
             const sessionIdElement = card.querySelector('.sql-session-id');
-            sessionIdElement.textContent = uniqueSessionId;
-            sessionIdElement.style.display = 'inline-block';
+            const footerElement = card.querySelector('.sql-card-footer');
+            sessionIdElement.textContent = `Session: ${uniqueSessionId}`;
+            footerElement.style.display = 'block';
             
             // Update status to processing
             card.classList.remove('pending');
@@ -525,9 +528,15 @@ class ScenarioAgent {
             
             ws.onmessage = (event) => {
                 const message = event.data;
+                console.log(`WebSocket message for ${request.sub_id}:`, message);
                 
                 if (message.startsWith("event: ")) {
                     const statusText = message.replace("event: ", "").trim();
+                    
+                    // Update status text with the event message
+                    if (statusText && !message.startsWith("event: end")) {
+                        card.querySelector('.sql-status-text').textContent = statusText;
+                    }
                     
                     if (message.startsWith("event: end")) {
                         // Request completed
@@ -535,12 +544,13 @@ class ScenarioAgent {
                         card.classList.add('completed');
                         card.querySelector('.sql-status-icon').textContent = '✅';
                         card.querySelector('.sql-status-text').textContent = 'Completed';
-                        
+                    
                         // Show result
                         const resultDiv = card.querySelector('.sql-card-result');
                         const contentDiv = resultDiv.querySelector('.sql-result-content');
                         
                         // Render as markdown
+                        console.log(`Final responseContent for ${request.sub_id}:`, responseContent);
                         marked.setOptions({
                             breaks: true,
                             gfm: true
@@ -552,9 +562,14 @@ class ScenarioAgent {
                         resolve();
                     }
                 } else if (message.startsWith("data: ")) {
-                    const data = message.replace("data: ", "").trim();
-                    if (data) {
-                        responseContent += data + '\n';
+                    const data = message.substring(6); // Keep everything after "data: " including spaces and newlines
+                    responseContent += data + '\n';
+                    console.log(`Added data to responseContent for ${request.sub_id}:`, data);
+                } else {
+                    // Handle messages that don't follow event/data format
+                    // This could be raw response data
+                    if (message.trim()) {
+                        responseContent += message + '\n';
                     }
                 }
             };
