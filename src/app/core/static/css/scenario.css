@@ -564,11 +564,13 @@ body.dark-mode .sql-evaluation-content {
     background: transparent;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 6px 10px;
+    padding: 3px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     transition: all 0.2s ease;
     color: var(--text-color);
 }
