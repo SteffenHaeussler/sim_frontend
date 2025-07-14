@@ -52,8 +52,8 @@
     </script>
 
     <script src="{{ url_for('static', path='/js/app.js') }}"></script>
-    <script src="{{ url_for('static', path='/js/ask-agent.js') }}"></script>
-    <script src="{{ url_for('static', path='/js/sql-service.js') }}"></script>
+    <script type="module" src="{{ url_for('static', path='/js/ask-agent.js') }}"></script>
+    <script type="module" src="{{ url_for('static', path='/js/sql-service.js') }}"></script>
     <script type="module" src="{{ url_for('static', path='/js/scenario.js') }}"></script>
     <script src="{{ url_for('static', path='/js/auth-api.js') }}"></script>
     <script src="{{ url_for('static', path='/js/auth-ui.js') }}"></script>

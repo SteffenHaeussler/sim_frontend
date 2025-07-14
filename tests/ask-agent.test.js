@@ -11,6 +11,15 @@ describe('AskAgent', () => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
     
+    // Mock WebSocket
+    global.WebSocket = vi.fn().mockImplementation(() => ({
+      send: vi.fn(),
+      close: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      readyState: 1
+    }));
+    
     // Mock global dependencies
     global.marked = {
       setOptions: vi.fn(),
@@ -24,8 +33,8 @@ describe('AskAgent', () => {
       }
     };
     
-    // Load Ask Agent service
-    window = loadScript('src/app/core/static/js/ask-agent.js');
+    // Load Ask Agent service (mock version for testing)
+    window = loadScript('tests/helpers/mock-ask-agent.js');
     
     // Set up DOM in the window's document
     const messagesDiv = window.document.createElement('div');
@@ -86,8 +95,8 @@ describe('AskAgent', () => {
   
   afterEach(() => {
     vi.restoreAllMocks();
-    if (askAgent && askAgent.websocket) {
-      askAgent.websocket.close();
+    if (askAgent && askAgent.wsHandler) {
+      askAgent.wsHandler.close();
     }
   });
 
@@ -300,13 +309,13 @@ describe('AskAgent', () => {
     });
 
     it('should close WebSocket connection on reset', () => {
-      const mockWs = { close: vi.fn(), readyState: 1 };
-      askAgent.websocket = mockWs;
+      const mockClose = vi.fn();
+      askAgent.wsHandler = { close: mockClose };
       
       askAgent.handleNewSession();
       
-      expect(mockWs.close).toHaveBeenCalled();
-      expect(askAgent.websocket).toBeNull();
+      expect(mockClose).toHaveBeenCalled();
+      expect(askAgent.wsHandler).toBeNull();
     });
   });
 

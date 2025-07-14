@@ -1,7 +1,12 @@
+import { htmlSanitizer } from './html-sanitizer.js';
+import { WebSocketHandler } from './websocket-handler.js';
+
 class AskSQLAgent {
     constructor() {
-        this.websocket = null;
+        this.wsHandler = null;
         this.messageEventIds = new Map();  // Store event IDs for each message
+        this.sanitizer = htmlSanitizer;
+        this.eventListeners = [];
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -16,15 +21,19 @@ class AskSQLAgent {
 
     setupEventListeners() {
         if (this.sendButton) {
-            this.sendButton.addEventListener('click', () => this.handleSendMessage());
+            const clickHandler = () => this.handleSendMessage();
+            this.sendButton.addEventListener('click', clickHandler);
+            this.eventListeners.push({ element: this.sendButton, event: 'click', handler: clickHandler });
         }
 
         if (this.questionInput) {
-            this.questionInput.addEventListener('keypress', (e) => {
+            const keyHandler = (e) => {
                 if (e.key === 'Enter') {
                     this.handleSendMessage();
                 }
-            });
+            };
+            this.questionInput.addEventListener('keypress', keyHandler);
+            this.eventListeners.push({ element: this.questionInput, event: 'keypress', handler: keyHandler });
         }
     }
 
@@ -85,7 +94,7 @@ class AskSQLAgent {
                     gfm: true
                 });
                 const markdownContent = marked.parse(content);
-                messageDiv.innerHTML = markdownContent;
+                messageDiv.innerHTML = this.sanitizer.sanitize(markdownContent);
             }
         }
 
@@ -296,55 +305,92 @@ class AskSQLAgent {
 
     async connectWebSocket() {
         console.log('SQL Agent: Connecting to WebSocket...');
-        if (this.websocket) {
-            this.websocket.close();
+        if (this.wsHandler) {
+            this.wsHandler.close();
         }
 
         const sessionId = window.app ? window.app.sessionId : '';
         const wsBase = window.app ? window.app.wsBase : 'ws://localhost:5062/ws';
         const wsUrl = `${wsBase}?session_id=${sessionId}`;
         console.log('SQL Agent WebSocket URL:', wsUrl);
-        this.websocket = new WebSocket(wsUrl);
-
-        this.websocket.onmessage = (event) => {
-            const message = event.data;
-            console.log('SQL Agent WebSocket received:', message);
-
-            if (message.startsWith("event: ")) {
-                // Handle status updates
-                const statusText = message.replace("event: ", "").trim();
-                if (statusText) {
-                    this.updateStatus(statusText);
-                }
-
-                // Check for end event
-                if (message.startsWith("event: end")) {
-                    this.updateStatus('Ready');
-                    if (this.websocket) {
-                        this.websocket.close();
+        
+        // No buffering needed - display messages immediately
+        
+        this.wsHandler = new WebSocketHandler({
+            maxRetries: 3,
+            baseDelay: 1000,
+            preserveDataLineBreaks: true, // Preserve data messages intact for ##Response/##Evaluation
+            onMessage: (data, type) => {
+                if (type === 'data' || type === 'raw') {
+                    // Check if this starts with ##Response or ##Evaluation
+                    if (data.startsWith('##Response')) {
+                        // Extract content after ##Response
+                        const content = data.substring('##Response'.length).trim();
+                        if (content) {
+                            const parts = content.split("$%$%Plot:");
+                            if (parts[0].trim()) {
+                                this.addMessage(parts[0].trim());
+                            }
+                            if (parts.length > 1) {
+                                const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                                this.addMessage(imageData, true);
+                            }
+                        }
+                    } else if (data.startsWith('##Evaluation')) {
+                        // Extract content after ##Evaluation
+                        const content = data.substring('##Evaluation'.length).trim();
+                        if (content) {
+                            const parts = content.split("$%$%Plot:");
+                            if (parts[0].trim()) {
+                                this.addMessage(parts[0].trim());
+                            }
+                            if (parts.length > 1) {
+                                const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                                this.addMessage(imageData, true);
+                            }
+                        }
+                    } else {
+                        // Regular message without markers
+                        const parts = data.split("$%$%Plot:");
+                        if (parts[0].trim()) {
+                            this.addMessage(parts[0].trim());
+                        }
+                        if (parts.length > 1) {
+                            const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                            this.addMessage(imageData, true);
+                        }
                     }
                 }
-            } else if (message.startsWith("data: ")) {
-                const data = message.replace("data: ", "");
-                const parts = data.split("$%$%Plot:");
-
-                if (parts[0].trim()) {
-                    this.addMessage(parts[0].trim());
+            },
+            onStatusUpdate: (status) => {
+                this.updateStatus(status);
+                
+                if (status === 'end') {
+                    this.updateStatus('Ready');
                 }
-
-                if (parts.length > 1) {
-                    const imageData = `data:image/png;base64,${parts[1].trim()}`;
-                    this.addMessage(imageData, true);
+            },
+            onError: (error) => {
+                console.error('SQL Agent WebSocket error:', error);
+                this.updateStatus('Connection error');
+            },
+            onClose: () => {
+                this.updateStatus('Ready');
+                if (this.sendButton) {
+                    this.sendButton.disabled = false;
                 }
             }
-        };
-
-        this.websocket.onclose = () => {
-            this.updateStatus('Ready');
+        });
+        
+        try {
+            await this.wsHandler.connect(wsUrl);
+        } catch (error) {
+            console.error('SQL Agent: Failed to connect WebSocket:', error);
+            this.updateStatus('Connection failed');
             if (this.sendButton) {
                 this.sendButton.disabled = false;
             }
-        };
+            throw error;
+        }
     }
 
 
@@ -428,6 +474,27 @@ class AskSQLAgent {
         }
     }
 
+    cleanupWebSocket() {
+        if (this.wsHandler) {
+            this.wsHandler.close();
+            this.wsHandler = null;
+        }
+    }
+    
+    cleanup() {
+        // Remove all event listeners
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+        
+        // Clean up WebSocket
+        this.cleanupWebSocket();
+        
+        // Clear message event IDs map
+        this.messageEventIds.clear();
+    }
+    
     handleNewSession() {
         // Clear all messages
         if (this.messagesElement) {
@@ -443,10 +510,7 @@ class AskSQLAgent {
         this.updateStatus('Ready');
 
         // Close any existing WebSocket connection
-        if (this.websocket) {
-            this.websocket.close();
-            this.websocket = null;
-        }
+        this.cleanupWebSocket();
 
         // Re-enable send button
         if (this.sendButton) {
@@ -466,6 +530,9 @@ class AskSQLAgent {
         }
     }
 }
+
+// Export for testing
+export { AskSQLAgent };
 
 // Initialize sql-agent when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
