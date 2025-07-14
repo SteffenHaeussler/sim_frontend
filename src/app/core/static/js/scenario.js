@@ -1,13 +1,15 @@
 import { htmlSanitizer } from './html-sanitizer.js';
+import { WebSocketHandler } from './websocket-handler.js';
 
 class ScenarioAgent {
     constructor() {
-        this.websocket = null;
+        this.wsHandler = null;
         this.currentSQLContainer = null;
         this.currentEvaluationDiv = null;
         this.inEvaluationMode = false;
         this.sanitizer = htmlSanitizer;
         this.eventListeners = [];
+        this.sqlWebSocketHandlers = new Map(); // Track SQL WebSocket handlers
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -191,8 +193,8 @@ class ScenarioAgent {
     }
 
     async connectWebSocket() {
-        if (this.websocket) {
-            this.cleanupWebSocket();
+        if (this.wsHandler) {
+            this.wsHandler.close();
         }
 
         // Connect DIRECTLY to the external agent WebSocket (exactly like ask-agent.js)
@@ -201,131 +203,172 @@ class ScenarioAgent {
         const wsUrl = `${wsBase}?session_id=${sessionId}`;
         
         console.log('Scenario WebSocket URL:', wsUrl);
-        this.websocket = new WebSocket(wsUrl);
-
-        this.websocket.onmessage = (event) => {
-            const message = event.data;
-            console.log('Scenario WebSocket raw message:', message);
-
-            // Handle multiple messages in a single WebSocket frame
-            const lines = message.split('\n').filter(line => line.trim());
-            
-            for (const line of lines) {
-                console.log('Processing line:', line);
-                
-                if (line.startsWith("event: ")) {
-                    // Handle status updates
-                    const statusText = line.replace("event: ", "").trim();
-                    if (statusText) {
-                        this.updateStatus(statusText);
-                    }
-                    
-                    // Check if we're entering evaluation mode
-                    if (statusText === "Evaluating...") {
-                        this.inEvaluationMode = true;
-                    }
-                    
-                    // Check for end event
-                    if (line.startsWith("event: end")) {
-                        this.updateStatus('Ready');
-                        this.inEvaluationMode = false;
-                        this.cleanupWebSocket();
-                    }
-                } else if (line.startsWith("data: ")) {
-                    const data = line.replace("data: ", "").trim();
-                    console.log('Scenario data received:', data);
-                    if (data) {
-                        // Try to parse as JSON
-                        try {
-                            const jsonData = JSON.parse(data);
-                            console.log('Successfully parsed JSON:', jsonData);
-                            console.log('First item check:', {
-                                isArray: Array.isArray(jsonData),
-                                length: jsonData.length,
-                                firstItem: jsonData[0],
-                                hasSub_id: jsonData[0]?.sub_id !== undefined,
-                                hasQuestion: jsonData[0]?.question !== undefined,
-                                hasEndpoint: jsonData[0]?.endpoint !== undefined || jsonData[0]?.end_point !== undefined
-                            });
-                            
-                            // Check if this is a list of SQL agent requests
-                            if (Array.isArray(jsonData) && jsonData.length > 0 && 
-                                jsonData[0].sub_id !== undefined && 
-                                jsonData[0].question !== undefined && 
-                                (jsonData[0].end_point !== undefined || jsonData[0].endpoint !== undefined)) {
-                                console.log('Handling as SQL agent requests');
-                                // Handle SQL agent requests
-                                this.handleSQLAgentRequests(jsonData);
-                            } else {
-                                console.log('Handling as regular JSON');
-                                // Regular JSON display
-                                this.addJsonMessage(jsonData);
-                            }
-                        } catch (e) {
-                            console.log('Failed to parse as JSON:', e);
-                            // Check if this is evaluation text and we're in evaluation mode
-                            if (this.inEvaluationMode && this.currentSQLContainer) {
-                                this.addEvaluationToSQLContainer(data);
-                            } else {
-                                // Not JSON, handle as regular markdown
-                                this.addMessage(data);
-                            }
-                        }
-                    }
-                } else if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
-                    // Handle JSON array that comes without "data: " prefix
-                    console.log('Detected raw JSON array:', line);
-                    try {
-                        const jsonData = JSON.parse(line);
-                        console.log('Successfully parsed JSON:', jsonData);
+        
+        // Buffer for accumulating regular messages
+        let messageBuffer = '';
+        
+        this.wsHandler = new WebSocketHandler({
+            maxRetries: 3,
+            baseDelay: 1000,
+            onMessage: (data, type) => {
+                if (type === 'json') {
+                    // Handle JSON immediately
+                    this.handleWebSocketMessage(data, type);
+                } else if (type === 'data' || type === 'raw') {
+                    // For evaluation mode, accumulate and check for boundaries
+                    if (this.inEvaluationMode && this.currentSQLContainer) {
+                        // Accumulate evaluation text
+                        messageBuffer += data + '\n';
                         
-                        // Check if this is a list of SQL agent requests
-                        if (Array.isArray(jsonData) && jsonData.length > 0 && 
-                            jsonData[0].sub_id !== undefined && 
-                            jsonData[0].question !== undefined && 
-                            (jsonData[0].end_point !== undefined || jsonData[0].endpoint !== undefined)) {
-                            console.log('Handling as SQL agent requests');
-                            // Handle SQL agent requests
-                            this.handleSQLAgentRequests(jsonData);
-                            // Store reference to container for evaluation text
-                            this.currentSQLContainer = this.messagesElement.lastElementChild;
-                        } else {
-                            console.log('Handling as regular JSON');
-                            // Regular JSON display
-                            this.addJsonMessage(jsonData);
+                        // Check for double newline as evaluation boundary
+                        const evaluations = messageBuffer.split('\n\n\n');
+                        
+                        // Process complete evaluations
+                        for (let i = 0; i < evaluations.length - 1; i++) {
+                            const evalText = evaluations[i].trim();
+                            if (evalText) {
+                                if (!this.currentEvaluationDiv) {
+                                    this.addEvaluationToSQLContainer(evalText);
+                                } else {
+                                    // If we already have an evaluation, create a new one
+                                    this.currentEvaluationDiv = null;
+                                    this.addEvaluationToSQLContainer(evalText);
+                                }
+                            }
                         }
-                    } catch (e) {
-                        console.log('Failed to parse raw JSON:', e);
-                        // If it's not JSON, treat as regular message
-                        this.addMessage(line);
-                    }
-                } else if (line.trim()) {
-                    // Other non-empty lines that don't match above patterns
-                    console.log('Treating as regular message:', line);
-                    // Check if this is continuation of evaluation text
-                    if (this.inEvaluationMode && this.currentSQLContainer && this.currentEvaluationDiv) {
-                        this.appendToEvaluation(line);
-                    } else if (this.inEvaluationMode && this.currentSQLContainer && !this.currentEvaluationDiv) {
-                        // First line of evaluation without header
-                        this.addEvaluationToSQLContainer(line);
+                        
+                        // Keep the last part in buffer
+                        messageBuffer = evaluations[evaluations.length - 1];
                     } else {
-                        this.addMessage(line);
+                        // Regular messages - accumulate and check for boundaries
+                        messageBuffer += data + '\n';
+                        
+                        // Check for double newline as message boundary
+                        const messages = messageBuffer.split('\n\n\n');
+                        
+                        // Process all complete messages
+                        for (let i = 0; i < messages.length - 1; i++) {
+                            const message = messages[i].trim();
+                            if (message) {
+                                this.addMessage(message);
+                            }
+                        }
+                        
+                        // Keep the last part in buffer
+                        messageBuffer = messages[messages.length - 1];
                     }
                 }
+            },
+            onStatusUpdate: (status) => {
+                this.updateStatus(status);
+                
+                // Check if we're entering evaluation mode
+                if (status === "Evaluating...") {
+                    this.inEvaluationMode = true;
+                    // Process any pending regular message before evaluation starts
+                    if (messageBuffer.trim() && !this.currentSQLContainer) {
+                        this.addMessage(messageBuffer.trim());
+                        messageBuffer = '';
+                    }
+                }
+                
+                // Check for end status
+                if (status === "end") {
+                    // Process any remaining message in buffer
+                    if (messageBuffer.trim()) {
+                        if (this.inEvaluationMode && this.currentSQLContainer) {
+                            if (!this.currentEvaluationDiv) {
+                                this.addEvaluationToSQLContainer(messageBuffer.trim());
+                            } else {
+                                this.appendToEvaluation(messageBuffer.trim());
+                            }
+                        } else {
+                            this.addMessage(messageBuffer.trim());
+                        }
+                        messageBuffer = '';
+                    }
+                    
+                    this.updateStatus('Ready');
+                    this.inEvaluationMode = false;
+                }
+            },
+            onError: (error) => {
+                console.error('WebSocket error:', error);
+                this.updateStatus('Connection error');
+                messageBuffer = '';
+            },
+            onClose: () => {
+                // Process any remaining message
+                if (messageBuffer.trim()) {
+                    if (this.inEvaluationMode && this.currentSQLContainer) {
+                        if (!this.currentEvaluationDiv) {
+                            this.addEvaluationToSQLContainer(messageBuffer.trim());
+                        } else {
+                            this.appendToEvaluation(messageBuffer.trim());
+                        }
+                    } else {
+                        this.addMessage(messageBuffer.trim());
+                    }
+                    messageBuffer = '';
+                }
+                
+                this.updateStatus('Ready');
+                if (this.sendButton) {
+                    this.sendButton.disabled = false;
+                }
             }
-        };
-
-        this.websocket.onclose = () => {
-            this.updateStatus('Ready');
-            if (this.sendButton) {
-                this.sendButton.disabled = false;
+        });
+        
+        try {
+            await this.wsHandler.connect(wsUrl);
+        } catch (error) {
+            console.error('Failed to connect WebSocket:', error);
+            this.updateStatus('Connection failed');
+            throw error;
+        }
+    }
+    
+    handleWebSocketMessage(data, type) {
+        console.log('Scenario WebSocket message:', data, 'type:', type);
+        
+        if (type === 'json') {
+            console.log('First item check:', {
+                isArray: Array.isArray(data),
+                length: data.length,
+                firstItem: data[0],
+                hasSub_id: data[0]?.sub_id !== undefined,
+                hasQuestion: data[0]?.question !== undefined,
+                hasEndpoint: data[0]?.endpoint !== undefined || data[0]?.end_point !== undefined
+            });
+            
+            // Check if this is a list of SQL agent requests
+            if (Array.isArray(data) && data.length > 0 && 
+                data[0].sub_id !== undefined && 
+                data[0].question !== undefined && 
+                (data[0].end_point !== undefined || data[0].endpoint !== undefined)) {
+                console.log('Handling as SQL agent requests');
+                // Handle SQL agent requests
+                this.handleSQLAgentRequests(data);
+                // Store reference to container for evaluation text
+                this.currentSQLContainer = this.messagesElement.lastElementChild;
+            } else {
+                console.log('Handling as regular JSON');
+                // Regular JSON display
+                this.addJsonMessage(data);
             }
-        };
-
-        this.websocket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            this.updateStatus('Connection error');
-        };
+        } else if (type === 'data' || type === 'raw') {
+            // Check if this is evaluation text and we're in evaluation mode
+            if (this.inEvaluationMode && this.currentSQLContainer) {
+                if (this.currentEvaluationDiv) {
+                    this.appendToEvaluation(data);
+                } else {
+                    this.addEvaluationToSQLContainer(data);
+                }
+            } else {
+                // Regular markdown message
+                this.addMessage(data);
+            }
+        }
     }
 
     async handleSendMessage() {
@@ -645,22 +688,26 @@ class ScenarioAgent {
             const wsUrl = `${wsBase}?session_id=${uniqueSessionId}`;
             
             console.log(`Connecting WebSocket for ${request.sub_id} with session: ${uniqueSessionId}`);
-            const ws = new WebSocket(wsUrl);
+            
             let responseContent = '';
             
-            ws.onmessage = (event) => {
-                const message = event.data;
-                console.log(`WebSocket message for ${request.sub_id}:`, message);
-                
-                if (message.startsWith("event: ")) {
-                    const statusText = message.replace("event: ", "").trim();
-                    
+            const sqlWsHandler = new WebSocketHandler({
+                maxRetries: 2,
+                baseDelay: 500,
+                preserveDataLineBreaks: false, // Normal line-by-line processing for SQL responses
+                onMessage: (data, type) => {
+                    if (type === 'data' || type === 'raw') {
+                        responseContent += data + '\n';
+                        console.log(`Added data to responseContent for ${request.sub_id}:`, data);
+                    }
+                },
+                onStatusUpdate: (status) => {
                     // Update status text with the event message
-                    if (statusText && !message.startsWith("event: end")) {
-                        card.querySelector('.sql-status-text').textContent = statusText;
+                    if (status && status !== 'end') {
+                        card.querySelector('.sql-status-text').textContent = status;
                     }
                     
-                    if (message.startsWith("event: end")) {
+                    if (status === 'end') {
                         // Request completed
                         card.classList.remove('pending', 'processing');
                         card.classList.add('completed');
@@ -687,32 +734,32 @@ class ScenarioAgent {
                             actionsDiv.style.display = 'flex';
                         }
                         
-                        ws.close();
+                        // Clean up handler
+                        this.sqlWebSocketHandlers.delete(uniqueSessionId);
                         resolve();
                     }
-                } else if (message.startsWith("data: ")) {
-                    const data = message.substring(6); // Keep everything after "data: " including spaces and newlines
-                    responseContent += data + '\n';
-                    console.log(`Added data to responseContent for ${request.sub_id}:`, data);
-                } else {
-                    // Handle messages that don't follow event/data format
-                    // This could be raw response data
-                    if (message.trim()) {
-                        responseContent += message + '\n';
+                },
+                onError: (error) => {
+                    console.error(`WebSocket error for ${request.sub_id}:`, error);
+                    this.sqlWebSocketHandlers.delete(uniqueSessionId);
+                    reject(error);
+                },
+                onClose: (event) => {
+                    if (!card.classList.contains('completed')) {
+                        this.sqlWebSocketHandlers.delete(uniqueSessionId);
+                        reject(new Error('WebSocket closed unexpectedly'));
                     }
                 }
-            };
+            });
             
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+            // Store handler for cleanup
+            this.sqlWebSocketHandlers.set(uniqueSessionId, sqlWsHandler);
+            
+            // Connect
+            sqlWsHandler.connect(wsUrl).catch(error => {
+                this.sqlWebSocketHandlers.delete(uniqueSessionId);
                 reject(error);
-            };
-            
-            ws.onclose = () => {
-                if (!card.classList.contains('completed')) {
-                    reject(new Error('WebSocket closed unexpectedly'));
-                }
-            };
+            });
         });
     }
     
@@ -750,14 +797,16 @@ class ScenarioAgent {
     }
     
     cleanupWebSocket() {
-        if (this.websocket) {
-            // Remove all event handlers to prevent memory leaks
-            this.websocket.onmessage = null;
-            this.websocket.onclose = null;
-            this.websocket.onerror = null;
-            this.websocket.close();
-            this.websocket = null;
+        if (this.wsHandler) {
+            this.wsHandler.close();
+            this.wsHandler = null;
         }
+        
+        // Clean up any SQL WebSocket handlers
+        this.sqlWebSocketHandlers.forEach(handler => {
+            handler.close();
+        });
+        this.sqlWebSocketHandlers.clear();
     }
     
     cleanup() {

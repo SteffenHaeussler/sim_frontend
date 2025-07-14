@@ -1,8 +1,9 @@
 import { htmlSanitizer } from './html-sanitizer.js';
+import { WebSocketHandler } from './websocket-handler.js';
 
 class AskSQLAgent {
     constructor() {
-        this.websocket = null;
+        this.wsHandler = null;
         this.messageEventIds = new Map();  // Store event IDs for each message
         this.sanitizer = htmlSanitizer;
         this.eventListeners = [];
@@ -304,53 +305,92 @@ class AskSQLAgent {
 
     async connectWebSocket() {
         console.log('SQL Agent: Connecting to WebSocket...');
-        if (this.websocket) {
-            this.cleanupWebSocket();
+        if (this.wsHandler) {
+            this.wsHandler.close();
         }
 
         const sessionId = window.app ? window.app.sessionId : '';
         const wsBase = window.app ? window.app.wsBase : 'ws://localhost:5062/ws';
         const wsUrl = `${wsBase}?session_id=${sessionId}`;
         console.log('SQL Agent WebSocket URL:', wsUrl);
-        this.websocket = new WebSocket(wsUrl);
-
-        this.websocket.onmessage = (event) => {
-            const message = event.data;
-            console.log('SQL Agent WebSocket received:', message);
-
-            if (message.startsWith("event: ")) {
-                // Handle status updates
-                const statusText = message.replace("event: ", "").trim();
-                if (statusText) {
-                    this.updateStatus(statusText);
+        
+        // No buffering needed - display messages immediately
+        
+        this.wsHandler = new WebSocketHandler({
+            maxRetries: 3,
+            baseDelay: 1000,
+            preserveDataLineBreaks: true, // Preserve data messages intact for ##Response/##Evaluation
+            onMessage: (data, type) => {
+                if (type === 'data' || type === 'raw') {
+                    // Check if this starts with ##Response or ##Evaluation
+                    if (data.startsWith('##Response')) {
+                        // Extract content after ##Response
+                        const content = data.substring('##Response'.length).trim();
+                        if (content) {
+                            const parts = content.split("$%$%Plot:");
+                            if (parts[0].trim()) {
+                                this.addMessage(parts[0].trim());
+                            }
+                            if (parts.length > 1) {
+                                const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                                this.addMessage(imageData, true);
+                            }
+                        }
+                    } else if (data.startsWith('##Evaluation')) {
+                        // Extract content after ##Evaluation
+                        const content = data.substring('##Evaluation'.length).trim();
+                        if (content) {
+                            const parts = content.split("$%$%Plot:");
+                            if (parts[0].trim()) {
+                                this.addMessage(parts[0].trim());
+                            }
+                            if (parts.length > 1) {
+                                const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                                this.addMessage(imageData, true);
+                            }
+                        }
+                    } else {
+                        // Regular message without markers
+                        const parts = data.split("$%$%Plot:");
+                        if (parts[0].trim()) {
+                            this.addMessage(parts[0].trim());
+                        }
+                        if (parts.length > 1) {
+                            const imageData = `data:image/png;base64,${parts[1].trim()}`;
+                            this.addMessage(imageData, true);
+                        }
+                    }
                 }
-
-                // Check for end event
-                if (message.startsWith("event: end")) {
+            },
+            onStatusUpdate: (status) => {
+                this.updateStatus(status);
+                
+                if (status === 'end') {
                     this.updateStatus('Ready');
-                    this.cleanupWebSocket();
                 }
-            } else if (message.startsWith("data: ")) {
-                const data = message.replace("data: ", "");
-                const parts = data.split("$%$%Plot:");
-
-                if (parts[0].trim()) {
-                    this.addMessage(parts[0].trim());
-                }
-
-                if (parts.length > 1) {
-                    const imageData = `data:image/png;base64,${parts[1].trim()}`;
-                    this.addMessage(imageData, true);
+            },
+            onError: (error) => {
+                console.error('SQL Agent WebSocket error:', error);
+                this.updateStatus('Connection error');
+            },
+            onClose: () => {
+                this.updateStatus('Ready');
+                if (this.sendButton) {
+                    this.sendButton.disabled = false;
                 }
             }
-        };
-
-        this.websocket.onclose = () => {
-            this.updateStatus('Ready');
+        });
+        
+        try {
+            await this.wsHandler.connect(wsUrl);
+        } catch (error) {
+            console.error('SQL Agent: Failed to connect WebSocket:', error);
+            this.updateStatus('Connection failed');
             if (this.sendButton) {
                 this.sendButton.disabled = false;
             }
-        };
+            throw error;
+        }
     }
 
 
@@ -435,13 +475,9 @@ class AskSQLAgent {
     }
 
     cleanupWebSocket() {
-        if (this.websocket) {
-            // Remove all event handlers to prevent memory leaks
-            this.websocket.onmessage = null;
-            this.websocket.onclose = null;
-            this.websocket.onerror = null;
-            this.websocket.close();
-            this.websocket = null;
+        if (this.wsHandler) {
+            this.wsHandler.close();
+            this.wsHandler = null;
         }
     }
     

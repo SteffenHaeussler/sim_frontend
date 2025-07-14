@@ -552,7 +552,7 @@ body.dark-mode .sql-evaluation-content {
 /* SQL Card Action Buttons */
 .sql-card-actions {
     display: flex;
-    gap: 10px;
+    gap: 3px;
     margin-top: 15px;
     padding-top: 15px;
     border-top: 1px solid var(--border-color);
