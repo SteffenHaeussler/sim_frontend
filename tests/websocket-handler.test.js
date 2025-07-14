@@ -10,13 +10,21 @@ class MockWebSocket {
         this.onmessage = null;
         this.onerror = null;
         this.onclose = null;
+        this._closed = false;
         
         // Simulate connection
         setTimeout(() => {
+            if (this._closed) return; // Don't fire events if already closed
+            
             if (this.url.includes('fail')) {
                 this.readyState = WebSocket.CLOSED;
                 if (this.onerror) this.onerror(new Error('Connection failed'));
-                if (this.onclose) this.onclose({ code: 1006, reason: 'Connection failed' });
+                // Add a small delay before onclose to allow error handling
+                setTimeout(() => {
+                    if (!this._closed && this.onclose) {
+                        this.onclose({ code: 1006, reason: 'Connection failed' });
+                    }
+                }, 0);
             } else {
                 this.readyState = WebSocket.OPEN;
                 if (this.onopen) this.onopen();
@@ -31,9 +39,16 @@ class MockWebSocket {
     }
     
     close() {
+        this._closed = true;
         this.readyState = WebSocket.CLOSED;
-        if (this.onclose) {
-            this.onclose({ code: 1000, reason: 'Normal closure' });
+        // Clear all handlers to prevent any pending callbacks
+        this.onopen = null;
+        this.onmessage = null;
+        this.onerror = null;
+        const closeHandler = this.onclose;
+        this.onclose = null;
+        if (closeHandler) {
+            closeHandler({ code: 1000, reason: 'Normal closure' });
         }
     }
 }
@@ -57,9 +72,15 @@ describe('WebSocketHandler', () => {
     let onErrorSpy;
     let onCloseSpy;
     let onOpenSpy;
+    let consoleLogSpy;
+    let consoleErrorSpy;
     
     beforeEach(() => {
         vi.useFakeTimers();
+        
+        // Silence console during tests
+        consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         
         onMessageSpy = vi.fn();
         onStatusUpdateSpy = vi.fn();
@@ -82,6 +103,10 @@ describe('WebSocketHandler', () => {
         handler.close();
         vi.useRealTimers();
         vi.clearAllMocks();
+        consoleLogSpy.mockRestore();
+        consoleErrorSpy.mockRestore();
+        // Clear any pending promises
+        return new Promise(resolve => setTimeout(resolve, 0));
     });
     
     describe('Connection', () => {
@@ -99,8 +124,8 @@ describe('WebSocketHandler', () => {
         it('should retry on connection failure', async () => {
             const promise = handler.connect('ws://localhost:8080/fail');
             
-            // First attempt fails
-            await vi.advanceTimersByTimeAsync(10);
+            // First attempt fails (wait for initial timeout and error callback)
+            await vi.advanceTimersByTimeAsync(15);
             expect(handler.retryCount).toBe(1);
             expect(onStatusUpdateSpy).toHaveBeenCalledWith('Reconnecting... (1/3)');
             
@@ -108,18 +133,14 @@ describe('WebSocketHandler', () => {
             await vi.runAllTimersAsync();
             
             // Should eventually fail after max retries
-            try {
-                await promise;
-            } catch (error) {
-                expect(error.message).toContain('failed after');
-            }
+            await expect(promise).rejects.toThrow('WebSocket connection failed after');
         });
         
         it('should use exponential backoff for retries', async () => {
             const promise = handler.connect('ws://localhost:8080/fail');
             
             // First attempt fails immediately
-            await vi.advanceTimersByTimeAsync(10);
+            await vi.advanceTimersByTimeAsync(15);
             expect(handler.retryCount).toBe(1);
             
             // Second attempt after 100ms delay
@@ -129,12 +150,8 @@ describe('WebSocketHandler', () => {
             // Complete all retries
             await vi.runAllTimersAsync();
             
-            // Catch the rejection
-            try {
-                await promise;
-            } catch (error) {
-                // Expected to fail
-            }
+            // Should fail after retries
+            await expect(promise).rejects.toThrow();
         });
     });
     
@@ -194,9 +211,13 @@ describe('WebSocketHandler', () => {
         });
         
         it('should clear retry timeout on close', async () => {
-            handler.connect('ws://localhost:8080/fail');
-            await vi.runAllTimersAsync();
+            // Don't await the promise immediately
+            handler.connect('ws://localhost:8080/fail').catch(() => {
+                // Ignore the expected rejection
+            });
             
+            // Let it fail and start scheduling retry
+            await vi.advanceTimersByTimeAsync(15); // Wait for initial connection to fail
             expect(handler.retryTimeout).not.toBeNull();
             
             handler.close();
@@ -225,13 +246,20 @@ describe('WebSocketHandler', () => {
         });
         
         it('should reset retry counter', async () => {
-            handler.connect('ws://localhost:8080/fail');
-            await vi.runAllTimersAsync();
+            const promise = handler.connect('ws://localhost:8080/fail');
+            
+            // Let it retry a few times
+            await vi.advanceTimersByTimeAsync(10);
+            await vi.advanceTimersByTimeAsync(110);
             
             expect(handler.retryCount).toBeGreaterThan(0);
             
             handler.resetRetries();
             expect(handler.retryCount).toBe(0);
+            
+            // Complete the test
+            await vi.runAllTimersAsync();
+            await expect(promise).rejects.toThrow();
         });
     });
     

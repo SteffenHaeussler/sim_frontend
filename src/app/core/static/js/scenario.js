@@ -849,6 +849,9 @@ class ScenarioAgent {
     }
 }
 
+// Export for testing
+export { ScenarioAgent };
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.scenarioAgent = new ScenarioAgent();

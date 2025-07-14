@@ -25,6 +25,8 @@ export class WebSocketHandler {
         this.isClosing = false;
         this.messageHandlers = [];
         this.url = null;
+        this.pendingResolve = null;
+        this.pendingReject = null;
     }
     
     /**
@@ -37,6 +39,8 @@ export class WebSocketHandler {
         this.isClosing = false;
         
         return new Promise((resolve, reject) => {
+            this.pendingResolve = resolve;
+            this.pendingReject = reject;
             this._attemptConnection(resolve, reject);
         });
     }
@@ -56,6 +60,8 @@ export class WebSocketHandler {
                 }
                 
                 resolve();
+                this.pendingResolve = null;
+                this.pendingReject = null;
             };
             
             this.websocket.onmessage = (event) => {
@@ -82,6 +88,9 @@ export class WebSocketHandler {
                     
                     if (!this.isClosing) {
                         reject(new Error(`WebSocket connection failed after ${this.retryCount} attempts`));
+                    } else {
+                        // If we're explicitly closing, resolve instead of rejecting
+                        resolve();
                     }
                 }
             };
@@ -225,6 +234,13 @@ export class WebSocketHandler {
             this.websocket = null;
         }
         
+        // Resolve any pending promise to prevent unhandled rejections
+        if (this.pendingResolve) {
+            this.pendingResolve();
+            this.pendingResolve = null;
+            this.pendingReject = null;
+        }
+        
         this.retryCount = 0;
     }
     
@@ -241,7 +257,7 @@ export class WebSocketHandler {
      * @returns {boolean}
      */
     isConnected() {
-        return this.websocket && this.websocket.readyState === WebSocket.OPEN;
+        return !!(this.websocket && this.websocket.readyState === WebSocket.OPEN);
     }
     
     /**

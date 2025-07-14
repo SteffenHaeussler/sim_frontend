@@ -1,10 +1,40 @@
-import { htmlSanitizer } from './html-sanitizer.js';
-import { WebSocketHandler } from './websocket-handler.js';
+// Mock version of ask-agent.js for testing
+// This removes the imports and provides mock implementations
 
-class AskSQLAgent {
+// Mock htmlSanitizer
+const htmlSanitizer = {
+    sanitize: (html) => html,
+    escapeHtml: (text) => text
+};
+
+// Mock WebSocketHandler
+class WebSocketHandler {
+    constructor(options) {
+        this.options = options;
+        this.websocket = null;
+        this.isClosing = false;
+    }
+    
+    connect(url) {
+        return Promise.resolve();
+    }
+    
+    close() {
+        this.isClosing = true;
+        if (this.websocket) {
+            this.websocket.close();
+        }
+    }
+    
+    isConnected() {
+        return false;
+    }
+}
+
+class AskAgent {
     constructor() {
         this.wsHandler = null;
-        this.messageEventIds = new Map();  // Store event IDs for each message
+        this.messageEventIds = new Map();
         this.sanitizer = htmlSanitizer;
         this.eventListeners = [];
         this.initializeElements();
@@ -12,11 +42,10 @@ class AskSQLAgent {
     }
 
     initializeElements() {
-        this.messagesElement = document.getElementById('sql-messages');
-        this.questionInput = document.getElementById('sql-question');
-        this.sendButton = document.getElementById('sql-send-btn');
+        this.messagesElement = document.getElementById('messages');
+        this.questionInput = document.getElementById('question');
+        this.sendButton = document.getElementById('send-btn');
         this.originalPlaceholder = this.questionInput ? this.questionInput.placeholder : '';
-        
     }
 
     setupEventListeners() {
@@ -48,7 +77,6 @@ class AskSQLAgent {
     updateStatus(message) {
         if (!this.questionInput) return;
 
-        // Replace placeholder text with spinner + status when processing
         if (message !== 'Ready') {
             this.questionInput.style.backgroundImage = 'url("data:image/svg+xml;charset=UTF-8,' +
                 encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="6.28" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" values="0 6 6;360 6 6" dur="1s" repeatCount="indefinite"/></circle></svg>') + '")';
@@ -69,7 +97,6 @@ class AskSQLAgent {
         const messageDiv = document.createElement('div');
         messageDiv.className = isQuestion ? 'message question' : 'message';
 
-        // Generate unique event ID for AI responses (not for user questions)
         let eventId = null;
         if (!isQuestion) {
             eventId = this.generateEventId();
@@ -83,12 +110,10 @@ class AskSQLAgent {
             messageDiv.appendChild(img);
         } else {
             if (isQuestion) {
-                // Keep user questions as plain text
                 const p = document.createElement('p');
                 p.textContent = content;
                 messageDiv.appendChild(p);
             } else {
-                // Render AI responses as markdown with line breaks
                 marked.setOptions({
                     breaks: true,
                     gfm: true
@@ -98,7 +123,6 @@ class AskSQLAgent {
             }
         }
 
-        // Add action buttons for AI responses only (not questions or images)
         if (!isImage && !isQuestion) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
@@ -106,21 +130,18 @@ class AskSQLAgent {
             const buttonRow = document.createElement('div');
             buttonRow.className = 'button-row';
 
-            // Copy button
             const copyBtn = document.createElement('button');
             copyBtn.className = 'action-btn copy-btn';
             copyBtn.innerHTML = '<img src="/static/icons/copy.svg" alt="Copy">';
             copyBtn.title = 'Copy to clipboard';
             copyBtn.onclick = () => this.copyMessage(content, copyBtn);
 
-            // Thumbs up button
             const thumbsUpBtn = document.createElement('button');
             thumbsUpBtn.className = 'action-btn thumbs-up-btn';
             thumbsUpBtn.innerHTML = '<img src="/static/icons/thumbs-up.svg" alt="Good">';
             thumbsUpBtn.title = 'Good response';
             thumbsUpBtn.onclick = () => this.rateMessage(content, 'up', thumbsUpBtn, thumbsDownBtn, actionsDiv);
 
-            // Thumbs down button
             const thumbsDownBtn = document.createElement('button');
             thumbsDownBtn.className = 'action-btn thumbs-down-btn';
             thumbsDownBtn.innerHTML = '<img src="/static/icons/thumbs-down.svg" alt="Bad">';
@@ -136,43 +157,33 @@ class AskSQLAgent {
 
         this.messagesElement.appendChild(messageDiv);
         this.messagesElement.scrollTop = this.messagesElement.scrollHeight;
-        
-        // Debug: Check if message was added
-        console.log('Message added to DOM. Total messages:', this.messagesElement.children.length);
-        console.log('Messages container innerHTML:', this.messagesElement.innerHTML);
     }
 
     async copyMessage(content, button) {
         try {
-            // Try modern clipboard API first
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(content);
                 console.log('Message copied to clipboard using modern API');
             } else {
-                // Fallback to legacy method
                 this.copyToClipboardFallback(content);
                 console.log('Message copied to clipboard using fallback method');
             }
 
-            // Show visual feedback - permanent
             button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
             button.disabled = true;
             button.title = 'Copied to clipboard';
         } catch (err) {
             console.error('Failed to copy message: ', err);
             
-            // Try fallback method if modern API fails
             try {
                 this.copyToClipboardFallback(content);
                 console.log('Message copied to clipboard using fallback after error');
                 
-                // Show visual feedback - permanent
                 button.innerHTML = '<img src="/static/icons/copy-active.svg" alt="Copied">';
                 button.disabled = true;
                 button.title = 'Copied to clipboard';
             } catch (fallbackErr) {
                 console.error('Fallback copy also failed: ', fallbackErr);
-                // Show error feedback
                 button.innerHTML = '<img src="/static/icons/copy.svg" alt="Copy Failed">';
                 button.title = 'Failed to copy - try manual selection';
             }
@@ -180,7 +191,6 @@ class AskSQLAgent {
     }
 
     copyToClipboardFallback(text) {
-        // Create a temporary textarea element
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
@@ -191,7 +201,6 @@ class AskSQLAgent {
         textArea.select();
         
         try {
-            // Use execCommand as fallback
             const successful = document.execCommand('copy');
             if (!successful) {
                 throw new Error('execCommand copy returned false');
@@ -205,7 +214,6 @@ class AskSQLAgent {
         console.log(`Message rated as: ${rating}`);
         console.log('Content:', content);
 
-        // Show visual feedback - permanent
         const activeIcon = rating === 'up' ?
             '/static/icons/thumbs-up-active.svg' :
             '/static/icons/thumbs-down-active.svg';
@@ -214,14 +222,11 @@ class AskSQLAgent {
         button.disabled = true;
         button.title = `Rated as ${rating === 'up' ? 'good' : 'poor'}`;
 
-        // Hide the opposite button
         otherButton.style.display = 'none';
 
-        // Get the event ID for this specific message
         const messageDiv = actionsDiv.closest('.message');
         const eventId = messageDiv ? messageDiv.getAttribute('data-event-id') : null;
 
-        // Send rating to API
         try {
             const sessionId = window.app ? window.app.sessionId : '';
             const ratingType = rating === 'up' ? 'thumbs_up' : 'thumbs_down';
@@ -248,8 +253,8 @@ class AskSQLAgent {
                 body: JSON.stringify({
                     rating_type: ratingType,
                     session_id: sessionId,
-                    event_id: eventId,  // Include event ID for this specific message
-                    message_context: content.substring(0, 500), // First 500 chars of the response
+                    event_id: eventId,
+                    message_context: content.substring(0, 500),
                     feedback_text: null
                 })
             });
@@ -266,7 +271,6 @@ class AskSQLAgent {
             console.error('Error submitting rating:', error);
         }
 
-        // Add thank you message below the button row
         const thankYouMsg = document.createElement('div');
         thankYouMsg.className = 'thank-you-message';
         thankYouMsg.textContent = 'Thank you!';
@@ -274,25 +278,21 @@ class AskSQLAgent {
     }
 
     async triggerEvent(question) {
-        const endpoint = '/sqlagent';
+        const endpoint = '/agent';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('question', question);
 
-        // Generate request ID for correlation
         const requestId = this.generateEventId();
-
-        // Prepare headers with session and request IDs
+        
         const headers = {
             'Content-Type': 'application/json'
         };
-
-        // Add session ID header
+        
         if (window.app && window.app.sessionId) {
             url.searchParams.append('session_id', window.app.sessionId);
             headers['x-session-id'] = window.app.sessionId;
         }
-
-        // Add request ID header for correlation
+        
         headers['x-request-id'] = requestId;
 
         const response = await window.authAPI.authenticatedFetch(url.toString(), {
@@ -304,7 +304,6 @@ class AskSQLAgent {
     }
 
     async connectWebSocket() {
-        console.log('SQL Agent: Connecting to WebSocket...');
         if (this.wsHandler) {
             this.wsHandler.close();
         }
@@ -312,19 +311,15 @@ class AskSQLAgent {
         const sessionId = window.app ? window.app.sessionId : '';
         const wsBase = window.app ? window.app.wsBase : 'ws://localhost:5062/ws';
         const wsUrl = `${wsBase}?session_id=${sessionId}`;
-        console.log('SQL Agent WebSocket URL:', wsUrl);
-        
-        // No buffering needed - display messages immediately
         
         this.wsHandler = new WebSocketHandler({
             maxRetries: 3,
             baseDelay: 1000,
-            preserveDataLineBreaks: true, // Preserve data messages intact for ##Response/##Evaluation
+            preserveDataLineBreaks: true,
             onMessage: (data, type) => {
+                console.log('Ask Agent - onMessage:', data, 'type:', type);
                 if (type === 'data' || type === 'raw') {
-                    // Check if this starts with ##Response or ##Evaluation
                     if (data.startsWith('##Response')) {
-                        // Extract content after ##Response
                         const content = data.substring('##Response'.length).trim();
                         if (content) {
                             const parts = content.split("$%$%Plot:");
@@ -337,7 +332,6 @@ class AskSQLAgent {
                             }
                         }
                     } else if (data.startsWith('##Evaluation')) {
-                        // Extract content after ##Evaluation
                         const content = data.substring('##Evaluation'.length).trim();
                         if (content) {
                             const parts = content.split("$%$%Plot:");
@@ -350,7 +344,6 @@ class AskSQLAgent {
                             }
                         }
                     } else {
-                        // Regular message without markers
                         const parts = data.split("$%$%Plot:");
                         if (parts[0].trim()) {
                             this.addMessage(parts[0].trim());
@@ -363,6 +356,7 @@ class AskSQLAgent {
                 }
             },
             onStatusUpdate: (status) => {
+                console.log('Ask Agent - Status update:', status);
                 this.updateStatus(status);
                 
                 if (status === 'end') {
@@ -370,7 +364,7 @@ class AskSQLAgent {
                 }
             },
             onError: (error) => {
-                console.error('SQL Agent WebSocket error:', error);
+                console.error('Ask Agent WebSocket error:', error);
                 this.updateStatus('Connection error');
             },
             onClose: () => {
@@ -384,7 +378,7 @@ class AskSQLAgent {
         try {
             await this.wsHandler.connect(wsUrl);
         } catch (error) {
-            console.error('SQL Agent: Failed to connect WebSocket:', error);
+            console.error('Ask Agent: Failed to connect WebSocket:', error);
             this.updateStatus('Connection failed');
             if (this.sendButton) {
                 this.sendButton.disabled = false;
@@ -393,62 +387,28 @@ class AskSQLAgent {
         }
     }
 
-
     async handleSendMessage() {
-        console.log('SQL Agent: handleSendMessage called');
-        console.log('SQL Agent: Current active service:', window.app ? window.app.currentActiveService : 'unknown');
+        console.log('Ask Agent: handleSendMessage called');
+        console.log('Ask Agent: Current active service:', window.app ? window.app.currentActiveService : 'unknown');
         
-        // Capture the question value immediately before any other handler can clear it
-        const question = this.questionInput ? this.questionInput.value.trim() : '';
-        console.log('SQL Agent: Captured question immediately:', question);
-        
-        // Only process if SQL Agent is the active service
-        if (window.app && window.app.currentActiveService !== 'ask-sql-agent') {
-            console.log('SQL Agent: Not active service, ignoring send');
+        if (window.app && window.app.currentActiveService !== 'ask-agent') {
+            console.log('Ask Agent: Not active service, ignoring send');
             return;
         }
         
-        if (!this.questionInput || !this.sendButton) {
-            console.log('SQL Agent: Missing elements:', {questionInput: this.questionInput, sendButton: this.sendButton});
+        if (!this.questionInput || !this.sendButton) return;
+
+        if (!window.authAPI || !window.authAPI.isLoggedIn()) {
+            if (window.authUI && typeof window.authUI.showLoginModal === 'function') {
+                window.authUI.showLoginModal('You need to be logged in to use the Ask Agent service.');
+            } else {
+                alert('Please log in to use the Ask Agent service.');
+            }
             return;
         }
 
-        // Check authentication first
-        try {
-            console.log('SQL Agent: Checking authentication...');
-            console.log('SQL Agent: window.authAPI:', window.authAPI);
-            
-            if (!window.authAPI) {
-                console.log('SQL Agent: authAPI not available');
-                alert('Please log in to use the SQL Agent service.');
-                return;
-            }
-            
-            const isLoggedIn = window.authAPI.isLoggedIn();
-            console.log('SQL Agent: isLoggedIn:', isLoggedIn);
-            
-            if (!isLoggedIn) {
-                console.log('SQL Agent: Authentication failed, showing login modal');
-                if (window.authUI && typeof window.authUI.showLoginModal === 'function') {
-                    window.authUI.showLoginModal('You need to be logged in to use the SQL Agent service.');
-                } else {
-                    alert('Please log in to use the SQL Agent service.');
-                }
-                return;
-            }
-            
-            console.log('SQL Agent: Authentication passed');
-        } catch (authError) {
-            console.error('SQL Agent: Authentication check error:', authError);
-            alert('Authentication error. Please try logging in again.');
-            return;
-        }
-
-        console.log('SQL Agent: Using captured question:', question);
-        if (!question) {
-            console.log('SQL Agent: Captured question is empty, returning');
-            return;
-        }
+        const question = this.questionInput.value.trim();
+        if (!question) return;
 
         this.sendButton.disabled = true;
         this.questionInput.value = '';
@@ -456,12 +416,10 @@ class AskSQLAgent {
         this.updateStatus('Processing...');
 
         try {
-            console.log('SQL Agent: Triggering event...');
             await this.triggerEvent(question);
-            console.log('SQL Agent: Connecting WebSocket...');
             await this.connectWebSocket();
         } catch (error) {
-            console.error('SQL Agent Error:', error);
+            console.error('Error:', error);
             this.updateStatus('Error');
             this.sendButton.disabled = false;
         }
@@ -482,59 +440,38 @@ class AskSQLAgent {
     }
     
     cleanup() {
-        // Remove all event listeners
         this.eventListeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
         this.eventListeners = [];
         
-        // Clean up WebSocket
         this.cleanupWebSocket();
         
-        // Clear message event IDs map
         this.messageEventIds.clear();
     }
     
     handleNewSession() {
-        // Clear all messages
         if (this.messagesElement) {
             this.messagesElement.innerHTML = '';
         }
 
-        // Clear input field
         if (this.questionInput) {
             this.questionInput.value = '';
         }
 
-        // Reset status
         this.updateStatus('Ready');
 
-        // Close any existing WebSocket connection
         this.cleanupWebSocket();
 
-        // Re-enable send button
         if (this.sendButton) {
             this.sendButton.disabled = false;
         }
 
-        // Update session ID display (same as main app)
-        this.updateSessionId();
-
-        console.log('New sql-agent session started');
-    }
-
-    updateSessionId() {
-        const sessionIdElement = document.getElementById('sql-session-id-bottom');
-        if (sessionIdElement && window.app && window.app.sessionId) {
-            sessionIdElement.textContent = window.app.sessionId;
-        }
+        console.log('New ask-agent session started');
     }
 }
 
-// Export for testing
-export { AskSQLAgent };
-
-// Initialize sql-agent when DOM is loaded
+// Initialize ask-agent when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.sqlAgent = new AskSQLAgent();
+    window.askAgent = new AskAgent();
 });
