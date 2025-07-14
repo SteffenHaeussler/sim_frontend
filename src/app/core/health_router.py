@@ -10,7 +10,13 @@ from src.app.core.schema import HealthCheckResponse
 health_router = APIRouter()
 
 
-@health_router.get("/health", response_model=HealthCheckResponse)
+@health_router.get(
+    "/health",
+    response_model=HealthCheckResponse,
+    summary="Health check",
+    description="Check if the API is running and get version information",
+    tags=["health"],
+)
 def get_health(request: Request) -> HealthCheckResponse:
     logger.debug(f"Methode: {request.method} on {request.url.path}")
     return {"version": request.app.state.VERSION, "timestamp": time()}

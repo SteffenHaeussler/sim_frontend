@@ -1,8 +1,8 @@
 from collections.abc import AsyncGenerator
 from functools import lru_cache
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import declarative_base
 
 from src.app.config import config_service
 
@@ -10,8 +10,8 @@ from src.app.config import config_service
 Base = declarative_base()
 
 # Global variables for engine and session factory
-engine = None
-AsyncSessionLocal = None
+engine: AsyncEngine | None = None
+AsyncSessionLocal: async_sessionmaker[AsyncSession] | None = None
 
 
 @lru_cache
@@ -21,7 +21,7 @@ def get_database_url() -> str:
     return config.get("database_url")
 
 
-def init_database_engine():
+def init_database_engine() -> None:
     """Initialize database engine and session factory"""
     global engine, AsyncSessionLocal
 

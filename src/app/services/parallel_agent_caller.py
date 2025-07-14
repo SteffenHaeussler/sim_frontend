@@ -6,6 +6,8 @@ from loguru import logger
 
 from src.app.config import config_service
 from src.app.core.scenario_schema import AgentQuery
+from src.app.services.http_client import http_client_pool
+from src.app.services.query_cache import QueryCache
 
 
 class ParallelAgentCaller:
@@ -22,6 +24,9 @@ class ParallelAgentCaller:
         # Retry configuration
         self.max_retries = int(os.getenv("AGENT_MAX_RETRIES", "3"))
         self.retry_delay = float(os.getenv("AGENT_RETRY_DELAY", "1"))  # seconds
+
+        # Initialize cache with 5 minute TTL
+        self.cache = QueryCache(ttl_seconds=300)
 
     async def call_agents(self, queries: list[dict | AgentQuery], session_id: str) -> dict:
         """Call multiple agents in parallel"""
@@ -108,23 +113,33 @@ class ParallelAgentCaller:
 
     async def _call_sql_agent_once(self, query: str, session_id: str) -> dict:
         """Single SQL agent call attempt"""
+        # Check cache first
+        cached_result = self.cache.get(query, "sql_agent")
+        if cached_result:
+            logger.info(f"Cache hit for SQL agent query: {query[:50]}...")
+            return cached_result
+
         try:
-            async with httpx.AsyncClient(timeout=self.sql_agent_timeout) as client:
-                # Use the real SQL agent endpoint
-                url = self.config.get_sql_agent_api_url()
-                logger.info(f"Calling SQL agent at {url}")
+            client = http_client_pool.get_client()
+            # Use the real SQL agent endpoint
+            url = self.config.get_sql_agent_api_url()
+            logger.info(f"Calling SQL agent at {url}")
 
-                response = await client.get(
-                    url,
-                    params={"q_id": session_id, "question": query},
-                    headers={"Content-Type": "application/json", "Accept": "application/json"},
-                )
+            response = await client.get(
+                url,
+                params={"q_id": session_id, "question": query},
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                timeout=self.sql_agent_timeout,
+            )
 
-                if response.status_code == 200:
-                    return {"result": response.text, "status": "success"}
-                else:
-                    logger.error(f"SQL agent returned status {response.status_code}: {response.text}")
-                    return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
+            if response.status_code == 200:
+                result = {"result": response.text, "status": "success"}
+                # Cache successful results
+                self.cache.set(query, "sql_agent", result)
+                return result
+            else:
+                logger.error(f"SQL agent returned status {response.status_code}: {response.text}")
+                return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
 
         except TimeoutError:
             return {"status": "error", "error": "Request timed out", "result": None}
@@ -140,24 +155,34 @@ class ParallelAgentCaller:
 
     async def _call_tool_agent_once(self, query: str, session_id: str) -> dict:
         """Single tool agent call attempt"""
+        # Check cache first
+        cached_result = self.cache.get(query, "tool_agent")
+        if cached_result:
+            logger.info(f"Cache hit for tool agent query: {query[:50]}...")
+            return cached_result
+
         try:
-            async with httpx.AsyncClient(timeout=self.tool_agent_timeout) as client:
-                # Use the general agent endpoint for tool agent
-                # This assumes the backend routes to appropriate tool based on query
-                url = self.config.get_agent_api_url()
-                logger.info(f"Calling tool agent at {url}")
+            client = http_client_pool.get_client()
+            # Use the general agent endpoint for tool agent
+            # This assumes the backend routes to appropriate tool based on query
+            url = self.config.get_agent_api_url()
+            logger.info(f"Calling tool agent at {url}")
 
-                response = await client.get(
-                    url,
-                    params={"q_id": session_id, "question": query},
-                    headers={"Content-Type": "application/json", "Accept": "application/json"},
-                )
+            response = await client.get(
+                url,
+                params={"q_id": session_id, "question": query},
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+                timeout=self.tool_agent_timeout,
+            )
 
-                if response.status_code == 200:
-                    return {"result": response.text, "status": "success"}
-                else:
-                    logger.error(f"Tool agent returned status {response.status_code}: {response.text}")
-                    return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
+            if response.status_code == 200:
+                result = {"result": response.text, "status": "success"}
+                # Cache successful results
+                self.cache.set(query, "tool_agent", result)
+                return result
+            else:
+                logger.error(f"Tool agent returned status {response.status_code}: {response.text}")
+                return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
 
         except TimeoutError:
             return {"status": "error", "error": "Request timed out", "result": None}

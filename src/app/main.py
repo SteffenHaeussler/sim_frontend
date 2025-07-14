@@ -20,6 +20,7 @@ from src.app.logging import setup_logger  # noqa: E402
 from src.app.middleware import ApiUsageTracker, RequestTimer  # noqa: E402
 from src.app.models.database import close_db, init_database_engine  # noqa: E402
 from src.app.ratings import ratings_router  # noqa: E402
+from src.app.services.http_client import http_client_pool  # noqa: E402
 
 BASEDIR = Path(__file__).resolve().parent
 ROOTDIR = BASEDIR.parents[1]
@@ -46,7 +47,8 @@ async def lifespan(_application: FastAPI):
     yield
     # Shutdown
     await close_db()
-    logger.info("Application shutdown - database connection closed")
+    await http_client_pool.close()
+    logger.info("Application shutdown - connections closed")
 
 
 def get_application() -> FastAPI:
@@ -66,7 +68,21 @@ def get_application() -> FastAPI:
     """
     request_timer = RequestTimer()
     usage_tracker = ApiUsageTracker()
-    application = FastAPI(lifespan=lifespan)
+    application = FastAPI(
+        lifespan=lifespan,
+        title="Industrial Process Monitoring API",
+        description="API for industrial process monitoring with AI-powered chat and data analysis",
+        version=config_service.version,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        openapi_tags=[
+            {"name": "health", "description": "Health check endpoints"},
+            {"name": "authentication", "description": "User authentication and management"},
+            {"name": "core", "description": "Core application functionality"},
+            {"name": "ratings", "description": "Message rating system"},
+        ],
+    )
 
     application.state = config_service.get_api_model()
     # Ensure VERSION is available at state level for backward compatibility
