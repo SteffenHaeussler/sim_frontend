@@ -4,7 +4,7 @@
 # Prepare base environment
 #############################
 
-FROM python:3.12-slim as base
+FROM python:3.13-slim as base
 
 ARG DEFAULT_FASTAPI_ENV=dev
 ENV FASTAPI_DEV=${DEFAULT_FASTAPI_ENV}
