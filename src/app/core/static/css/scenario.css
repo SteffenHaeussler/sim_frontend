@@ -1,278 +1,284 @@
 .scenario-message {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .scenario-container {
-    background-color: var(--agent-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 10px;
+  background-color: var(--agent-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 10px;
 }
 
 .scenario-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .scenario-header h3 {
-    margin: 0;
-    color: var(--text-color);
-    font-size: 1.2em;
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.2em;
 }
 
 .scenario-status {
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .scenario-status.complete {
-    color: var(--success-color, #28a745);
+  color: var(--success-color, #28a745);
 }
 
 .scenario-recommendations {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .scenario-recommendations h4 {
-    margin: 0 0 10px 0;
-    color: var(--text-color);
-    font-size: 1em;
+  margin: 0 0 10px 0;
+  color: var(--text-color);
+  font-size: 1em;
 }
 
 .scenario-recommendations ol {
-    margin: 0;
-    padding-left: 20px;
+  margin: 0;
+  padding-left: 20px;
 }
 
 .scenario-recommendations li {
-    margin-bottom: 5px;
-    color: var(--text-color);
+  margin-bottom: 5px;
+  color: var(--text-color);
 }
 
 .scenario-results {
-    display: grid;
-    gap: 15px;
+  display: grid;
+  gap: 15px;
 }
 
 .scenario-result-section {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 12px;
-    transition: all 0.3s ease;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  transition: all 0.3s ease;
 }
 
 .scenario-result-section:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .agent-type {
-    font-weight: 600;
-    color: var(--primary-color);
-    text-transform: uppercase;
-    font-size: 0.85em;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  font-size: 0.85em;
 }
 
 .result-status {
-    font-size: 1.2em;
+  font-size: 1.2em;
 }
 
 .result-status.success {
-    color: var(--success-color, #28a745);
+  color: var(--success-color, #28a745);
 }
 
 .result-status.error {
-    color: var(--error-color, #dc3545);
+  color: var(--error-color, #dc3545);
 }
 
 .result-content {
-    color: var(--text-color);
-    line-height: 1.6;
+  color: var(--text-color);
+  line-height: 1.6;
 }
 
 .result-content p {
-    margin: 0 0 10px 0;
+  margin: 0 0 10px 0;
 }
 
 .result-content p:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* Retry button styling */
 .retry-button {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: none;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: none;
 }
 
 .retry-button:hover {
-    background-color: var(--primary-hover-color, #0056b3);
-    transform: translateY(-1px);
+  background-color: var(--primary-hover-color, #0056b3);
+  transform: translateY(-1px);
 }
 
 .retry-button:active {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
 /* Error message styling */
 .error-message {
-    color: var(--error-color, #dc3545);
-    background-color: rgba(220, 53, 69, 0.1);
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    margin-top: 5px;
+  color: var(--error-color, #dc3545);
+  background-color: rgba(220, 53, 69, 0.1);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  margin-top: 5px;
 }
 
 .retry-message {
-    color: var(--text-secondary);
-    font-style: italic;
-    font-size: 0.9em;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.9em;
 }
 
 /* Loading animation for pending results */
 @keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 
 .scenario-result-section[data-status="pending"] {
-    animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* Dark mode support */
 body.dark-mode .scenario-container {
-    background-color: var(--agent-bg);
-    border-color: var(--border-color);
+  background-color: var(--agent-bg);
+  border-color: var(--border-color);
 }
 
 body.dark-mode .scenario-result-section {
-    background-color: var(--bg-secondary);
-    border-color: var(--border-color);
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
 }
 
 /* Endpoint badges */
 .endpoint-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.8em;
-    font-weight: 600;
-    margin-right: 5px;
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.8em;
+  font-weight: 600;
+  margin-right: 5px;
 }
 
 .endpoint-badge.sqlagent {
-    background-color: var(--sql-badge-bg, #e3f2fd);
-    color: var(--sql-badge-color, #1565c0);
+  background-color: var(--sql-badge-bg, #e3f2fd);
+  color: var(--sql-badge-color, #1565c0);
 }
 
 .endpoint-badge.toolagent {
-    background-color: var(--tool-badge-bg, #f3e5f5);
-    color: var(--tool-badge-color, #6a1b9a);
+  background-color: var(--tool-badge-bg, #f3e5f5);
+  color: var(--tool-badge-color, #6a1b9a);
 }
 
 /* Dark mode endpoint badges */
 body.dark-mode .endpoint-badge.sqlagent {
-    background-color: var(--sql-badge-bg-dark, #1565c0);
-    color: var(--sql-badge-color-dark, #e3f2fd);
+  background-color: var(--sql-badge-bg-dark, #1565c0);
+  color: var(--sql-badge-color-dark, #e3f2fd);
 }
 
 body.dark-mode .endpoint-badge.toolagent {
-    background-color: var(--tool-badge-bg-dark, #6a1b9a);
-    color: var(--tool-badge-color-dark, #f3e5f5);
+  background-color: var(--tool-badge-bg-dark, #6a1b9a);
+  color: var(--tool-badge-color-dark, #f3e5f5);
 }
 
 /* JSON Response Styling */
 .json-response {
-    background-color: var(--bg-secondary);
-    border-left: 3px solid var(--primary-color);
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 4px;
+  background-color: var(--bg-secondary);
+  border-left: 3px solid var(--primary-color);
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 4px;
 }
 
 .json-container {
-    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
-    font-size: 0.9em;
-    line-height: 1.5;
+  font-family: "Monaco", "Consolas", "Courier New", monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
 }
 
 .json-header {
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    font-size: 0.85em;
-    letter-spacing: 0.5px;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  font-size: 0.85em;
+  letter-spacing: 0.5px;
 }
 
 .json-object,
 .json-array {
-    margin: 5px 0;
+  margin: 5px 0;
 }
 
 .json-property,
 .json-array-item {
-    margin: 3px 0;
-    display: flex;
-    align-items: flex-start;
+  margin: 3px 0;
+  display: flex;
+  align-items: flex-start;
 }
 
 .json-key {
-    color: var(--json-key-color, #881391);
-    font-weight: 600;
-    margin-right: 5px;
+  color: var(--json-key-color, #881391);
+  font-weight: 600;
+  margin-right: 5px;
 }
 
 .json-index {
-    color: var(--json-index-color, #666);
-    margin-right: 5px;
+  color: var(--json-index-color, #666);
+  margin-right: 5px;
 }
 
 .json-value {
-    color: var(--json-value-color, #0a84ff);
+  color: var(--json-value-color, #0a84ff);
 }
 
 /* Dark mode JSON colors */
 body.dark-mode .json-key {
-    color: var(--json-key-color-dark, #bb86fc);
+  color: var(--json-key-color-dark, #bb86fc);
 }
 
 body.dark-mode .json-index {
-    color: var(--json-index-color-dark, #aaa);
+  color: var(--json-index-color-dark, #aaa);
 }
 
 body.dark-mode .json-value {
-    color: var(--json-value-color-dark, #03dac6);
+  color: var(--json-value-color-dark, #03dac6);
 }
 
 body.dark-mode .json-response {
-    background-color: var(--bg-tertiary, #2a2a2a);
-    border-left-color: var(--primary-color);
+  background-color: var(--bg-tertiary, #2a2a2a);
+  border-left-color: var(--primary-color);
 }
 
 /* Nested JSON indentation */
@@ -280,327 +286,327 @@ body.dark-mode .json-response {
 .json-object .json-array,
 .json-array .json-object,
 .json-array .json-array {
-    border-left: 1px dashed var(--border-color);
-    padding-left: 10px;
-    margin-left: 10px;
+  border-left: 1px dashed var(--border-color);
+  padding-left: 10px;
+  margin-left: 10px;
 }
 
 /* SQL Agent Requests Container */
 .sql-requests-container {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 20px;
-    margin: 15px 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 15px 0;
 }
 
 .sql-requests-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .sql-requests-header h3 {
-    margin: 0;
-    color: var(--text-color);
-    font-size: 1.3em;
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.3em;
 }
 
 .sql-progress {
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    background-color: var(--bg-primary);
-    padding: 5px 12px;
-    border-radius: 20px;
-    border: 1px solid var(--border-color);
+  font-size: 0.9em;
+  color: var(--text-secondary);
+  background-color: var(--bg-primary);
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
 }
 
 .sql-completed {
-    color: var(--success-color, #28a745);
-    font-weight: bold;
+  color: var(--success-color, #28a745);
+  font-weight: bold;
 }
 
 .sql-requests-grid {
-    display: grid;
-    gap: 15px;
-    grid-template-columns: 1fr;
+  display: grid;
+  gap: 15px;
+  grid-template-columns: 1fr;
 }
 
 /* SQL Request Card */
 .sql-request-card {
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 15px;
-    transition: all 0.3s ease;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 15px;
+  transition: all 0.3s ease;
 }
 
 .sql-request-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .sql-request-card.queued {
-    opacity: 0.5;
-    background-color: var(--bg-secondary);
+  opacity: 0.5;
+  background-color: var(--bg-secondary);
 }
 
 .sql-request-card.pending {
-    opacity: 0.7;
+  opacity: 0.7;
 }
 
 .sql-request-card.processing {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .sql-request-card.completed {
-    border-color: var(--success-color, #28a745);
+  border-color: var(--success-color, #28a745);
 }
 
 .sql-request-card.error {
-    border-color: var(--error-color, #dc3545);
+  border-color: var(--error-color, #dc3545);
 }
 
 .sql-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .sql-card-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .sql-sub-id {
-    font-weight: bold;
-    color: var(--primary-color);
+  font-weight: bold;
+  color: var(--primary-color);
 }
 
 .sql-endpoint {
-    background-color: var(--bg-secondary);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-family: monospace;
-    color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: monospace;
+  color: var(--text-secondary);
 }
 
 .sql-card-footer {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
-    text-align: right;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  text-align: right;
 }
 
 .sql-session-id {
-    background-color: var(--bg-secondary);
-    padding: 2px 8px;
-    border-radius: 3px;
-    font-size: 0.7em;
-    font-family: monospace;
-    color: var(--text-secondary);
-    opacity: 0.6;
-    display: inline-block;
+  background-color: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.7em;
+  font-family: monospace;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  display: inline-block;
 }
 
 .sql-card-status {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .sql-status-icon {
-    font-size: 1.2em;
+  font-size: 1.2em;
 }
 
 .sql-status-text {
-    font-size: 0.85em;
-    color: var(--text-secondary);
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sql-card-question {
-    color: var(--text-color);
-    font-size: 0.95em;
-    line-height: 1.4;
-    margin-bottom: 12px;
-    padding: 10px;
-    background-color: var(--bg-secondary);
-    border-radius: 4px;
+  color: var(--text-color);
+  font-size: 0.95em;
+  line-height: 1.4;
+  margin-bottom: 12px;
+  padding: 10px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
 }
 
 .sql-card-result {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-color);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
 }
 
 .sql-result-content {
-    color: var(--text-color);
-    font-size: 0.9em;
-    line-height: 1.5;
+  color: var(--text-color);
+  font-size: 0.9em;
+  line-height: 1.5;
 }
 
 .sql-result-content pre {
-    background-color: var(--bg-tertiary, #f5f5f5);
-    padding: 10px;
-    border-radius: 4px;
-    overflow-x: auto;
+  background-color: var(--bg-tertiary, #f5f5f5);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
 }
 
 .sql-error-message {
-    color: var(--error-color, #dc3545);
-    background-color: rgba(220, 53, 69, 0.1);
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 0.9em;
+  color: var(--error-color, #dc3545);
+  background-color: rgba(220, 53, 69, 0.1);
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.9em;
 }
 
 /* SQL Evaluation Section */
 .sql-evaluation-section {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 2px solid var(--border-color);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border-color);
 }
 
 .sql-evaluation-header {
-    margin-bottom: 15px;
+  margin-bottom: 15px;
 }
 
 .sql-evaluation-header h4 {
-    margin: 0;
-    color: var(--primary-color);
-    font-size: 1.2em;
-    font-weight: 600;
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.2em;
+  font-weight: 600;
 }
 
 .sql-evaluation-content {
-    background-color: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 15px;
-    color: var(--text-color);
-    line-height: 1.6;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 15px;
+  color: var(--text-color);
+  line-height: 1.6;
 }
 
 .sql-evaluation-content p {
-    margin: 0 0 10px 0;
+  margin: 0 0 10px 0;
 }
 
 .sql-evaluation-content p:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* Dark mode SQL styling */
 body.dark-mode .sql-requests-container {
-    background-color: var(--bg-secondary);
+  background-color: var(--bg-secondary);
 }
 
 body.dark-mode .sql-request-card {
-    background-color: var(--bg-tertiary, #2a2a2a);
+  background-color: var(--bg-tertiary, #2a2a2a);
 }
 
 body.dark-mode .sql-card-question {
-    background-color: var(--bg-primary);
+  background-color: var(--bg-primary);
 }
 
 body.dark-mode .sql-result-content pre {
-    background-color: var(--bg-primary);
+  background-color: var(--bg-primary);
 }
 
 body.dark-mode .sql-evaluation-content {
-    background-color: var(--bg-tertiary, #2a2a2a);
-    border-color: var(--border-color);
+  background-color: var(--bg-tertiary, #2a2a2a);
+  border-color: var(--border-color);
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
-    .scenario-results {
-        grid-template-columns: 1fr;
-    }
-    
-    .scenario-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .json-container {
-        font-size: 0.85em;
-    }
-    
-    .sql-requests-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .sql-requests-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
+  .scenario-results {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .json-container {
+    font-size: 0.85em;
+  }
+
+  .sql-requests-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sql-requests-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 }
 
 /* SQL Card Action Buttons */
 .sql-card-actions {
-    display: flex;
-    gap: 3px;
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border-color);
-    align-items: center;
-    justify-content: flex-end;
+  display: flex;
+  gap: 3px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .sql-action-btn {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 3px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    transition: all 0.2s ease;
-    color: var(--text-color);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transition: all 0.2s ease;
+  color: var(--text-color);
 }
 
 .sql-action-btn:hover:not(:disabled) {
-    background-color: var(--hover-bg);
-    border-color: var(--primary-color);
+  background-color: var(--hover-bg);
+  border-color: var(--primary-color);
 }
 
 .sql-action-btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .sql-action-btn img {
-    width: 16px;
-    height: 16px;
+  width: 16px;
+  height: 16px;
 }
 
 .sql-copy-btn:hover:not(:disabled) {
-    background-color: rgba(74, 222, 128, 0.1);
-    border-color: #4ade80;
+  background-color: rgba(74, 222, 128, 0.1);
+  border-color: #4ade80;
 }
 
 .sql-thumbs-up:hover:not(:disabled) {
-    background-color: rgba(74, 222, 128, 0.1);
-    border-color: #4ade80;
+  background-color: rgba(74, 222, 128, 0.1);
+  border-color: #4ade80;
 }
 
 .sql-thumbs-down:hover:not(:disabled) {
-    background-color: rgba(248, 113, 113, 0.1);
-    border-color: #f87171;
+  background-color: rgba(248, 113, 113, 0.1);
+  border-color: #f87171;
 }

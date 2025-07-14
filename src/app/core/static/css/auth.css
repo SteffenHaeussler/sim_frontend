@@ -2,461 +2,460 @@
 
 /* Modal Styles */
 .modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
-    background-color: var(--bg-primary);
-    margin: 15% auto;
-    padding: 0;
-    border: 1px solid var(--border-light);
-    width: 400px;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background-color: var(--bg-primary);
+  margin: 15% auto;
+  padding: 0;
+  border: 1px solid var(--border-light);
+  width: 400px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-
 .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .modal-header h2 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 18px;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 18px;
 }
 
 .close {
-    color: var(--text-secondary);
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 1;
-    padding: 0;
-    margin: 0;
+  color: var(--text-secondary);
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
 }
 
 .close:hover {
-    color: var(--text-primary);
+  color: var(--text-primary);
 }
 
 .modal-body {
-    padding: 20px;
+  padding: 20px;
 }
 
 .form-group {
-    margin-bottom: 16px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .form-group input {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--border-input);
-    border-radius: 6px;
-    background-color: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 14px;
-    box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
 .form-group input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
 }
 
 .error-message {
-    color: #e74c3c;
-    font-size: 14px;
-    margin-bottom: 16px;
-    min-height: 20px;
+  color: #e74c3c;
+  font-size: 14px;
+  margin-bottom: 16px;
+  min-height: 20px;
 }
 
 .auth-error {
-    color: #e74c3c;
-    background-color: #fee;
-    border: 1px solid #fcc;
-    padding: 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    margin-bottom: 16px;
+  color: #e74c3c;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
 }
 
 .auth-info {
-    color: #2980b9;
-    background-color: #e8f4fd;
-    border: 1px solid #bee5eb;
-    padding: 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    margin-bottom: 16px;
+  color: #2980b9;
+  background-color: #e8f4fd;
+  border: 1px solid #bee5eb;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
 }
 
 .auth-success {
-    color: #27ae60;
-    background-color: #efe;
-    border: 1px solid #cfc;
-    padding: 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    margin-bottom: 16px;
+  color: #27ae60;
+  background-color: #efe;
+  border: 1px solid #cfc;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
 }
 
 /* Standalone auth page styles */
 .auth-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--bg-primary);
-    padding: 20px;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  padding: 20px;
 }
 
 .auth-container {
-    width: 100%;
-    max-width: 400px;
-    background-color: var(--bg-secondary);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 40px;
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 40px;
 }
 
 .auth-header {
-    text-align: center;
-    margin-bottom: 30px;
+  text-align: center;
+  margin-bottom: 30px;
 }
 
 .auth-header h1 {
-    color: var(--text-primary);
-    margin: 0 0 10px 0;
-    font-size: 24px;
-    font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  font-weight: 600;
 }
 
 .auth-header p {
-    color: var(--text-secondary);
-    margin: 0;
-    font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 14px;
 }
 
 .password-requirements {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 5px;
 }
 
 /* Checkbox styling */
 .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
 }
 
 .checkbox-group input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    cursor: pointer;
-    accent-color: var(--accent-primary);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
 }
 
 .checkbox-label {
-    font-size: 14px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    margin: 0;
-    user-select: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin: 0;
+  user-select: none;
 }
 
 .btn-primary {
-    background-color: var(--accent-primary);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    width: 100%;
-    transition: background-color 0.2s ease;
+  background-color: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  width: 100%;
+  transition: background-color 0.2s ease;
 }
 
 .btn-primary:hover {
-    background-color: var(--accent-hover);
+  background-color: var(--accent-hover);
 }
 
 .btn-primary:disabled,
 .btn-primary.disabled {
-    background-color: var(--text-light);
-    cursor: not-allowed;
-    opacity: 0.6;
+  background-color: var(--text-light);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .btn-secondary {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s ease;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
 }
 
 .btn-secondary:hover {
-    background-color: var(--hover-light);
+  background-color: var(--hover-light);
 }
 
 .user-details {
-    text-align: center;
+  text-align: center;
 }
 
 .user-details h3 {
-    color: var(--accent-primary);
-    margin-bottom: 16px;
+  color: var(--accent-primary);
+  margin-bottom: 16px;
 }
 
 .user-details p {
-    margin: 8px 0;
-    color: var(--text-primary);
-    font-size: 14px;
+  margin: 8px 0;
+  color: var(--text-primary);
+  font-size: 14px;
 }
 
 .user-details p strong {
-    color: var(--text-tertiary);
+  color: var(--text-tertiary);
 }
 
 .register-link {
-    text-align: center;
-    margin-top: 16px;
-    font-size: 14px;
-    color: var(--text-secondary);
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
 .register-link a {
-    color: var(--accent-primary);
-    text-decoration: none;
-    font-weight: 500;
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
 }
 
 .register-link a:hover {
-    color: var(--accent-hover);
-    text-decoration: underline;
+  color: var(--accent-hover);
+  text-decoration: underline;
 }
 
 .password-input-group {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
 }
 
 .password-input-group input {
-    flex: 1;
+  flex: 1;
 }
 
 /* Special styling for password fields with eye icons */
 .password-field-wrapper {
-    position: relative;
-    flex: 1;
+  position: relative;
+  flex: 1;
 }
 
 .password-field-wrapper input {
-    width: 100%;
-    padding-right: 40px; /* Make room for the eye icon */
+  width: 100%;
+  padding-right: 40px; /* Make room for the eye icon */
 }
 
 .btn-generate {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-light);
-    padding: 10px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-    transition: background-color 0.2s ease;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
 }
 
 .btn-generate:hover {
-    background-color: var(--hover-light);
+  background-color: var(--hover-light);
 }
 
 .btn-toggle-password {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s ease;
-    width: 24px;
-    height: 24px;
-    z-index: 10;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+  width: 24px;
+  height: 24px;
+  z-index: 10;
 }
 
 .btn-toggle-password:hover {
-    opacity: 0.7;
+  opacity: 0.7;
 }
 
 .eye-icon {
-    width: 16px;
-    height: 16px;
-    opacity: 0.6;
-    color: var(--text-secondary);
-    transition: opacity 0.2s ease;
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+  color: var(--text-secondary);
+  transition: opacity 0.2s ease;
 }
 
 [data-theme="dark"] .eye-icon {
-    filter: invert(1) brightness(0.8);
+  filter: invert(1) brightness(0.8);
 }
 
 .btn-toggle-password:hover .eye-icon {
-    opacity: 1;
+  opacity: 1;
 }
 
 .validation-message {
-    font-size: 12px;
-    margin-top: 8px;
-    min-height: 16px;
-    transition: color 0.2s ease;
+  font-size: 12px;
+  margin-top: 8px;
+  min-height: 16px;
+  transition: color 0.2s ease;
 }
 
 .validation-message.error {
-    color: #e74c3c;
+  color: #e74c3c;
 }
 
 .validation-message.success {
-    color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .validation-message.warning {
-    color: #f39c12;
+  color: #f39c12;
 }
 
 /* Password Strength Indicator */
 .password-strength {
-    margin-top: 8px;
+  margin-top: 8px;
 }
 
 .strength-bar {
-    width: 100%;
-    height: 4px;
-    background-color: var(--bg-secondary);
-    border-radius: 2px;
-    overflow: hidden;
-    margin-bottom: 4px;
+  width: 100%;
+  height: 4px;
+  background-color: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
 }
 
 .strength-fill {
-    height: 100%;
-    width: 0%;
-    transition: width 0.3s ease, background-color 0.3s ease;
-    border-radius: 2px;
+  height: 100%;
+  width: 0%;
+  transition:
+    width 0.3s ease,
+    background-color 0.3s ease;
+  border-radius: 2px;
 }
 
 .strength-fill.weak {
-    background-color: #e74c3c;
-    width: 33%;
+  background-color: #e74c3c;
+  width: 33%;
 }
 
 .strength-fill.medium {
-    background-color: #f39c12;
-    width: 66%;
+  background-color: #f39c12;
+  width: 66%;
 }
 
 .strength-fill.strong {
-    background-color: var(--accent-primary);
-    width: 100%;
+  background-color: var(--accent-primary);
+  width: 100%;
 }
 
 .strength-text {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .strength-text.weak {
-    color: #e74c3c;
+  color: #e74c3c;
 }
 
 .strength-text.medium {
-    color: #f39c12;
+  color: #f39c12;
 }
 
 .strength-text.strong {
-    color: var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 /* User Greeting Styles */
 .user-greeting.icon-item {
-    margin-bottom: 4px;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+  margin-bottom: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
 /* Position icon absolutely to center it perfectly in both modes */
 .user-greeting.icon-item .icon-svg {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    margin: 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 #user-name {
-    color: var(--accent-primary);
-    font-weight: 600;
+  color: var(--accent-primary);
+  font-weight: 600;
 }
-
 
 /* Checkbox styles for remember me */
 .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
 }
 
 .checkbox-group input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .checkbox-label {
-    font-size: 14px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    user-select: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
 }
-

@@ -42,7 +42,7 @@ export class MyModule {
 }
 
 // tests/my-module.test.js
-import { MyModule } from '../src/app/core/static/js/my-module.js';
+import { MyModule } from "../src/app/core/static/js/my-module.js";
 ```
 
 ### 2. Testing Existing Global Code
@@ -50,16 +50,16 @@ import { MyModule } from '../src/app/core/static/js/my-module.js';
 For existing code that attaches to window:
 
 ```javascript
-import { loadScript } from './helpers/load-script.js';
+import { loadScript } from "./helpers/load-script.js";
 
-describe('Existing Module', () => {
+describe("Existing Module", () => {
   let window;
-  
+
   beforeEach(() => {
-    window = loadScript('src/app/core/static/js/existing-module.js');
+    window = loadScript("src/app/core/static/js/existing-module.js");
   });
-  
-  it('should work with global instance', () => {
+
+  it("should work with global instance", () => {
     const module = window.existingModule;
     // ... test the module
   });
@@ -69,6 +69,7 @@ describe('Existing Module', () => {
 ### 3. Mocking Dependencies
 
 Common mocks are configured in `tests/setup.js`:
+
 - `fetch` - for API calls
 - `WebSocket` - for real-time connections
 - `localStorage` - for client storage
@@ -78,17 +79,17 @@ Common mocks are configured in `tests/setup.js`:
 ### Basic Test Structure
 
 ```javascript
-describe('Module Name', () => {
-  describe('method name', () => {
-    it('should do something specific', () => {
+describe("Module Name", () => {
+  describe("method name", () => {
+    it("should do something specific", () => {
       // Arrange
-      const input = 'test';
-      
+      const input = "test";
+
       // Act
       const result = myFunction(input);
-      
+
       // Assert
-      expect(result).toBe('expected');
+      expect(result).toBe("expected");
     });
   });
 });
@@ -97,25 +98,23 @@ describe('Module Name', () => {
 ### Testing Async Code
 
 ```javascript
-it('should handle async operations', async () => {
+it("should handle async operations", async () => {
   global.fetch.mockResolvedValueOnce({
     ok: true,
-    json: async () => ({ data: 'test' })
+    json: async () => ({ data: "test" }),
   });
-  
+
   const result = await myAsyncFunction();
-  
-  expect(result).toEqual({ data: 'test' });
+
+  expect(result).toEqual({ data: "test" });
 });
 ```
 
 ### Testing Error Cases
 
 ```javascript
-it('should throw on invalid input', async () => {
-  await expect(myFunction('invalid'))
-    .rejects
-    .toThrow('Expected error message');
+it("should throw on invalid input", async () => {
+  await expect(myFunction("invalid")).rejects.toThrow("Expected error message");
 });
 ```
 

@@ -6,11 +6,11 @@ elif [ "$FASTAPI_ENV" = "TEST" ]; then
 	echo "Running Python tests..."
 	uv run python -m pytest --cov-report html --cov=tests
 	PYTHON_EXIT_CODE=$?
-	
+
 	echo -e "\nRunning JavaScript tests..."
 	npm test -- --run 2>/dev/null
 	JS_EXIT_CODE=$?
-	
+
 	# Exit with non-zero if either test suite failed
 	if [ $PYTHON_EXIT_CODE -ne 0 ] || [ $JS_EXIT_CODE -ne 0 ]; then
 		echo -e "\n❌ Test failures detected!"

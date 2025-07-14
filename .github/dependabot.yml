@@ -10,7 +10,7 @@ updates:
       python-dependencies:
         patterns:
           - "*"
-    
+
   # JavaScript dependencies
   - package-ecosystem: "npm"
     directory: "/"
@@ -21,14 +21,14 @@ updates:
       javascript-dependencies:
         patterns:
           - "*"
-    
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    
+
   # Docker
   - package-ecosystem: "docker"
     directory: "/"

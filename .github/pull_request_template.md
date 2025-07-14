@@ -1,7 +1,9 @@
 ## Description
+
 <!-- Provide a brief description of the changes in this PR -->
 
 ## Type of Change
+
 <!-- Mark the relevant option with an "x" -->
 
 - [ ] Bug fix (non-breaking change which fixes an issue)
@@ -12,6 +14,7 @@
 - [ ] Code refactoring
 
 ## Testing
+
 <!-- Describe the tests you ran to verify your changes -->
 
 - [ ] All Python tests pass (`uv run pytest`)
@@ -20,6 +23,7 @@
 - [ ] Manual testing completed
 
 ## Checklist
+
 <!-- Mark completed items with an "x" -->
 
 - [ ] My code follows the style guidelines of this project
@@ -32,7 +36,9 @@
 - [ ] Any dependent changes have been merged and published
 
 ## Screenshots (if applicable)
+
 <!-- Add screenshots to help explain your changes -->
 
 ## Additional Notes
+
 <!-- Add any additional notes or context about the PR here -->
