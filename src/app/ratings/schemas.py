@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RatingRequest(BaseModel):
-    rating_type: str  # 'thumbs_up' or 'thumbs_down'
-    message_context: str | None = None
-    feedback_text: str | None = None
+    rating_type: str = Field(..., pattern="^(thumbs_up|thumbs_down)$")
+    message_context: str | None = Field(default=None, max_length=5000)
+    feedback_text: str | None = Field(default=None, max_length=1000)
 
 
 class RatingResponse(BaseModel):

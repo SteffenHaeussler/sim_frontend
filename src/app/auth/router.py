@@ -34,7 +34,16 @@ from src.app.services.email_service import EmailService
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-@router.post("/register", response_model=AuthResponse)
+@router.post(
+    "/register",
+    response_model=AuthResponse,
+    summary="Register new user",
+    description="Create a new user account with email and password. Password must be at least 8 characters with uppercase and digit.",
+    responses={
+        400: {"description": "Email already registered"},
+        503: {"description": "No active organisation available"},
+    },
+)
 async def register(
     register_data: RegisterRequest,
     db: AsyncSession = Depends(get_db),
@@ -46,6 +55,7 @@ async def register(
     existing_user = result.scalar_one_or_none()
 
     if existing_user:
+        logger.warning(f"Registration attempt with existing email: {register_data.email}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     # Get the organisation to check max_users limit
@@ -81,6 +91,7 @@ async def register(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+    logger.info(f"New user registered: {new_user.email}")
 
     # Create access token (even for inactive users, they just can't use protected endpoints)
     config = config_service.get_jwt_utils()
@@ -101,7 +112,13 @@ async def register(
     )
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post(
+    "/login",
+    response_model=AuthResponse,
+    summary="User login",
+    description="Authenticate user with email and password. Returns access and refresh tokens.",
+    responses={401: {"description": "Incorrect email or password"}},
+)
 async def login(
     login_data: LoginRequest,
     db: AsyncSession = Depends(get_db),
@@ -113,6 +130,7 @@ async def login(
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(login_data.password, user.password_hash):
+        logger.warning(f"Failed login attempt for: {login_data.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -147,6 +165,8 @@ async def login(
         f"Refresh token valid for {refresh_token_expire_days}d. "
         f"Remember me flag was: {login_data.remember_me}"
     )
+
+    logger.info(f"User logged in: {user.email}")
 
     return AuthResponse(
         access_token=access_token,
