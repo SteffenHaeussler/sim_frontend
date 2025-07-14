@@ -1,9 +1,13 @@
+import { htmlSanitizer } from './html-sanitizer.js';
+
 class ScenarioAgent {
     constructor() {
         this.websocket = null;
         this.currentSQLContainer = null;
         this.currentEvaluationDiv = null;
         this.inEvaluationMode = false;
+        this.sanitizer = htmlSanitizer;
+        this.eventListeners = [];
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -17,15 +21,19 @@ class ScenarioAgent {
 
     setupEventListeners() {
         if (this.sendButton) {
-            this.sendButton.addEventListener('click', () => this.handleSendMessage());
+            const clickHandler = () => this.handleSendMessage();
+            this.sendButton.addEventListener('click', clickHandler);
+            this.eventListeners.push({ element: this.sendButton, event: 'click', handler: clickHandler });
         }
 
         if (this.questionInput) {
-            this.questionInput.addEventListener('keypress', (e) => {
+            const keyHandler = (e) => {
                 if (e.key === 'Enter') {
                     this.handleSendMessage();
                 }
-            });
+            };
+            this.questionInput.addEventListener('keypress', keyHandler);
+            this.eventListeners.push({ element: this.questionInput, event: 'keypress', handler: keyHandler });
         }
     }
 
@@ -62,7 +70,8 @@ class ScenarioAgent {
                 breaks: true,
                 gfm: true
             });
-            messageDiv.innerHTML = marked.parse(content);
+            const parsedContent = marked.parse(content);
+            messageDiv.innerHTML = this.sanitizer.sanitize(parsedContent);
         }
 
         this.messagesElement.appendChild(messageDiv);
@@ -183,7 +192,7 @@ class ScenarioAgent {
 
     async connectWebSocket() {
         if (this.websocket) {
-            this.websocket.close();
+            this.cleanupWebSocket();
         }
 
         // Connect DIRECTLY to the external agent WebSocket (exactly like ask-agent.js)
@@ -220,9 +229,7 @@ class ScenarioAgent {
                     if (line.startsWith("event: end")) {
                         this.updateStatus('Ready');
                         this.inEvaluationMode = false;
-                        if (this.websocket) {
-                            this.websocket.close();
-                        }
+                        this.cleanupWebSocket();
                     }
                 } else if (line.startsWith("data: ")) {
                     const data = line.replace("data: ", "").trim();
@@ -621,7 +628,7 @@ class ScenarioAgent {
             // Show error message
             const resultDiv = card.querySelector('.sql-card-result');
             const contentDiv = resultDiv.querySelector('.sql-result-content');
-            contentDiv.innerHTML = `<div class="sql-error-message">Error: ${error.message}</div>`;
+            contentDiv.innerHTML = `<div class="sql-error-message">Error: ${this.sanitizer.escapeHtml(error.message)}</div>`;
             resultDiv.style.display = 'block';
             
             // Show action buttons even for errors
@@ -670,7 +677,8 @@ class ScenarioAgent {
                             breaks: true,
                             gfm: true
                         });
-                        contentDiv.innerHTML = marked.parse(responseContent);
+                        const parsedResponse = marked.parse(responseContent);
+                        contentDiv.innerHTML = this.sanitizer.sanitize(parsedResponse);
                         resultDiv.style.display = 'block';
                         
                         // Show action buttons
@@ -709,9 +717,7 @@ class ScenarioAgent {
     }
     
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return this.sanitizer.escapeHtml(text);
     }
     
     addEvaluationToSQLContainer(evaluationText) {
@@ -725,7 +731,7 @@ class ScenarioAgent {
                 <h4>Evaluation</h4>
             </div>
             <div class="sql-evaluation-content">
-                ${marked.parse(evaluationText)}
+                ${this.sanitizer.sanitize(marked.parse(evaluationText))}
             </div>
         `;
         
@@ -739,7 +745,30 @@ class ScenarioAgent {
         
         // Append to existing evaluation content
         const currentContent = this.currentEvaluationDiv.textContent;
-        this.currentEvaluationDiv.innerHTML = marked.parse(currentContent + '\n' + text);
+        const parsedEvaluation = marked.parse(currentContent + '\n' + text);
+        this.currentEvaluationDiv.innerHTML = this.sanitizer.sanitize(parsedEvaluation);
+    }
+    
+    cleanupWebSocket() {
+        if (this.websocket) {
+            // Remove all event handlers to prevent memory leaks
+            this.websocket.onmessage = null;
+            this.websocket.onclose = null;
+            this.websocket.onerror = null;
+            this.websocket.close();
+            this.websocket = null;
+        }
+    }
+    
+    cleanup() {
+        // Remove all event listeners
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+        
+        // Clean up WebSocket
+        this.cleanupWebSocket();
     }
     
     handleNewSession() {
@@ -757,10 +786,7 @@ class ScenarioAgent {
         this.updateStatus('Ready');
         
         // Close WebSocket
-        if (this.websocket) {
-            this.websocket.close();
-            this.websocket = null;
-        }
+        this.cleanupWebSocket();
         
         // Re-enable send button
         if (this.sendButton) {

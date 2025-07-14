@@ -1,7 +1,11 @@
+import { htmlSanitizer } from './html-sanitizer.js';
+
 class AskAgent {
     constructor() {
         this.websocket = null;
         this.messageEventIds = new Map();  // Store event IDs for each message
+        this.sanitizer = htmlSanitizer;
+        this.eventListeners = [];
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -15,15 +19,19 @@ class AskAgent {
 
     setupEventListeners() {
         if (this.sendButton) {
-            this.sendButton.addEventListener('click', () => this.handleSendMessage());
+            const clickHandler = () => this.handleSendMessage();
+            this.sendButton.addEventListener('click', clickHandler);
+            this.eventListeners.push({ element: this.sendButton, event: 'click', handler: clickHandler });
         }
 
         if (this.questionInput) {
-            this.questionInput.addEventListener('keypress', (e) => {
+            const keyHandler = (e) => {
                 if (e.key === 'Enter') {
                     this.handleSendMessage();
                 }
-            });
+            };
+            this.questionInput.addEventListener('keypress', keyHandler);
+            this.eventListeners.push({ element: this.questionInput, event: 'keypress', handler: keyHandler });
         }
     }
 
@@ -84,7 +92,7 @@ class AskAgent {
                     gfm: true
                 });
                 const markdownContent = marked.parse(content);
-                messageDiv.innerHTML = markdownContent;
+                messageDiv.innerHTML = this.sanitizer.sanitize(markdownContent);
             }
         }
 
@@ -291,7 +299,7 @@ class AskAgent {
 
     async connectWebSocket() {
         if (this.websocket) {
-            this.websocket.close();
+            this.cleanupWebSocket();
         }
 
         const sessionId = window.app ? window.app.sessionId : '';
@@ -312,9 +320,7 @@ class AskAgent {
                 // Check for end event
                 if (message.startsWith("event: end")) {
                     this.updateStatus('Ready');
-                    if (this.websocket) {
-                        this.websocket.close();
-                    }
+                    this.cleanupWebSocket();
                 }
             } else if (message.startsWith("data: ")) {
                 const data = message.replace("data: ", "");
@@ -387,6 +393,31 @@ class AskAgent {
         }
     }
 
+    cleanupWebSocket() {
+        if (this.websocket) {
+            // Remove all event handlers to prevent memory leaks
+            this.websocket.onmessage = null;
+            this.websocket.onclose = null;
+            this.websocket.onerror = null;
+            this.websocket.close();
+            this.websocket = null;
+        }
+    }
+    
+    cleanup() {
+        // Remove all event listeners
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+        
+        // Clean up WebSocket
+        this.cleanupWebSocket();
+        
+        // Clear message event IDs map
+        this.messageEventIds.clear();
+    }
+    
     handleNewSession() {
         // Clear all messages
         if (this.messagesElement) {
@@ -402,10 +433,7 @@ class AskAgent {
         this.updateStatus('Ready');
 
         // Close any existing WebSocket connection
-        if (this.websocket) {
-            this.websocket.close();
-            this.websocket = null;
-        }
+        this.cleanupWebSocket();
 
         // Re-enable send button
         if (this.sendButton) {
