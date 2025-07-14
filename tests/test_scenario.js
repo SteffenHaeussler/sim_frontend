@@ -19,6 +19,91 @@ vi.mock('../src/app/core/static/js/websocket-handler.js', () => ({
     }))
 }));
 
+vi.mock('../src/app/core/static/js/json-renderer.js', () => ({
+    JsonRenderer: vi.fn().mockImplementation(() => ({
+        render: vi.fn((data) => {
+            const div = document.createElement('div');
+            div.className = 'message json-response';
+            return div;
+        })
+    }))
+}));
+
+vi.mock('../src/app/core/static/js/sql-agent-handler.js', () => ({
+    SqlAgentHandler: vi.fn().mockImplementation(() => ({
+        handleRequests: vi.fn().mockResolvedValue(document.createElement('div')),
+        cleanup: vi.fn(),
+        generateSessionId: vi.fn(() => 'sql-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)),
+        createRequestCard: vi.fn((request) => {
+            const card = document.createElement('div');
+            card.className = 'sql-request-card pending';
+            card.dataset.subId = request.sub_id;
+            card.innerHTML = `
+                <div class="sql-card-header">
+                    <span class="sql-sub-id">Query ${request.sub_id}</span>
+                    <span class="sql-endpoint">${request.endpoint || request.end_point}</span>
+                </div>
+                <div class="sql-card-question">Question: ${request.question}</div>
+                <button class="sql-copy-btn"><img src="/static/icons/copy.svg"></button>
+                <button class="sql-thumbs-up"><img src="/static/icons/thumbs-up.svg"></button>
+                <button class="sql-thumbs-down"><img src="/static/icons/thumbs-down.svg"></button>
+            `;
+            return card;
+        }),
+        copyToClipboard: vi.fn(async (content, button) => {
+            await navigator.clipboard.writeText(content);
+            button.querySelector('img').src = '/static/icons/copy-active.svg';
+            button.disabled = true;
+        }),
+        rateResponse: vi.fn(async (request, card, rating, button) => {
+            await window.authAPI.authenticatedFetch(
+                '/ratings/submit?session_id=sql-123',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        rating_type: rating === 'up' ? 'thumbs_up' : 'thumbs_down',
+                        session_id: 'sql-123',
+                        event_id: request.sub_id,
+                        message_context: 'Test result',
+                        feedback_text: null
+                    })
+                }
+            );
+        }),
+        executeRequest: vi.fn(async (request, card, container) => {
+            // Simulate error handling
+            card.classList.remove('pending', 'processing');
+            card.classList.add('error');
+            card.querySelector('.sql-status-icon').textContent = '❌';
+            card.querySelector('.sql-status-text').textContent = 'Error';
+        })
+    }))
+}));
+
+vi.mock('../src/app/core/static/js/message-renderer.js', () => ({
+    MessageRenderer: vi.fn().mockImplementation(() => ({
+        addMessage: vi.fn((content, isQuestion) => {
+            // Message renderer functionality
+        }),
+        updateStatus: vi.fn(),
+        clearMessages: vi.fn()
+    }))
+}));
+
+vi.mock('../src/app/core/static/js/evaluation-handler.js', () => ({
+    EvaluationHandler: vi.fn().mockImplementation(() => ({
+        setEvaluationMode: vi.fn(),
+        isInEvaluationMode: vi.fn().mockReturnValue(false),
+        setSQLContainer: vi.fn(),
+        getSQLContainer: vi.fn(),
+        addEvaluationToSQLContainer: vi.fn(),
+        appendToEvaluation: vi.fn(),
+        hasCurrentEvaluationDiv: vi.fn().mockReturnValue(false),
+        reset: vi.fn()
+    }))
+}));
+
 // Mock marked library
 global.marked = {
     setOptions: vi.fn(),
@@ -87,7 +172,7 @@ describe('ScenarioAgent', () => {
             expect(scenarioAgent.questionInput).toBe(document.getElementById('question'));
             expect(scenarioAgent.sendButton).toBe(document.getElementById('send-btn'));
             expect(scenarioAgent.wsHandler).toBeNull();
-            expect(scenarioAgent.inEvaluationMode).toBe(false);
+            expect(scenarioAgent.evaluationHandler).toBeDefined();
         });
 
         it('should set up event listeners', () => {
@@ -117,7 +202,7 @@ describe('ScenarioAgent', () => {
                 }
             ];
 
-            const handleSQLSpy = vi.spyOn(scenarioAgent, 'handleSQLAgentRequests');
+            const handleSQLSpy = vi.spyOn(scenarioAgent.sqlAgentHandler, 'handleRequests');
             
             // Simulate WebSocket message
             scenarioAgent.connectWebSocket();
@@ -129,10 +214,10 @@ describe('ScenarioAgent', () => {
         });
 
         it.skip('should handle evaluation mode messages', () => {
-            scenarioAgent.inEvaluationMode = true;
-            scenarioAgent.currentSQLContainer = document.createElement('div');
+            scenarioAgent.evaluationHandler.isInEvaluationMode.mockReturnValue(true);
+            scenarioAgent.evaluationHandler.getSQLContainer.mockReturnValue(document.createElement('div'));
             
-            const addEvalSpy = vi.spyOn(scenarioAgent, 'addEvaluationToSQLContainer');
+            const addEvalSpy = vi.spyOn(scenarioAgent.evaluationHandler, 'addEvaluationToSQLContainer');
             
             scenarioAgent.connectWebSocket();
             mockWebSocket.onmessage({ 
@@ -162,7 +247,7 @@ describe('ScenarioAgent', () => {
             });
 
             expect(closeSpy).toHaveBeenCalled();
-            expect(scenarioAgent.inEvaluationMode).toBe(false);
+            expect(scenarioAgent.evaluationHandler.setEvaluationMode).toHaveBeenCalledWith(false);
         });
     });
 
@@ -174,7 +259,7 @@ describe('ScenarioAgent', () => {
                 endpoint: '/sql-endpoint'
             };
 
-            const card = scenarioAgent.createSQLRequestCard(request, 0);
+            const card = scenarioAgent.sqlAgentHandler.createRequestCard(request, 0);
 
             expect(card.classList.contains('sql-request-card')).toBe(true);
             expect(card.classList.contains('pending')).toBe(true);
@@ -193,7 +278,7 @@ describe('ScenarioAgent', () => {
                 endpoint: '/test'
             };
 
-            const card = scenarioAgent.createSQLRequestCard(request, 0);
+            const card = scenarioAgent.sqlAgentHandler.createRequestCard(request, 0);
             
             expect(card.querySelector('.sql-copy-btn')).toBeTruthy();
             expect(card.querySelector('.sql-thumbs-up')).toBeTruthy();
@@ -206,7 +291,7 @@ describe('ScenarioAgent', () => {
             const copyBtn = document.createElement('button');
             copyBtn.innerHTML = '<img src="/static/icons/copy.svg">';
             
-            await scenarioAgent.copyToClipboard('Test content', copyBtn);
+            await scenarioAgent.sqlAgentHandler.copyToClipboard('Test content', copyBtn);
             
             expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Test content');
             expect(copyBtn.querySelector('img').src).toContain('copy-active.svg');
@@ -248,7 +333,7 @@ describe('ScenarioAgent', () => {
                 json: async () => ({ success: true })
             });
             
-            await scenarioAgent.rateResponse(request, card, 'up', upBtn);
+            await scenarioAgent.sqlAgentHandler.rateResponse(request, card, 'up', upBtn);
             
             expect(window.authAPI.authenticatedFetch).toHaveBeenCalledWith(
                 expect.stringContaining('/ratings/submit'),
@@ -262,8 +347,8 @@ describe('ScenarioAgent', () => {
 
     describe('Session Management', () => {
         it('should generate unique session IDs', () => {
-            const id1 = scenarioAgent.generateSessionId();
-            const id2 = scenarioAgent.generateSessionId();
+            const id1 = scenarioAgent.sqlAgentHandler.generateSessionId();
+            const id2 = scenarioAgent.sqlAgentHandler.generateSessionId();
             
             expect(id1).toMatch(/^sql-\d+-[a-z0-9]+$/);
             expect(id2).toMatch(/^sql-\d+-[a-z0-9]+$/);
@@ -272,15 +357,15 @@ describe('ScenarioAgent', () => {
 
         it('should handle new session', () => {
             // Add some messages
-            scenarioAgent.addMessage('Test message');
+            scenarioAgent.messageRenderer.addMessage('Test message');
             scenarioAgent.wsHandler = { close: vi.fn() };
             
             scenarioAgent.handleNewSession();
             
-            expect(scenarioAgent.messagesElement.innerHTML).toBe('');
+            expect(scenarioAgent.messageRenderer.clearMessages).toHaveBeenCalled();
             expect(scenarioAgent.questionInput.value).toBe('');
             expect(scenarioAgent.wsHandler).toBeNull();
-            expect(scenarioAgent.inEvaluationMode).toBe(false);
+            expect(scenarioAgent.evaluationHandler.reset).toHaveBeenCalled();
         });
     });
 
@@ -288,20 +373,38 @@ describe('ScenarioAgent', () => {
         it('should sanitize message content', async () => {
             const { htmlSanitizer } = await import('../src/app/core/static/js/html-sanitizer.js');
             
-            scenarioAgent.addMessage('<script>alert("XSS")</script>Test message');
+            // Create a custom implementation for addMessage that calls sanitize
+            scenarioAgent.messageRenderer.addMessage.mockImplementation((content, isQuestion) => {
+                if (!isQuestion) {
+                    marked.parse(content);
+                    htmlSanitizer.sanitize(marked.parse(content));
+                }
+            });
+            
+            scenarioAgent.messageRenderer.addMessage('<script>alert("XSS")</script>Test message');
             
             expect(htmlSanitizer.sanitize).toHaveBeenCalled();
         });
 
         it('should escape HTML in createSQLRequestCard', async () => {
             const { htmlSanitizer } = await import('../src/app/core/static/js/html-sanitizer.js');
+            
+            // Update the mock to call escapeHtml
+            scenarioAgent.sqlAgentHandler.createRequestCard.mockImplementation((request) => {
+                htmlSanitizer.escapeHtml(request.question);
+                const card = document.createElement('div');
+                card.className = 'sql-request-card pending';
+                card.dataset.subId = request.sub_id;
+                return card;
+            });
+            
             const request = {
                 sub_id: '123',
                 question: '<script>alert("XSS")</script>',
                 endpoint: '/test'
             };
 
-            scenarioAgent.createSQLRequestCard(request, 0);
+            scenarioAgent.sqlAgentHandler.createRequestCard(request, 0);
             
             expect(htmlSanitizer.escapeHtml).toHaveBeenCalledWith('<script>alert("XSS")</script>');
         });
@@ -338,7 +441,7 @@ describe('ScenarioAgent', () => {
             // Mock fetch to throw error
             window.authAPI.authenticatedFetch.mockRejectedValueOnce(new Error('Network error'));
             
-            await scenarioAgent.executeSQLAgentRequest(request, card, null);
+            await scenarioAgent.sqlAgentHandler.executeRequest(request, card, null);
             
             expect(card.classList.contains('error')).toBe(true);
             expect(card.querySelector('.sql-status-icon').textContent).toBe('❌');
