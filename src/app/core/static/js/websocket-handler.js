@@ -121,7 +121,13 @@ export class WebSocketHandler {
         }
         
         this.retryTimeout = setTimeout(() => {
-            this._attemptConnection(resolve, reject);
+            // Check if we're closing before attempting another connection
+            if (!this.isClosing) {
+                this._attemptConnection(resolve, reject);
+            } else {
+                // If closing, resolve instead of attempting connection
+                resolve();
+            }
         }, delay);
     }
     

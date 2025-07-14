@@ -122,7 +122,16 @@ describe('WebSocketHandler', () => {
         });
         
         it('should retry on connection failure', async () => {
-            const promise = handler.connect('ws://localhost:8080/fail');
+            // Use a promise to track the connection
+            let connectionPromise;
+            const connectAndTrack = () => {
+                connectionPromise = handler.connect('ws://localhost:8080/fail');
+                // Always handle the rejection to prevent unhandled errors
+                connectionPromise.catch(() => {});
+                return connectionPromise;
+            };
+            
+            const promise = connectAndTrack();
             
             // First attempt fails (wait for initial timeout and error callback)
             await vi.advanceTimersByTimeAsync(15);
@@ -138,6 +147,8 @@ describe('WebSocketHandler', () => {
         
         it('should use exponential backoff for retries', async () => {
             const promise = handler.connect('ws://localhost:8080/fail');
+            // Handle the rejection to prevent unhandled errors
+            promise.catch(() => {});
             
             // First attempt fails immediately
             await vi.advanceTimersByTimeAsync(15);
@@ -247,9 +258,11 @@ describe('WebSocketHandler', () => {
         
         it('should reset retry counter', async () => {
             const promise = handler.connect('ws://localhost:8080/fail');
+            // Handle the rejection to prevent unhandled errors
+            promise.catch(() => {});
             
             // Let it retry a few times
-            await vi.advanceTimersByTimeAsync(10);
+            await vi.advanceTimersByTimeAsync(15);
             await vi.advanceTimersByTimeAsync(110);
             
             expect(handler.retryCount).toBeGreaterThan(0);
