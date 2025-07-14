@@ -5,7 +5,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
+        files: \.py$
       - id: ruff-format
+        files: \.py$
 
   # Basic file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks

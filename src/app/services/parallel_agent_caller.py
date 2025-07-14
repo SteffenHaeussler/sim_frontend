@@ -1,6 +1,5 @@
 import asyncio
 import os
-from typing import Dict, List, Union
 
 import httpx
 from loguru import logger
@@ -11,24 +10,24 @@ from src.app.core.scenario_schema import AgentQuery
 
 class ParallelAgentCaller:
     """Calls multiple agents in parallel"""
-    
+
     def __init__(self):
         self.config = config_service
-        
+
         # Configurable timeouts with defaults
         self.sql_agent_timeout = float(os.getenv("SQL_AGENT_TIMEOUT", "30"))
         self.tool_agent_timeout = float(os.getenv("TOOL_AGENT_TIMEOUT", "60"))
         self.default_timeout = float(os.getenv("DEFAULT_AGENT_TIMEOUT", "30"))
-        
+
         # Retry configuration
         self.max_retries = int(os.getenv("AGENT_MAX_RETRIES", "3"))
         self.retry_delay = float(os.getenv("AGENT_RETRY_DELAY", "1"))  # seconds
-    
-    async def call_agents(self, queries: List[Union[Dict, AgentQuery]], session_id: str) -> Dict:
+
+    async def call_agents(self, queries: list[dict | AgentQuery], session_id: str) -> dict:
         """Call multiple agents in parallel"""
         if not queries:
             return {}
-        
+
         # Create tasks for each query
         tasks = []
         for query in queries:
@@ -41,7 +40,7 @@ class ParallelAgentCaller:
                 agent_type = query.agent_type
                 query_text = query.query
                 sub_id = query.sub_id
-            
+
             if agent_type == "sqlagent":
                 task = self._call_sql_agent(query_text, session_id)
             elif agent_type == "toolagent":
@@ -49,111 +48,97 @@ class ParallelAgentCaller:
             else:
                 # Unknown agent type
                 task = self._create_error_result(f"Unknown agent type: {agent_type}")
-            
+
             tasks.append((sub_id, task))
-        
+
         # Execute all tasks concurrently
         results = {}
-        sub_ids_and_tasks = [(sub_id, task) for sub_id, task in tasks]
-        
+        sub_ids_and_tasks = list(tasks)
+
         # Use asyncio.gather with return_exceptions=True to handle failures
-        task_results = await asyncio.gather(
-            *[task for _, task in sub_ids_and_tasks],
-            return_exceptions=True
-        )
-        
+        task_results = await asyncio.gather(*[task for _, task in sub_ids_and_tasks], return_exceptions=True)
+
         # Map results back to sub_ids
-        for (sub_id, _), result in zip(sub_ids_and_tasks, task_results):
+        for (sub_id, _), result in zip(sub_ids_and_tasks, task_results, strict=True):
             if isinstance(result, Exception):
-                results[sub_id] = {
-                    "status": "error",
-                    "error": str(result),
-                    "result": None
-                }
+                results[sub_id] = {"status": "error", "error": str(result), "result": None}
             else:
                 results[sub_id] = result
-        
+
         return results
-    
-    async def _retry_on_failure(self, func, *args, **kwargs) -> Dict:
+
+    async def _retry_on_failure(self, func, *args, **kwargs) -> dict:
         """Retry a function call on failure with exponential backoff"""
         last_error = None
-        
+
         for attempt in range(self.max_retries):
             try:
                 result = await func(*args, **kwargs)
-                
+
                 # If successful or error is not retryable, return
                 if result["status"] == "success" or attempt == self.max_retries - 1:
                     return result
-                
+
                 # Check if error is retryable
                 error = result.get("error", "")
                 if "timed out" in error or "connect" in error.lower():
                     # Retryable error - wait before retry
-                    delay = self.retry_delay * (2 ** attempt)  # Exponential backoff
+                    delay = self.retry_delay * (2**attempt)  # Exponential backoff
                     logger.info(f"Retrying after {delay}s (attempt {attempt + 1}/{self.max_retries})")
                     await asyncio.sleep(delay)
                     last_error = error
                 else:
                     # Non-retryable error
                     return result
-                    
+
             except Exception as e:
                 last_error = str(e)
                 if attempt < self.max_retries - 1:
-                    delay = self.retry_delay * (2 ** attempt)
+                    delay = self.retry_delay * (2**attempt)
                     await asyncio.sleep(delay)
                 else:
                     logger.error(f"All retry attempts failed: {last_error}")
                     return {"status": "error", "error": last_error, "result": None}
-        
+
         return {"status": "error", "error": f"Failed after {self.max_retries} attempts: {last_error}", "result": None}
 
-    async def _call_sql_agent(self, query: str, session_id: str) -> Dict:
+    async def _call_sql_agent(self, query: str, session_id: str) -> dict:
         """Call SQL agent with timeout and retry"""
         return await self._retry_on_failure(self._call_sql_agent_once, query, session_id)
-    
-    async def _call_sql_agent_once(self, query: str, session_id: str) -> Dict:
+
+    async def _call_sql_agent_once(self, query: str, session_id: str) -> dict:
         """Single SQL agent call attempt"""
         try:
             async with httpx.AsyncClient(timeout=self.sql_agent_timeout) as client:
                 # Use the real SQL agent endpoint
                 url = self.config.get_sql_agent_api_url()
                 logger.info(f"Calling SQL agent at {url}")
-                
+
                 response = await client.get(
                     url,
                     params={"q_id": session_id, "question": query},
-                    headers={
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    }
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
                 )
-                
+
                 if response.status_code == 200:
                     return {"result": response.text, "status": "success"}
                 else:
                     logger.error(f"SQL agent returned status {response.status_code}: {response.text}")
-                    return {
-                        "status": "error", 
-                        "error": f"Agent returned status {response.status_code}",
-                        "result": None
-                    }
-                    
-        except asyncio.TimeoutError:
+                    return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
+
+        except TimeoutError:
             return {"status": "error", "error": "Request timed out", "result": None}
         except httpx.ConnectError:
             return {"status": "error", "error": "Failed to connect to SQL agent", "result": None}
         except Exception as e:
             logger.error(f"SQL agent call failed: {e}")
             return {"status": "error", "error": str(e), "result": None}
-    
-    async def _call_tool_agent(self, query: str, session_id: str) -> Dict:
+
+    async def _call_tool_agent(self, query: str, session_id: str) -> dict:
         """Call tool agent with timeout and retry"""
         return await self._retry_on_failure(self._call_tool_agent_once, query, session_id)
-    
-    async def _call_tool_agent_once(self, query: str, session_id: str) -> Dict:
+
+    async def _call_tool_agent_once(self, query: str, session_id: str) -> dict:
         """Single tool agent call attempt"""
         try:
             async with httpx.AsyncClient(timeout=self.tool_agent_timeout) as client:
@@ -161,34 +146,27 @@ class ParallelAgentCaller:
                 # This assumes the backend routes to appropriate tool based on query
                 url = self.config.get_agent_api_url()
                 logger.info(f"Calling tool agent at {url}")
-                
+
                 response = await client.get(
                     url,
                     params={"q_id": session_id, "question": query},
-                    headers={
-                        "Content-Type": "application/json",
-                        "Accept": "application/json"
-                    }
+                    headers={"Content-Type": "application/json", "Accept": "application/json"},
                 )
-                
+
                 if response.status_code == 200:
                     return {"result": response.text, "status": "success"}
                 else:
                     logger.error(f"Tool agent returned status {response.status_code}: {response.text}")
-                    return {
-                        "status": "error",
-                        "error": f"Agent returned status {response.status_code}",
-                        "result": None
-                    }
-                    
-        except asyncio.TimeoutError:
+                    return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
+
+        except TimeoutError:
             return {"status": "error", "error": "Request timed out", "result": None}
         except httpx.ConnectError:
             return {"status": "error", "error": "Failed to connect to tool agent", "result": None}
         except Exception as e:
             logger.error(f"Tool agent call failed: {e}")
             return {"status": "error", "error": str(e), "result": None}
-    
-    async def _create_error_result(self, error_message: str) -> Dict:
+
+    async def _create_error_result(self, error_message: str) -> dict:
         """Create an error result"""
         return {"status": "error", "error": error_message, "result": None}

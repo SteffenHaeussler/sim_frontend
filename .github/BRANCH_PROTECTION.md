@@ -7,6 +7,7 @@ To ensure code quality and prevent accidental pushes to main branches, configure
 For the `main` branch, enable:
 
 ### Required Status Checks
+
 - ✅ **Require status checks to pass before merging**
   - `lint` - Ruff linting must pass
   - `test-python` - All Python tests must pass
@@ -15,12 +16,14 @@ For the `main` branch, enable:
   - `security-scan` - Security scan must pass
 
 ### Pull Request Requirements
+
 - ✅ **Require pull request reviews before merging**
   - Required approving reviews: 1
   - Dismiss stale pull request approvals when new commits are pushed
   - Require review from CODEOWNERS (if configured)
 
 ### Additional Protection
+
 - ✅ **Require branches to be up to date before merging**
 - ✅ **Require conversation resolution before merging**
 - ✅ **Include administrators** (recommended for production)

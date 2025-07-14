@@ -5,13 +5,13 @@ coverage:
   precision: 2
   round: down
   range: "40...80"
-  
+
   status:
     project:
       default:
         target: 60%
         threshold: 5%
-        
+
     patch:
       default:
         target: 80%
@@ -35,7 +35,7 @@ flags:
     paths:
       - src/
     carryforward: true
-    
+
   javascript:
     paths:
       - src/app/core/static/js/

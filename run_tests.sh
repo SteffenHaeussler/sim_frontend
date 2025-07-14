@@ -63,7 +63,7 @@ done
 # Function to run Python tests
 run_python_tests() {
     echo "🐍 Running Python tests..."
-    
+
     if [ "$WITH_COVERAGE" = true ]; then
         if [ "$VERBOSE" = true ]; then
             uv run python -m pytest -v --cov-report html --cov-report term --cov=src
@@ -77,14 +77,14 @@ run_python_tests() {
             uv run python -m pytest
         fi
     fi
-    
+
     return $?
 }
 
 # Function to run JavaScript tests
 run_js_tests() {
     echo "📦 Running JavaScript tests..."
-    
+
     if [ "$WATCH_MODE" = true ]; then
         npm test -- --watch
     elif [ "$WITH_COVERAGE" = true ]; then
@@ -96,7 +96,7 @@ run_js_tests() {
             npm test -- --run 2>/dev/null
         fi
     fi
-    
+
     return $?
 }
 
@@ -130,7 +130,7 @@ if [ "$RUN_PYTHON" = true ] && [ "$RUN_JS" = true ]; then
     else
         echo "   ❌ Python tests: FAILED"
     fi
-    
+
     if [ $JS_EXIT_CODE -eq 0 ]; then
         echo "   ✅ JavaScript tests: PASSED (85 tests)"
     else
