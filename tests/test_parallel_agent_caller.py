@@ -22,9 +22,10 @@ class TestParallelAgentCaller:
         ]
 
         # Mock the agent calls
-        with patch.object(caller, "_call_sql_agent", new_callable=AsyncMock) as mock_sql, patch.object(
-            caller, "_call_tool_agent", new_callable=AsyncMock
-        ) as mock_tool:
+        with (
+            patch.object(caller, "_call_sql_agent", new_callable=AsyncMock) as mock_sql,
+            patch.object(caller, "_call_tool_agent", new_callable=AsyncMock) as mock_tool,
+        ):
             mock_sql.return_value = {"result": "SQL result", "status": "success"}
             mock_tool.return_value = {"result": "Tool result", "status": "success"}
 
@@ -49,9 +50,10 @@ class TestParallelAgentCaller:
             AgentQuery(agent_type="toolagent", query="Query 2", sub_id="rec-2"),
         ]
 
-        with patch.object(caller, "_call_sql_agent", new_callable=AsyncMock) as mock_sql, patch.object(
-            caller, "_call_tool_agent", new_callable=AsyncMock
-        ) as mock_tool:
+        with (
+            patch.object(caller, "_call_sql_agent", new_callable=AsyncMock) as mock_sql,
+            patch.object(caller, "_call_tool_agent", new_callable=AsyncMock) as mock_tool,
+        ):
             # SQL succeeds, tool fails
             mock_sql.return_value = {"result": "SQL result", "status": "success"}
             mock_tool.side_effect = Exception("Connection error")

@@ -22,8 +22,9 @@ class TestScenarioUIAuthentication:
         client = TestClient(app)
 
         # Try to connect to scenario WebSocket without authentication
-        with pytest.raises(Exception) as exc_info, client.websocket_connect(
-            "/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000"
+        with (
+            pytest.raises(Exception) as exc_info,
+            client.websocket_connect("/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000"),
         ):
             pass
 

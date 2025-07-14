@@ -16,8 +16,9 @@ class TestScenarioAuthentication:
         client = TestClient(app)
 
         # Try to connect without token - should fail
-        with pytest.raises(Exception) as exc_info, client.websocket_connect(
-            "/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000"
+        with (
+            pytest.raises(Exception) as exc_info,
+            client.websocket_connect("/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000"),
         ):
             pass
 
@@ -31,8 +32,11 @@ class TestScenarioAuthentication:
         """Test that WebSocket connection is rejected with invalid token"""
         client = TestClient(app)
 
-        with pytest.raises(Exception) as exc_info, client.websocket_connect(
-            "/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000&token=invalid-token"
+        with (
+            pytest.raises(Exception) as exc_info,
+            client.websocket_connect(
+                "/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000&token=invalid-token"
+            ),
         ):
             pass
 
@@ -118,8 +122,9 @@ class TestScenarioAuthentication:
 
         client = TestClient(app)
 
-        with pytest.raises(Exception) as exc_info, client.websocket_connect(
-            f"/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000&token={token}"
+        with (
+            pytest.raises(Exception) as exc_info,
+            client.websocket_connect(f"/ws/scenario?session_id=123e4567-e89b-12d3-a456-426614174000&token={token}"),
         ):
             pass
 
