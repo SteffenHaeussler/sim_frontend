@@ -79,19 +79,7 @@ class ResponseAnalyzer:
                 content_preview = f"Binary content ({len(response_body)} bytes)"
 
         # Determine error type from status code
-        if response.status_code >= 400:
-            if response.status_code == 401:
-                error_type = "authentication_error"
-            elif response.status_code == 403:
-                error_type = "authorization_error"
-            elif response.status_code == 404:
-                error_type = "not_found_error"
-            elif response.status_code == 422:
-                error_type = "validation_error"
-            elif response.status_code >= 500:
-                error_type = "server_error"
-            else:
-                error_type = "client_error"
+        error_type = self._get_error_type_from_status(response.status_code)
 
         return ApiResponseMetadata.create_metadata(
             usage_log_id=usage_log_id,
@@ -106,3 +94,25 @@ class ResponseAnalyzer:
             error_type=error_type,
             error_details=error_message,
         )
+
+    def _get_error_type_from_status(self, status_code: int) -> str | None:
+        """Get error type based on HTTP status code"""
+        if status_code < 400:
+            return None
+
+        error_type_map = {
+            401: "authentication_error",
+            403: "authorization_error",
+            404: "not_found_error",
+            422: "validation_error",
+        }
+
+        # Check specific status codes first
+        if status_code in error_type_map:
+            return error_type_map[status_code]
+
+        # Check ranges
+        if status_code >= 500:
+            return "server_error"
+
+        return "client_error"

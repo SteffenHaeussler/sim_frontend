@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import status
@@ -64,69 +64,92 @@ class TestAssetEndpoints:
     """Test asset-related API endpoints"""
 
     @pytest.mark.asyncio
-    async def test_get_asset_info_success(self, client, mock_httpx_client, auth_headers):
+    async def test_get_asset_info_success(self, client, auth_headers):
         """Test successful asset info retrieval"""
-        mock_client, _ = mock_httpx_client
+        with patch("src.app.services.asset_service.http_client_pool") as mock_pool:
+            # Create a mock client with async get method
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"id": "asset_001", "name": "Test Asset"}
+            mock_response.raise_for_status = MagicMock()
 
-        # Mock async client response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"id": "asset_001", "name": "Test Asset"}
-        mock_response.raise_for_status = MagicMock()
+            # Make get return the response directly (not async)
+            async def mock_get(*args, **kwargs):
+                return mock_response
 
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
+            mock_client.get = mock_get
+            mock_pool.get_client.return_value = mock_client
 
-        response = client.get("/api/asset/asset_001", headers=auth_headers)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == "asset_001"
+            response = client.get("/api/asset/asset_001", headers=auth_headers)
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["id"] == "asset_001"
+            assert data["name"] == "Test Asset"
 
     @pytest.mark.asyncio
-    async def test_get_neighbor_assets(self, client, mock_httpx_client, auth_headers):
+    async def test_get_neighbor_assets(self, client, auth_headers):
         """Test neighboring assets retrieval"""
-        mock_client, _ = mock_httpx_client
+        with patch("src.app.services.asset_service.http_client_pool") as mock_pool:
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"neighbors": ["asset_002", "asset_003"]}
+            mock_response.raise_for_status = MagicMock()
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"neighbors": ["asset_002", "asset_003"]}
-        mock_response.raise_for_status = MagicMock()
+            async def mock_get(*args, **kwargs):
+                return mock_response
 
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
+            mock_client.get = mock_get
+            mock_pool.get_client.return_value = mock_client
 
-        response = client.get("/api/neighbor/asset_001", headers=auth_headers)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "neighbors" in data
+            response = client.get("/api/neighbor/asset_001", headers=auth_headers)
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "neighbors" in data
+            assert len(data["neighbors"]) == 2
 
     @pytest.mark.asyncio
-    async def test_get_name_from_id(self, client, mock_httpx_client, auth_headers):
+    async def test_get_name_from_id(self, client, auth_headers):
         """Test asset name retrieval by ID"""
-        mock_client, _ = mock_httpx_client
+        with patch("src.app.services.asset_service.http_client_pool") as mock_pool:
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"name": "Temperature Sensor 1"}
+            mock_response.raise_for_status = MagicMock()
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"name": "Temperature Sensor 1"}
-        mock_response.raise_for_status = MagicMock()
+            async def mock_get(*args, **kwargs):
+                return mock_response
 
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
+            mock_client.get = mock_get
+            mock_pool.get_client.return_value = mock_client
 
-        response = client.get("/api/name/asset_001", headers=auth_headers)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["name"] == "Temperature Sensor 1"
+            response = client.get("/api/name/asset_001", headers=auth_headers)
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["name"] == "Temperature Sensor 1"
 
     @pytest.mark.asyncio
-    async def test_get_id_from_name(self, client, mock_httpx_client, auth_headers):
+    async def test_get_id_from_name(self, client, auth_headers):
         """Test asset ID retrieval by name"""
-        mock_client, _ = mock_httpx_client
+        with patch("src.app.services.asset_service.http_client_pool") as mock_pool:
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"id": "asset_001"}
+            mock_response.raise_for_status = MagicMock()
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"id": "asset_001"}
-        mock_response.raise_for_status = MagicMock()
+            async def mock_get(*args, **kwargs):
+                return mock_response
 
-        mock_client.return_value.__aenter__.return_value.get.return_value = mock_response
+            mock_client.get = mock_get
+            mock_pool.get_client.return_value = mock_client
 
-        response = client.get("/api/id/Temperature%20Sensor%201", headers=auth_headers)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == "asset_001"
+            response = client.get("/api/id/Temperature%20Sensor%201", headers=auth_headers)
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["id"] == "asset_001"
 
 
 class TestLookupEndpoints:
@@ -181,15 +204,21 @@ class TestErrorHandling:
     """Test error handling scenarios"""
 
     @pytest.mark.asyncio
-    async def test_external_api_failure(self, client, mock_httpx_client, auth_headers):
+    async def test_external_api_failure(self, client, auth_headers):
         """Test handling of external API failures"""
-        mock_client, _ = mock_httpx_client
+        with patch("src.app.services.asset_service.http_client_pool") as mock_pool:
+            mock_client = MagicMock()
 
-        # Mock client to raise an exception
-        mock_client.return_value.__aenter__.return_value.get.side_effect = Exception("API Error")
+            # Make get raise an exception
+            async def mock_get_error(*args, **kwargs):
+                raise Exception("API Error")
 
-        response = client.get("/api/asset/asset_001", headers=auth_headers)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "error" in data
-        assert data["asset_id"] == "asset_001"
+            mock_client.get = mock_get_error
+            mock_pool.get_client.return_value = mock_client
+
+            response = client.get("/api/asset/asset_001", headers=auth_headers)
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "error" in data
+            assert "status" in data
+            assert data["status"] == "error"

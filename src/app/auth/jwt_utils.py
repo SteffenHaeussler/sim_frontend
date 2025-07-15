@@ -5,7 +5,7 @@ from typing import Any
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
-from src.app.config import config_service
+from src.app.utils.config_helpers import config_helper
 
 
 class TokenData(BaseModel):
@@ -15,52 +15,53 @@ class TokenData(BaseModel):
     token_type: str | None = None  # Expected values: "access" or "refresh"
 
 
+def _create_token(
+    user_id: uuid.UUID,
+    email: str,
+    token_type: str,
+    expires_delta: timedelta,
+    organisation_id: uuid.UUID | None = None,
+) -> str:
+    """Base function to create JWT tokens"""
+    jwt_config = config_helper.jwt_config
+
+    to_encode = {
+        "sub": str(user_id),
+        "email": email,
+        "token_type": token_type,
+        "exp": datetime.now(UTC) + expires_delta,
+        "iat": datetime.now(UTC),
+        "jti": str(uuid.uuid4()),  # JWT ID for token tracking
+    }
+
+    if organisation_id:
+        to_encode["org_id"] = str(organisation_id)
+
+    return jwt.encode(
+        to_encode,
+        jwt_config["secret_key"],
+        algorithm=jwt_config["algorithm"],
+    )
+
+
 def create_access_token(
     user_id: uuid.UUID,
     email: str,
     organisation_id: uuid.UUID | None = None,
     expires_delta: timedelta | None = None,
 ) -> str:
-    """
-    Create JWT access token
+    """Create JWT access token"""
+    if not expires_delta:
+        jwt_config = config_helper.jwt_config
+        expires_delta = timedelta(minutes=jwt_config["access_expiration_minutes"])
 
-    Args:
-        user_id: User UUID
-        email: User email
-        organisation_id: User's organisation UUID
-        expires_delta: Custom expiration time for the access token.
-                       Defaults to JWT_ACCESS_EXPIRATION_MINUTES from config or 15 minutes.
-
-    Returns:
-        str: JWT token
-    """
-    config = config_service.get_jwt_utils()
-
-    if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
-    else:
-        access_token_expire_minutes = config.get("JWT_ACCESS_EXPIRATION_MINUTES", 15)
-        expire = datetime.now(UTC) + timedelta(minutes=access_token_expire_minutes)
-
-    to_encode = {
-        "sub": str(user_id),
-        "email": email,
-        "token_type": "access",  # Explicitly set token type
-        "exp": expire,
-        "iat": datetime.now(UTC),
-        "jti": str(uuid.uuid4()),  # JWT ID for token tracking
-    }
-
-    # Add organisation_id if provided
-    if organisation_id:
-        to_encode["org_id"] = str(organisation_id)
-
-    encoded_jwt = jwt.encode(
-        to_encode,
-        config.get("jwt_secret_key"),
-        algorithm=config.get("jwt_algorithm"),
+    return _create_token(
+        user_id=user_id,
+        email=email,
+        token_type="access",
+        expires_delta=expires_delta,
+        organisation_id=organisation_id,
     )
-    return encoded_jwt
 
 
 def create_refresh_token(
@@ -69,44 +70,18 @@ def create_refresh_token(
     organisation_id: uuid.UUID | None = None,
     expires_delta: timedelta | None = None,
 ) -> str:
-    """
-    Create JWT refresh token.
+    """Create JWT refresh token"""
+    if not expires_delta:
+        jwt_config = config_helper.jwt_config
+        expires_delta = timedelta(days=jwt_config["refresh_expiration_days"])
 
-    Args:
-        user_id: User UUID.
-        email: User email.
-        organisation_id: User's organisation UUID.
-        expires_delta: Custom expiration time for the refresh token.
-                       Defaults to JWT_REFRESH_EXPIRATION_DAYS from config or 7 days.
-
-    Returns:
-        str: JWT refresh token.
-    """
-    config = config_service.get_jwt_utils()
-
-    if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
-    else:
-        refresh_token_expire_days = config.get("JWT_REFRESH_EXPIRATION_DAYS", 7)
-        expire = datetime.now(UTC) + timedelta(days=refresh_token_expire_days)
-
-    to_encode = {
-        "sub": str(user_id),
-        "email": email,
-        "token_type": "refresh",  # Explicitly set token type
-        "exp": expire,
-        "iat": datetime.now(UTC),
-        "jti": str(uuid.uuid4()),  # JWT ID for token tracking
-    }
-    if organisation_id:
-        to_encode["org_id"] = str(organisation_id)
-
-    encoded_jwt = jwt.encode(
-        to_encode,
-        config.get("jwt_secret_key"),  # Consider using a different secret for refresh tokens
-        algorithm=config.get("jwt_algorithm"),
+    return _create_token(
+        user_id=user_id,
+        email=email,
+        token_type="refresh",
+        expires_delta=expires_delta,
+        organisation_id=organisation_id,
     )
-    return encoded_jwt
 
 
 def verify_token(token: str, expected_token_type: str) -> TokenData | None:
@@ -121,11 +96,11 @@ def verify_token(token: str, expected_token_type: str) -> TokenData | None:
         TokenData: Decoded token data or None if invalid or wrong type.
     """
     try:
-        config = config_service.get_jwt_utils()
+        jwt_config = config_helper.jwt_config
         payload = jwt.decode(
             token,
-            config.get("jwt_secret_key"),
-            algorithms=[config.get("jwt_algorithm")],
+            jwt_config["secret_key"],
+            algorithms=[jwt_config["algorithm"]],
             options={"verify_aud": False},  # No audience claim used yet
         )
 
@@ -158,11 +133,11 @@ def decode_token(token: str) -> dict[str, Any] | None:
         Dict: Decoded payload or None if invalid
     """
     try:
-        config = config_service.get_jwt_utils()
+        jwt_config = config_helper.jwt_config
         payload = jwt.decode(
             token,
-            config.get("jwt_secret_key"),
-            algorithms=[config.get("jwt_algorithm")],
+            jwt_config["secret_key"],
+            algorithms=[jwt_config["algorithm"]],
         )
         return payload
     except JWTError:

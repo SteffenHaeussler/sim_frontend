@@ -91,7 +91,8 @@ async def get_lookup_assets(
     asset_service: AssetService = Depends(get_asset_service),
 ):
     """Get all lookup assets from application state"""
-    return asset_service.get_lookup_assets(request)
+    assets = asset_service.get_lookup_assets(request)
+    return {"assets": assets, "count": len(assets)}
 
 
 @asset_router.get("/lookup/search")

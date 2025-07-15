@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 
 from loguru import logger
 
-from src.app.config import config_service
+from src.app.utils.config_helpers import config_helper
 
 
 class EmailService:
@@ -16,16 +16,14 @@ class EmailService:
     """
 
     def __init__(self):
-        self.config = config_service
-        self.smtp_server = self.config.smtp_host
-        self.smtp_port = self.config.smtp_port
-        self.smtp_username = self.config.sender_email
-        self.smtp_password = self.config.app_password
-        self.from_email = self.config.sender_email
+        smtp_config = config_helper.smtp_config
+        self.smtp_server = smtp_config["host"]
+        self.smtp_port = smtp_config["port"]
+        self.smtp_username = smtp_config["username"]
+        self.smtp_password = smtp_config["password"]
+        self.from_email = smtp_config["from_email"]
         self.from_name = "Password Reset Service"
-
-        # Check if SMTP is properly configured
-        self.is_configured = self.config.is_smtp_configured()
+        self.is_configured = smtp_config["is_configured"]
 
         if not self.is_configured:
             logger.warning("SMTP not configured. Emails will be logged instead of sent.")

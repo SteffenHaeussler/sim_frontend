@@ -18,27 +18,39 @@ class RequestAnalyzer:
 
         try:
             auth_header = request.headers.get("authorization")
-            if auth_header:
-                # Properly validate and extract Bearer token
-                parts = auth_header.split()
-                if len(parts) == 2 and parts[0].lower() == "bearer":
-                    token = parts[1]
-                    token_data = verify_token(token)
-                    if token_data and token_data.user_id:
-                        user_id = uuid.UUID(token_data.user_id)
+            if not auth_header:
+                return {"user_id": user_id, "organisation_id": organisation_id}
 
-                        if token_data.organisation_id:
-                            organisation_id = uuid.UUID(token_data.organisation_id)
-                elif len(parts) == 2:
-                    logger.debug(f"Invalid authorization scheme: {parts[0]}")
-                else:
-                    logger.debug("Invalid authorization header format")
+            user_id, organisation_id = self._parse_bearer_token(auth_header)
         except ValueError as e:
             logger.debug(f"Invalid UUID in token: {e}")
         except Exception as e:
             logger.debug(f"Auth extraction failed: {e}")
 
         return {"user_id": user_id, "organisation_id": organisation_id}
+
+    def _parse_bearer_token(self, auth_header: str) -> tuple[uuid.UUID | None, uuid.UUID | None]:
+        """Parse Bearer token from authorization header"""
+        parts = auth_header.split()
+
+        if len(parts) != 2:
+            logger.debug("Invalid authorization header format")
+            return None, None
+
+        if parts[0].lower() != "bearer":
+            logger.debug(f"Invalid authorization scheme: {parts[0]}")
+            return None, None
+
+        token = parts[1]
+        token_data = verify_token(token, expected_token_type="access")
+
+        if not token_data or not token_data.user_id:
+            return None, None
+
+        user_id = uuid.UUID(token_data.user_id)
+        organisation_id = uuid.UUID(token_data.organisation_id) if token_data.organisation_id else None
+
+        return user_id, organisation_id
 
     def extract_request_metadata(self, request: Request) -> dict[str, Any]:
         """Extract basic request metadata"""
@@ -54,54 +66,68 @@ class RequestAnalyzer:
 
     async def extract_query_and_body_data(self, request: Request) -> dict[str, Any]:
         """Extract query parameters and request body data"""
-        query_params_data = {}
+        # Get query parameters
+        query_params_data = dict(request.query_params) if request.query_params else {}
 
-        # Add URL query parameters
-        if request.query_params:
-            query_params_data.update(dict(request.query_params))
+        # Extract tracking IDs
+        tracking_ids = self._extract_tracking_ids(request, query_params_data)
 
-        # Extract tracking IDs - headers first, query params as fallback
-        session_id = request.headers.get("x-session-id") or query_params_data.get("session_id")
-        if session_id:
-            logger.debug(f"Extracted session_id: {session_id}")
-
-        event_id = request.headers.get("x-event-id") or query_params_data.get("event_id")
-
-        # Generate request_id if not provided in headers
-        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
-
-        # Add POST body data for specific endpoints
+        # Get request body data
         request_body = await request.body() if hasattr(request, "body") else b""
         request_size = len(request_body) if request_body else None
 
+        # Extract body data if POST request
         if request.method == "POST" and request_body:
-            try:
-                # Try to parse JSON body
-                if request.headers.get("content-type", "").startswith("application/json"):
-                    body_data = json.loads(request_body.decode("utf-8"))
-                    if isinstance(body_data, dict):
-                        # For semantic search, capture the query
-                        if "/lookout/semantic" in request.url.path and "query" in body_data:
-                            query_params_data["semantic_query"] = body_data["query"]
-                        # For other endpoints, capture relevant fields
-                        elif "question" in body_data:
-                            query_params_data["question"] = body_data["question"]
-                        elif "email" in body_data:
-                            query_params_data["email"] = body_data["email"]  # For auth endpoints
-            except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                logger.debug(f"Could not parse request body as JSON: {e}")
+            self._extract_post_body_data(request, request_body, query_params_data)
 
         query_params = str(query_params_data) if query_params_data else None
         template_used = request.query_params.get("template") or request.query_params.get("example")
 
         return {
-            "session_id": session_id,
-            "event_id": event_id,
-            "request_id": request_id,
+            "session_id": tracking_ids["session_id"],
+            "event_id": tracking_ids["event_id"],
+            "request_id": tracking_ids["request_id"],
             "query_params": query_params,
             "request_size": request_size,
             "template_used": template_used,
         }
+
+    def _extract_tracking_ids(self, request: Request, query_params_data: dict) -> dict[str, str]:
+        """Extract tracking IDs from headers or query params"""
+        # Headers first, query params as fallback
+        session_id = request.headers.get("x-session-id") or query_params_data.get("session_id")
+        if session_id:
+            logger.debug(f"Extracted session_id: {session_id}")
+
+        event_id = request.headers.get("x-event-id") or query_params_data.get("event_id")
+        request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+
+        return {
+            "session_id": session_id,
+            "event_id": event_id,
+            "request_id": request_id,
+        }
+
+    def _extract_post_body_data(self, request: Request, request_body: bytes, query_params_data: dict) -> None:
+        """Extract data from POST request body"""
+        if not request.headers.get("content-type", "").startswith("application/json"):
+            return
+
+        try:
+            body_data = json.loads(request_body.decode("utf-8"))
+            if not isinstance(body_data, dict):
+                return
+
+            # Extract relevant fields based on endpoint
+            if "/lookout/semantic" in request.url.path and "query" in body_data:
+                query_params_data["semantic_query"] = body_data["query"]
+            elif "question" in body_data:
+                query_params_data["question"] = body_data["question"]
+            elif "email" in body_data:
+                query_params_data["email"] = body_data["email"]  # For auth endpoints
+
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            logger.debug(f"Could not parse request body as JSON: {e}")
 
     def _get_client_ip(self, request: Request) -> str:
         """Extract client IP address from request"""
@@ -126,19 +152,25 @@ class RequestAnalyzer:
 
     def _determine_service_type(self, path: str) -> str:
         """Determine which service type is being used"""
-        if path.startswith("/agent"):
-            return "ask-agent"
-        elif path.startswith("/lookup") or path.startswith("/api"):
-            return "lookup-service"
-        elif path.startswith("/sqlagent"):
-            return "ask-sql-agent"
-        elif path.startswith("/lookout/semantic"):
-            return "semantic-search"
-        elif path.startswith("/auth"):
-            return "auth"
-        elif path.startswith("/analytics"):
-            return "analytics"
-        elif path == "/" or path.startswith("/reset-password"):
+        # Define service mappings
+        service_mappings = [
+            ("/agent", "ask-agent"),
+            ("/lookup", "lookup-service"),
+            ("/api", "lookup-service"),
+            ("/sqlagent", "ask-sql-agent"),
+            ("/lookout/semantic", "semantic-search"),
+            ("/auth", "auth"),
+            ("/analytics", "analytics"),
+            ("/reset-password", "frontend"),
+        ]
+
+        # Check each mapping
+        for prefix, service_type in service_mappings:
+            if path.startswith(prefix):
+                return service_type
+
+        # Special case for root path
+        if path == "/":
             return "frontend"
-        else:
-            return "other"
+
+        return "other"
