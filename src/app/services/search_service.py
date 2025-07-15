@@ -5,6 +5,8 @@ from loguru import logger
 
 from src.app.config import config_service
 from src.app.core.schema import SemanticRequest
+from src.app.services.http_client import http_client_pool
+from src.app.utils.error_handlers import log_and_return_error
 
 
 class SearchService:
@@ -18,37 +20,40 @@ class SearchService:
         Perform semantic search with embedding → search → ranking pipeline
         """
         if not self.config.semantic_base:
-            logger.error("semantic_base environment variable not set")
-            return {"error": "Semantic service not configured", "step": "config"}
+            return log_and_return_error(
+                ValueError("semantic_base environment variable not set"),
+                "Configuration check",
+                "Semantic service not configured",
+                step="config",
+            )
 
         logger.info(f"Starting semantic search for query: {request.query}")
 
         try:
-            async with httpx.AsyncClient() as client:
-                # Step 1: Get embedding for the query
-                embedding_data = await self._get_embedding(client, request.query)
+            client = http_client_pool.get_client()
+            # Step 1: Get embedding for the query
+            embedding_data = await self._get_embedding(client, request.query)
 
-                # Step 2: Perform search using embedding
-                search_data = await self._perform_search(client, embedding_data)
+            # Step 2: Perform search using embedding
+            search_data = await self._perform_search(client, embedding_data)
 
-                # Step 3: Rank the search results
-                ranked_result = await self._rank_results(client, request.query, search_data)
+            # Step 3: Rank the search results
+            ranked_result = await self._rank_results(client, request.query, search_data)
 
-                return ranked_result
+            return ranked_result
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Semantic API HTTP error: {e.response.status_code} - {e.response.text}")
-            return {
-                "error": f"Semantic API error: {e.response.status_code}",
-                "details": e.response.text,
-                "step": "api_call",
-            }
+            return log_and_return_error(
+                e,
+                "Semantic API HTTP error",
+                f"Semantic API error: {e.response.status_code}",
+                details=e.response.text,
+                step="api_call",
+            )
         except httpx.TimeoutException as e:
-            logger.error(f"Semantic API timeout: {e}")
-            return {"error": "Semantic API timeout", "step": "timeout"}
+            return log_and_return_error(e, "Semantic API timeout", "Semantic API timeout", step="timeout")
         except Exception as e:
-            logger.error(f"Semantic search failed: {e}")
-            return {"error": str(e), "step": "unknown"}
+            return log_and_return_error(e, "Semantic search failed", str(e), step="unknown")
 
     async def _get_embedding(self, client: httpx.AsyncClient, query: str) -> dict[str, Any]:
         """Get embedding for the query"""

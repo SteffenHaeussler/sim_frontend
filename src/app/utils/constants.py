@@ -1,0 +1,94 @@
+"""Application-wide constants to avoid magic numbers and strings"""
+
+# HTTP Status Codes
+HTTP_OK = 200
+HTTP_BAD_REQUEST = 400
+HTTP_UNAUTHORIZED = 401
+HTTP_FORBIDDEN = 403
+HTTP_NOT_FOUND = 404
+HTTP_UNPROCESSABLE_ENTITY = 422
+HTTP_INTERNAL_SERVER_ERROR = 500
+HTTP_SERVICE_UNAVAILABLE = 503
+
+# Timeouts (in seconds)
+DEFAULT_HTTP_TIMEOUT = 30.0
+SQL_AGENT_TIMEOUT = 30.0
+TOOL_AGENT_TIMEOUT = 60.0
+FIRE_AND_FORGET_TIMEOUT = 2.0
+
+# Connection Pool Settings
+MAX_KEEPALIVE_CONNECTIONS = 20
+MAX_CONNECTIONS = 100
+KEEPALIVE_EXPIRY = 30.0
+
+# Cache Settings
+QUERY_CACHE_MAX_SIZE = 100
+QUERY_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+# Database Field Lengths
+STATUS_CODE_MAX_LENGTH = 10
+USER_AGENT_MAX_LENGTH = 500
+QUERY_PARAMS_MAX_LENGTH = 1000
+TEMPLATE_NAME_MAX_LENGTH = 100
+ERROR_MESSAGE_MAX_LENGTH = 1000
+CONTENT_TYPE_MAX_LENGTH = 100
+CONTENT_PREVIEW_MAX_LENGTH = 500
+PROCESSING_STEPS_MAX_LENGTH = 1000
+ERROR_TYPE_MAX_LENGTH = 100
+FEEDBACK_TEXT_MAX_LENGTH = 1000
+MESSAGE_CONTEXT_MAX_LENGTH = 500
+NAME_MAX_LENGTH = 100
+EMAIL_MAX_LENGTH = 254  # RFC 5321
+
+# Pagination
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 100
+
+# Password Requirements
+MIN_PASSWORD_LENGTH = 8
+MAX_PASSWORD_LENGTH = 100
+
+# Token Expiration Defaults
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+PASSWORD_RESET_EXPIRE_HOURS = 24
+
+# Retry Settings
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_DELAY = 1.0  # seconds
+
+# Image Parsing
+IMAGE_MARKER = "$%$%Plot:"
+
+# Service Types
+SERVICE_TYPE_ASK_AGENT = "ask-agent"
+SERVICE_TYPE_LOOKUP = "lookup-service"
+SERVICE_TYPE_SQL_AGENT = "ask-sql-agent"
+SERVICE_TYPE_SEMANTIC = "semantic-search"
+SERVICE_TYPE_AUTH = "auth"
+SERVICE_TYPE_ANALYTICS = "analytics"
+SERVICE_TYPE_FRONTEND = "frontend"
+
+# Headers to Forward
+HEADERS_TO_FORWARD = [
+    "authorization",
+    "x-api-key",
+    "x-correlation-id",
+    "x-request-id",
+    "x-session-id",
+    "x-event-id",
+    "user-agent",
+    "accept",
+    "content-type",
+]
+
+# Email Settings
+EMAIL_FROM_NAME = "Password Reset Service"
+
+# Content Types
+CONTENT_TYPE_JSON = "application/json"
+CONTENT_TYPE_TEXT = "text/"
+CONTENT_TYPE_HTML = "text/html"
+
+# Processing Steps
+SEMANTIC_PROCESSING_STEPS = "embedding→search→ranking"

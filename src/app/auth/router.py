@@ -30,6 +30,7 @@ from src.app.models.organisation import Organisation
 from src.app.models.password_reset import PasswordReset
 from src.app.models.user import User
 from src.app.services.email_service import EmailService
+from src.app.utils.logging_utils import ServiceLogger
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -55,7 +56,7 @@ async def register(
     existing_user = result.scalar_one_or_none()
 
     if existing_user:
-        logger.warning(f"Registration attempt with existing email: {register_data.email}")
+        ServiceLogger.log_auth_event("registration_failed_duplicate", register_data.email, success=False)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
     # Get the organisation to check max_users limit
@@ -91,7 +92,7 @@ async def register(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    logger.info(f"New user registered: {new_user.email}")
+    ServiceLogger.log_auth_event("user_registered", new_user.email, success=True)
 
     # Create access token (even for inactive users, they just can't use protected endpoints)
     config = config_service.get_jwt_utils()
@@ -130,7 +131,7 @@ async def login(
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(login_data.password, user.password_hash):
-        logger.warning(f"Failed login attempt for: {login_data.email}")
+        ServiceLogger.log_auth_event("login_failed", login_data.email, success=False)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -160,13 +161,7 @@ async def login(
     )
     refresh_token_expires_in_seconds = refresh_token_expire_days * 24 * 3600
 
-    logger.info(
-        f"Login successful for {user.email}. Access token valid for {access_token_expire_minutes}m, "
-        f"Refresh token valid for {refresh_token_expire_days}d. "
-        f"Remember me flag was: {login_data.remember_me}"
-    )
-
-    logger.info(f"User logged in: {user.email}")
+    ServiceLogger.log_auth_event("user_login", user.email, success=True)
 
     return AuthResponse(
         access_token=access_token,
@@ -222,7 +217,7 @@ async def refresh_token_route(
     )
     access_token_expires_in_seconds = access_token_expire_minutes * 60
 
-    logger.info(f"New access token issued for user {token_data.email} using refresh token.")
+    ServiceLogger.log_auth_event("token_refreshed", token_data.email, success=True)
 
     # Return only new access token details.
     # Refresh token itself is not returned again here, nor are user details.
@@ -271,9 +266,7 @@ async def forgot_password(
 
         # Send password reset email - create service instance here to get current env vars
         email_service = EmailService()
-        logger.info(f"Email service configured: {email_service.is_configured}")
-        logger.info(f"SMTP server: {email_service.smtp_server}")
-        logger.info(f"SMTP username: {email_service.smtp_username}")
+        # Email service logging is handled internally
 
         await email_service.send_password_reset_email(
             to_email=user.email,
@@ -354,7 +347,7 @@ async def update_profile(
 
     await db.commit()
     await db.refresh(user)
-    logger.info(f"Profile updated for user {user.email}")
+    ServiceLogger.log_auth_event("profile_updated", user.email, success=True)
 
     return UpdateProfileResponse(
         message="Profile updated successfully",
@@ -390,6 +383,6 @@ async def delete_account(
     # Now delete the user
     await db.delete(user)
     await db.commit()
-    logger.info(f"Account deleted for user {user.email}")
+    ServiceLogger.log_auth_event("account_deleted", user.email, success=True)
 
     return DeleteAccountResponse(message="Account deleted successfully")

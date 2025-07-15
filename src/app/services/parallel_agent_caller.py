@@ -8,6 +8,9 @@ from src.app.config import config_service
 from src.app.core.scenario_schema import AgentQuery
 from src.app.services.http_client import http_client_pool
 from src.app.services.query_cache import QueryCache
+from src.app.utils.constants import HTTP_OK
+from src.app.utils.error_handlers import create_error_response
+from src.app.utils.logging_utils import log_api_call, log_api_response, log_cache_hit, log_retry
 
 
 class ParallelAgentCaller:
@@ -66,7 +69,7 @@ class ParallelAgentCaller:
         # Map results back to sub_ids
         for (sub_id, _), result in zip(sub_ids_and_tasks, task_results, strict=True):
             if isinstance(result, Exception):
-                results[sub_id] = {"status": "error", "error": str(result), "result": None}
+                results[sub_id] = create_error_response(str(result), result=None)
             else:
                 results[sub_id] = result
 
@@ -89,7 +92,7 @@ class ParallelAgentCaller:
                 if "timed out" in error or "connect" in error.lower():
                     # Retryable error - wait before retry
                     delay = self.retry_delay * (2**attempt)  # Exponential backoff
-                    logger.info(f"Retrying after {delay}s (attempt {attempt + 1}/{self.max_retries})")
+                    log_retry(attempt + 1, self.max_retries, delay, error)
                     await asyncio.sleep(delay)
                     last_error = error
                 else:
@@ -103,9 +106,9 @@ class ParallelAgentCaller:
                     await asyncio.sleep(delay)
                 else:
                     logger.error(f"All retry attempts failed: {last_error}")
-                    return {"status": "error", "error": last_error, "result": None}
+                    return create_error_response(last_error, result=None)
 
-        return {"status": "error", "error": f"Failed after {self.max_retries} attempts: {last_error}", "result": None}
+        return create_error_response(f"Failed after {self.max_retries} attempts: {last_error}", result=None)
 
     async def _call_sql_agent(self, query: str, session_id: str) -> dict:
         """Call SQL agent with timeout and retry"""
@@ -116,14 +119,14 @@ class ParallelAgentCaller:
         # Check cache first
         cached_result = self.cache.get(query, "sql_agent")
         if cached_result:
-            logger.info(f"Cache hit for SQL agent query: {query[:50]}...")
+            log_cache_hit("SQL agent", query)
             return cached_result
 
         try:
             client = http_client_pool.get_client()
             # Use the real SQL agent endpoint
             url = self.config.get_sql_agent_api_url()
-            logger.info(f"Calling SQL agent at {url}")
+            log_api_call("SQL agent", url, q_id=session_id, question=query)
 
             response = await client.get(
                 url,
@@ -132,22 +135,22 @@ class ParallelAgentCaller:
                 timeout=self.sql_agent_timeout,
             )
 
-            if response.status_code == 200:
+            if response.status_code == HTTP_OK:
                 result = {"result": response.text, "status": "success"}
                 # Cache successful results
                 self.cache.set(query, "sql_agent", result)
                 return result
             else:
-                logger.error(f"SQL agent returned status {response.status_code}: {response.text}")
-                return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
+                log_api_response("SQL agent", response.status_code)
+                return create_error_response(f"Agent returned status {response.status_code}", result=None)
 
         except TimeoutError:
-            return {"status": "error", "error": "Request timed out", "result": None}
+            return create_error_response("Request timed out", result=None)
         except httpx.ConnectError:
-            return {"status": "error", "error": "Failed to connect to SQL agent", "result": None}
+            return create_error_response("Failed to connect to SQL agent", result=None)
         except Exception as e:
             logger.error(f"SQL agent call failed: {e}")
-            return {"status": "error", "error": str(e), "result": None}
+            return create_error_response(str(e), result=None)
 
     async def _call_tool_agent(self, query: str, session_id: str) -> dict:
         """Call tool agent with timeout and retry"""
@@ -158,7 +161,7 @@ class ParallelAgentCaller:
         # Check cache first
         cached_result = self.cache.get(query, "tool_agent")
         if cached_result:
-            logger.info(f"Cache hit for tool agent query: {query[:50]}...")
+            log_cache_hit("tool agent", query)
             return cached_result
 
         try:
@@ -166,7 +169,7 @@ class ParallelAgentCaller:
             # Use the general agent endpoint for tool agent
             # This assumes the backend routes to appropriate tool based on query
             url = self.config.get_agent_api_url()
-            logger.info(f"Calling tool agent at {url}")
+            log_api_call("tool agent", url, q_id=session_id, question=query)
 
             response = await client.get(
                 url,
@@ -175,23 +178,23 @@ class ParallelAgentCaller:
                 timeout=self.tool_agent_timeout,
             )
 
-            if response.status_code == 200:
+            if response.status_code == HTTP_OK:
                 result = {"result": response.text, "status": "success"}
                 # Cache successful results
                 self.cache.set(query, "tool_agent", result)
                 return result
             else:
-                logger.error(f"Tool agent returned status {response.status_code}: {response.text}")
-                return {"status": "error", "error": f"Agent returned status {response.status_code}", "result": None}
+                log_api_response("tool agent", response.status_code)
+                return create_error_response(f"Agent returned status {response.status_code}", result=None)
 
         except TimeoutError:
-            return {"status": "error", "error": "Request timed out", "result": None}
+            return create_error_response("Request timed out", result=None)
         except httpx.ConnectError:
-            return {"status": "error", "error": "Failed to connect to tool agent", "result": None}
+            return create_error_response("Failed to connect to tool agent", result=None)
         except Exception as e:
             logger.error(f"Tool agent call failed: {e}")
-            return {"status": "error", "error": str(e), "result": None}
+            return create_error_response(str(e), result=None)
 
     async def _create_error_result(self, error_message: str) -> dict:
         """Create an error result"""
-        return {"status": "error", "error": error_message, "result": None}
+        return create_error_response(error_message, result=None)
