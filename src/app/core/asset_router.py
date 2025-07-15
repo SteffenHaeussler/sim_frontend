@@ -46,42 +46,46 @@ async def analyze_scenario(
 
 @asset_router.get("/api/asset/{asset_id}")
 async def get_asset_info(
+    request: Request,
     asset_id: str,
     _token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service),
 ):
     """Get asset information by asset ID"""
-    return await asset_service.get_asset_info(asset_id)
+    return await asset_service.get_asset_info(asset_id, request)
 
 
 @asset_router.get("/api/neighbor/{asset_id}")
 async def get_neighbor_assets(
+    request: Request,
     asset_id: str,
     _token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service),
 ):
     """Get neighboring assets by asset ID"""
-    return await asset_service.get_neighbor_assets(asset_id)
+    return await asset_service.get_neighbor_assets(asset_id, request)
 
 
 @asset_router.get("/api/name/{asset_id}")
 async def get_name_from_id(
+    request: Request,
     asset_id: str,
     _token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service),
 ):
     """Get asset name from asset ID"""
-    return await asset_service.get_name_from_id(asset_id)
+    return await asset_service.get_name_from_id(asset_id, request)
 
 
 @asset_router.get("/api/id/{name}")
 async def get_id_from_name(
+    request: Request,
     name: str,
     _token_data=Depends(verify_token_only),
     asset_service: AssetService = Depends(get_asset_service),
 ):
     """Get asset ID from asset name"""
-    return await asset_service.get_id_from_name(name)
+    return await asset_service.get_id_from_name(name, request)
 
 
 @asset_router.get("/lookup/assets")

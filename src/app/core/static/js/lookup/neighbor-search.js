@@ -46,13 +46,26 @@ class NeighborSearch {
       return;
     }
 
+    // Clear previous results and show loading state
+    if (this.neighborResults) {
+      this.neighborResults.innerHTML = `
+        <div class="neighbor-placeholder">
+          Loading neighbors for ${assetId}...
+        </div>
+      `;
+    }
+
     try {
       // Make API call to neighbor endpoint
       const trackingHeaders = window.app ? window.app.getTrackingHeaders() : {};
       const response = await window.authAPI.authenticatedFetch(
-        `/api/neighbor/${encodeURIComponent(assetId)}`,
+        `/api/neighbor/${encodeURIComponent(assetId)}?t=${Date.now()}`,
         {
-          headers: trackingHeaders,
+          headers: {
+            ...trackingHeaders,
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
         },
       );
       const data = await response.json();

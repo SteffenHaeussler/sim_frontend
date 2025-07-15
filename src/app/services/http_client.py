@@ -26,7 +26,8 @@ class HTTPClientPool:
                     keepalive_expiry=KEEPALIVE_EXPIRY,
                 ),
                 timeout=httpx.Timeout(DEFAULT_HTTP_TIMEOUT),
-                http2=True,
+                http2=False,  # Disable HTTP/2 as h2 package is not installed
+                follow_redirects=True,  # Automatically follow redirects
             )
         return self._client
 
