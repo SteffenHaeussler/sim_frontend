@@ -9,6 +9,9 @@ jobs:
     name: Auto Approve PRs from Owner
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == github.repository_owner
+    permissions:
+      pull-requests: write
+      contents: read
 
     steps:
       - name: Auto approve
