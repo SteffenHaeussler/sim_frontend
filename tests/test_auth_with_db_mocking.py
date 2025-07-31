@@ -222,3 +222,190 @@ class TestAuthEndpointsWithMocking:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Invalid or expired" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_logout_success(self, client_with_mocked_db, auth_headers):
+        """Test successful user logout"""
+        response = client_with_mocked_db.post("/auth/logout", headers=auth_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["message"] == "Successfully logged out"
+
+    @pytest.mark.asyncio
+    async def test_logout_without_auth(self, client_with_mocked_db):
+        """Test logout without authentication token"""
+        response = client_with_mocked_db.post("/auth/logout")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_success(self, client_with_mocked_db, mock_db_session):
+        """Test successful token refresh"""
+        with (
+            patch("src.app.auth.jwt_utils.verify_token") as mock_verify_token,
+            patch("src.app.auth.router.create_access_token") as mock_create_access,
+            patch("src.app.auth.router.config_service") as mock_config_service,
+        ):
+            # Mock token verification
+            import uuid
+
+            from src.app.auth.jwt_utils import TokenData
+
+            test_user_id = str(uuid.uuid4())
+            test_org_id = str(uuid.uuid4())
+            mock_token_data = TokenData(user_id=test_user_id, email="test@example.com", organisation_id=test_org_id)
+            mock_verify_token.return_value = mock_token_data
+
+            # Mock config
+            mock_config_service.get_jwt_utils.return_value = {"JWT_ACCESS_EXPIRATION_MINUTES": 15}
+
+            # Mock new access token creation
+            mock_create_access.return_value = "new_access_token"
+
+            refresh_data = {"refresh_token": "valid_refresh_token"}
+
+            response = client_with_mocked_db.post("/auth/refresh_token", json=refresh_data)
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "access_token" in data
+            assert data["access_token"] == "new_access_token"
+            assert data["user_email"] == "test@example.com"
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_invalid(self, client_with_mocked_db, mock_db_session):
+        """Test refresh token with invalid token"""
+        with patch("src.app.auth.jwt_utils.verify_token") as mock_verify_token:
+            mock_verify_token.return_value = None  # Invalid token
+
+            refresh_data = {"refresh_token": "invalid_refresh_token"}
+
+            response = client_with_mocked_db.post("/auth/refresh_token", json=refresh_data)
+
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.asyncio
+    async def test_update_profile_success(self, client_with_mocked_db, mock_db_session, mock_user):
+        """Test successful profile update"""
+        with (
+            patch("src.app.auth.dependencies.verify_token") as mock_verify_token,
+            patch("src.app.auth.router._get_user_by_token") as mock_get_user,
+        ):
+            # Create TokenData with proper UUID
+            from src.app.auth.jwt_utils import TokenData
+
+            mock_verify_token.return_value = TokenData(
+                user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id)
+            )
+
+            # Mock database user lookup for require_active_user
+            user_result = MagicMock()
+            user_result.scalar_one_or_none.return_value = mock_user
+            mock_db_session.execute.return_value = user_result
+
+            # Mock _get_user_by_token helper
+            mock_get_user.return_value = mock_user
+
+            profile_data = {"first_name": "Updated", "last_name": "Name"}
+
+            headers = {"Authorization": "Bearer valid_token"}
+            response = client_with_mocked_db.put("/auth/profile", json=profile_data, headers=headers)
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["message"] == "Profile updated successfully"
+            assert data["first_name"] == "Updated"
+            assert data["last_name"] == "Name"
+            assert mock_db_session.commit.called
+
+    @pytest.mark.asyncio
+    async def test_update_profile_without_auth(self, client_with_mocked_db):
+        """Test profile update without authentication"""
+        profile_data = {"first_name": "Updated", "last_name": "Name"}
+
+        response = client_with_mocked_db.put("/auth/profile", json=profile_data)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.asyncio
+    async def test_delete_account_success(self, app_with_mocked_db, mock_db_session, mock_user):
+        """Test successful account deletion"""
+        from src.app.auth.dependencies import require_active_user
+        from src.app.auth.jwt_utils import TokenData
+
+        # Create token data
+        token_data = TokenData(
+            user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id)
+        )
+
+        # Override the authentication dependency
+        app_with_mocked_db.dependency_overrides[require_active_user] = lambda: token_data
+
+        with patch("src.app.auth.router.verify_password") as mock_verify_password:
+            # Mock database user lookup
+            user_result = MagicMock()
+            user_result.scalar_one_or_none.return_value = mock_user
+
+            # Mock the ratings query
+            ratings_result = MagicMock()
+            ratings_result.scalars.return_value.all.return_value = []
+
+            mock_db_session.execute.side_effect = [user_result, ratings_result]
+            mock_verify_password.return_value = True
+
+            delete_data = {"password": "correct_password"}
+
+            # Create client after overrides are set
+            from fastapi.testclient import TestClient
+
+            client = TestClient(app_with_mocked_db)
+
+            response = client.request("DELETE", "/auth/account", json=delete_data)
+
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["message"] == "Account deleted successfully"
+            assert mock_db_session.commit.called
+
+    @pytest.mark.asyncio
+    async def test_delete_account_wrong_password(self, app_with_mocked_db, mock_db_session, mock_user):
+        """Test account deletion with wrong password"""
+        from src.app.auth.dependencies import require_active_user
+        from src.app.auth.jwt_utils import TokenData
+
+        # Create token data
+        token_data = TokenData(
+            user_id=str(mock_user.id), email=mock_user.email, organisation_id=str(mock_user.organisation_id)
+        )
+
+        # Override the authentication dependency
+        app_with_mocked_db.dependency_overrides[require_active_user] = lambda: token_data
+
+        with patch("src.app.auth.router.verify_password") as mock_verify_password:
+            # Mock database user lookup
+            user_result = MagicMock()
+            user_result.scalar_one_or_none.return_value = mock_user
+            mock_db_session.execute.return_value = user_result
+
+            mock_verify_password.return_value = False  # Wrong password
+
+            delete_data = {"password": "wrong_password"}
+
+            # Create client after overrides are set
+            from fastapi.testclient import TestClient
+
+            client = TestClient(app_with_mocked_db)
+
+            response = client.request("DELETE", "/auth/account", json=delete_data)
+
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            assert "Invalid password" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_delete_account_without_auth(self, client_with_mocked_db):
+        """Test account deletion without authentication"""
+        delete_data = {"password": "any_password"}
+
+        response = client_with_mocked_db.request("DELETE", "/auth/account", json=delete_data)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
