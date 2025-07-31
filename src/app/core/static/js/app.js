@@ -382,14 +382,14 @@ class App {
 
       // Add scenario templates
       const scenarioTemplates = [
-        "Analyze the performance of distillation column DC-101 over the last month",
-        "What are the critical parameters for Tank Farm operations today?",
-        "Investigate the root cause of pressure fluctuations in the reactor system",
-        "Compare production efficiency across all processing units this week",
-        "Identify potential maintenance issues in the cooling system",
-        "Analyze energy consumption patterns across the plant",
-        "What are the optimal operating conditions for maximizing yield?",
-        "Investigate correlations between temperature and pressure in the process",
+        "How does our sales performance differ between Q1 and Q2 2025?",
+        "How does our revenue performance vary across different time periods?",
+        "How does sales performance and product preference differ across geographic regions?",
+        "Who are our most valuable customers and what are their buying habits?",
+        "How efficient is our order fulfillment and delivery process?",
+        "What are the characteristics of orders that get returned?",
+        "What are the key attributes of a 'high-value' order?",
+        "How does seasonality affect our sales, product mix, and shipping load?",
       ];
 
       scenarioTemplates.forEach((templateText) => {
