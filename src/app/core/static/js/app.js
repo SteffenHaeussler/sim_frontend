@@ -416,12 +416,12 @@ class App {
       // Add ask-agent templates
       const templates = [
         "What is the daily maximum value of PI-P0017 for the last two weeks?",
-        "How much was produced in the first two weeks of 2025?",
-        "Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?",
-        "What is the current pressure in the distillation?",
+        "How much was produced in the last two weeks?",
+        "Can you plot me the level in Tank A and Tank B for July?",
+        "What is the pressure in the distillation for the last two hours?",
         "Can you plot me the temperature of the distillation cooler A for the last two weeks?",
         "What is the level in Tank B?",
-        "What is the id of TI-T0022?",
+        "Can you plot me data for 18b04353-839d-40a1-84c1-9b547d09dd80 in Febuary?",
         "What assets are next to Asset BA100?",
       ];
 
